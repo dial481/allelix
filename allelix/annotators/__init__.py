@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 dial481
+"""Annotator registry. Unlike parsers, ALL annotators run on every variant."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from allelix.annotators.base import Annotator
+from allelix.annotators.clinvar import CLINVAR_SUPPORTED_BUILDS, ClinVarAnnotator
+from allelix.annotators.gwas import GWASCatalogAnnotator
+from allelix.annotators.pharmgkb import PharmGKBAnnotator
+from allelix.annotators.snpedia import SNPediaAnnotator
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+def get_annotators(
+    data_dir: Path,
+    clinvar_builds: tuple[str, ...] = CLINVAR_SUPPORTED_BUILDS,
+    *,
+    include_benign: bool = False,
+    gwas_filter_traits: bool = True,
+) -> list[Annotator]:
+    """Construct all registered annotators bound to the given data directory.
+
+    `clinvar_builds` selects which ClinVar builds are managed by this
+    process. Default is both GRCh37 and GRCh38 (per ADR-0021). The CLI
+    narrows it via `db update --build grch37|grch38`.
+
+    `include_benign` passes through to ClinVarAnnotator. Default False
+    suppresses Benign/Likely_benign annotations (ADR-0008 amendment).
+
+    `gwas_filter_traits` passes through to GWASCatalogAnnotator. Default
+    True excludes common-trait noise categories (ADR-0024 amendment).
+
+    ADR-0023: ClinVar's `reference_for(rsid, build)` is wired into
+    PharmGKB and SNPedia as the primary hom-ref suppression filter — the
+    REF allele lookup universally determines whether the user is
+    homozygous reference (and thus a non-finding for that variant).
+    """
+    clinvar = ClinVarAnnotator(data_dir, builds=clinvar_builds, include_benign=include_benign)
+    pharmgkb = PharmGKBAnnotator(data_dir, clinvar_ref_provider=clinvar.reference_for)
+    gwas = GWASCatalogAnnotator(data_dir, filter_traits=gwas_filter_traits)
+    snpedia = SNPediaAnnotator(data_dir, clinvar_ref_provider=clinvar.reference_for)
+    return [clinvar, pharmgkb, gwas, snpedia]
+
+
+__all__ = [
+    "Annotator",
+    "ClinVarAnnotator",
+    "GWASCatalogAnnotator",
+    "PharmGKBAnnotator",
+    "SNPediaAnnotator",
+    "get_annotators",
+]

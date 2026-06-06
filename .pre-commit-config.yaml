@@ -1,0 +1,35 @@
+# Allelix pre-commit / pre-push hooks
+#
+# Install once after cloning:
+#   pip install -e ".[dev]"
+#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#
+# `language: system` means hooks run via PATH — works as long as your
+# venv (which contains ruff and pytest) is activated.
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: ruff-format
+        name: ruff format --check
+        entry: ruff format --check
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: pytest
+        name: pytest (fast suite, skips @slow real-data tests)
+        entry: pytest -m "not slow"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

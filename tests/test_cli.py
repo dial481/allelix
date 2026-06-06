@@ -1,0 +1,1382 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 dial481
+"""End-to-end tests for the CLI."""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
+from click.testing import CliRunner
+
+from allelix.cli import main
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+class TestStatsCommand:
+    def test_stats_runs_on_fixture(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(mock_mhg_path)])
+        assert result.exit_code == 0, result.output
+        assert "MyHappyGenes" in result.output
+        assert "Total SNPs" in result.output
+        assert "MHG000001" in result.output
+
+    def test_stats_with_explicit_format(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(mock_mhg_path), "--format", "myhappygenes"])
+        assert result.exit_code == 0, result.output
+
+    def test_stats_counts_match_fixture_exactly(self, mock_mhg_path):
+        """C-3: pin specific numeric counts so a `+= 0` mutation fails the suite."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(main, ["stats", str(mock_mhg_path)])
+        assert result.exit_code == 0, result.output
+        # Generated mock fixture (Round 23 / ADR-0021: rs104894490 NIPA1 added):
+        #   2,016 SNPs / 103 no-call (5.11%) / 563 het (27.93%) / 1,350 hom (66.96%).
+        assert "2,016" in result.output
+        assert "5.11%" in result.output
+        assert "27.93%" in result.output
+        assert "66.96%" in result.output
+        assert "1,350" in result.output
+
+    def test_stats_count_invariant(self, mock_mhg_path):
+        """Belt-and-braces: parser-level counts add up. Catches mutations directly."""
+        from allelix.parsers import detect_parser
+
+        parser = detect_parser(mock_mhg_path)
+        total = no_calls = het = hom = 0
+        for v in parser.parse(mock_mhg_path):
+            total += 1
+            if v.is_no_call:
+                no_calls += 1
+            elif v.is_heterozygous:
+                het += 1
+            else:
+                hom += 1
+        assert total == no_calls + het + hom
+        assert (total, no_calls, het, hom) == (2016, 103, 563, 1350)
+
+    def test_stats_unknown_format_errors(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(mock_mhg_path), "--format", "nonsense"])
+        assert result.exit_code != 0
+        assert "Unknown parser" in result.output
+
+    def test_stats_unrecognized_file_errors(self, tmp_path):
+        f = tmp_path / "garbage.txt"
+        f.write_text("hello world\n", encoding="utf-8")
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(f)])
+        assert result.exit_code != 0
+        assert "No parser recognized" in result.output
+
+    def test_stats_missing_file_errors(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(tmp_path / "missing.txt")])
+        assert result.exit_code != 0
+
+
+class TestSkippedLineReporting:
+    """Pin C3: malformed lines must surface to the user, not vanish silently."""
+
+    def _dirty_file(self, tmp_path):
+        f = tmp_path / "dirty.txt"
+        f.write_text(
+            "# MyHappyGenes [TEMPUS]\n"
+            "# Sample ID\tMHG_X\n"
+            "SNP Name\tChr\tPosition\tAllele1 - Forward\tAllele2 - Forward\n"
+            "rs1\t1\t100\tA\tG\n"
+            "junk\n"
+            "rs2\t2\tBAD\tA\tG\n",
+            encoding="utf-8",
+        )
+        return f
+
+    def test_stats_reports_skipped_lines(self, tmp_path):
+        f = self._dirty_file(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(f)])
+        assert result.exit_code == 0, result.output
+        assert "Skipped (malformed)" in result.output
+        assert "warning:" in result.stderr
+        assert "Line 5" in result.stderr  # the "junk" line
+        assert "Line 6" in result.stderr  # the BAD position line
+
+    def test_stats_no_skipped_row_when_clean(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(mock_mhg_path)])
+        assert result.exit_code == 0, result.output
+        assert "Skipped (malformed)" not in result.output
+        assert result.stderr == ""
+
+    def test_stats_restores_logger_state(self, tmp_path):
+        """m12/m13: do not leak logger level or propagate setting across calls."""
+        f = self._dirty_file(tmp_path)
+        parser_logger = logging.getLogger("allelix.parsers")
+        prev_level = parser_logger.level
+        prev_propagate = parser_logger.propagate
+        prev_handler_count = len(parser_logger.handlers)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(f)])
+        assert result.exit_code == 0
+
+        assert parser_logger.level == prev_level
+        assert parser_logger.propagate == prev_propagate
+        assert len(parser_logger.handlers) == prev_handler_count
+
+
+class TestAnalyzeCommand:
+    def test_errors_when_no_annotators_ready(self, mock_mhg_path, tmp_path: Path):
+        runner = CliRunner()
+        empty_dir = tmp_path / "empty"
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_path), "--data-dir", str(empty_dir)],
+        )
+        assert result.exit_code != 0
+        assert "db update" in result.output
+
+    def test_analyze_renders_known_pathogenic(self, mock_mhg_path, clinvar_data_dir: Path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_path), "--data-dir", str(clinvar_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        # MTHFR C677T is heterozygous in the mock fixture and Pathogenic in mock ClinVar
+        assert "rs1801133" in result.output
+        assert "MTHFR" in result.output
+        assert "ClinVar" in result.output
+        assert "clinvar_pathogenic" in result.output
+
+    def test_analyze_does_not_flag_homozygous_reference(
+        self, mock_mhg_path, clinvar_data_dir: Path
+    ):
+        # rs121918506 is REF=G ALT=T Pathogenic in mock ClinVar; mock MHG has G/G
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_path), "--data-dir", str(clinvar_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        assert "rs121918506" not in result.output
+
+    def test_analyze_uses_env_var_data_dir(self, mock_mhg_path, clinvar_data_dir: Path):
+        """M-5: default data-dir resolution via $ALLELIX_DATA_DIR works in the CLI."""
+        runner = CliRunner(env={"COLUMNS": "200", "ALLELIX_DATA_DIR": str(clinvar_data_dir)})
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path)])
+        assert result.exit_code == 0, result.output
+        assert "rs1801133" in result.output
+
+    def test_analyze_warns_on_build_header_data_mismatch(
+        self, mock_mhg_mislabeled_path, clinvar_data_dir: Path
+    ):
+        """ADR-0021 end-to-end: file header claims GRCh37 but positions are
+        GRCh38 (replicating the real MyHappyGenes/Tempus mislabel).
+        `allelix analyze` must (a) detect GRCh38 from positions, (b) print
+        the build mismatch warning, (c) annotate against the GRCh38 cache.
+        """
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_mislabeled_path), "--data-dir", str(clinvar_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Build mismatch" in result.output
+        assert "header claims GRCh37" in result.output
+        assert "position data is GRCh38" in result.output
+        assert "Using GRCh38" in result.output
+
+    def test_analyze_no_warning_on_clean_grch37(
+        self, mock_mhg_grch37_path, clinvar_data_dir: Path
+    ):
+        """ADR-0021: a file whose header and positions both agree on GRCh37
+        triggers no warning. Detection silently confirms.
+        """
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_grch37_path), "--data-dir", str(clinvar_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Build mismatch" not in result.output
+        # The dim build banner still appears.
+        assert "Build: GRCh37" in result.output
+
+    def test_analyze_build_override_skips_detection(
+        self, mock_mhg_mislabeled_path, clinvar_data_dir: Path
+    ):
+        """`--build grch37` forces the build and silences the mismatch
+        warning, even on the deliberately-mislabeled fixture.
+        """
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_mislabeled_path),
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--build",
+                "grch37",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Build mismatch" not in result.output
+        assert "Build: GRCh37 (override" in result.output
+
+    def test_analyze_unknown_format_errors(self, mock_mhg_path, clinvar_data_dir: Path):
+        """M-5: cover the ParserNotFoundError branch in analyze."""
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--format",
+                "nonsense",
+            ],
+        )
+        assert result.exit_code != 0
+        assert "Unknown parser" in result.output
+
+    def test_analyze_reports_skipped_lines_on_dirty_input(
+        self, tmp_path: Path, clinvar_data_dir: Path
+    ):
+        """M-5: malformed-line warnings surface in the analyze command too."""
+        f = tmp_path / "dirty.txt"
+        f.write_text(
+            "# MyHappyGenes [TEMPUS]\n"
+            "# Sample ID\tMHG_X\n"
+            "SNP Name\tChr\tPosition\tAllele1 - Forward\tAllele2 - Forward\n"
+            "rs1801133\t1\t11796321\tG\tA\n"
+            "this_is_garbage\n",
+            encoding="utf-8",
+        )
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(main, ["analyze", str(f), "--data-dir", str(clinvar_data_dir)])
+        assert result.exit_code == 0, result.output
+        assert "1 malformed line" in result.output
+        assert "warning:" in result.stderr
+
+    def test_analyze_with_both_annotators(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """End-to-end with ClinVar + PharmGKB both ready: rsids fire from each source."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_path), "--data-dir", str(all_annotators_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        # ClinVar pathogenic
+        assert "clinvar_pathogenic" in result.output
+        # PharmGKB pharmacogenomic (rs1801133 + AG triggers PharmGKB LoE 2A)
+        assert "pharmgkb_loe_2a" in result.output
+        # Both attribution labels present
+        assert "ClinVar" in result.output
+        assert "PharmGKB" in result.output
+        # Summary line shows 3 databases
+        assert "3 database" in result.output
+
+    def test_min_magnitude_filter(self, mock_mhg_path, clinvar_data_dir: Path):
+        # rs1801394 (MTRR) is Likely_benign (mag 2.0); should drop above threshold
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--min-magnitude",
+                "5",
+                "--include-benign",
+            ],
+        )
+        assert result.exit_code == 0
+        assert "rs1801394" not in result.output
+
+    def test_benign_suppressed_by_default(self, mock_mhg_path, clinvar_data_dir: Path):
+        """ADR-0008 amendment: Benign/Likely_benign are excluded by default."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--min-magnitude",
+                "0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "rs1801394" not in result.output
+
+    def test_include_benign_flag(self, mock_mhg_path, clinvar_data_dir: Path):
+        """--include-benign restores Benign/Likely_benign annotations."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--min-magnitude",
+                "0",
+                "--include-benign",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "rs1801394" in result.output
+
+    def test_gwas_min_magnitude_default(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """Default --gwas-min-magnitude 9.0 filters all mock GWAS rows (max is 8.0)."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        # All mock GWAS rows are < 9.0 (max is Breast cancer at 8.0)
+        assert "Pain sensitivity" not in result.output
+        assert "Breast cancer" not in result.output
+        assert "Homocysteine levels" not in result.output
+
+    def test_gwas_min_magnitude_lowered(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """--gwas-min-magnitude 7.0 lets mag-8 GWAS rows through."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "0",
+                "--gwas-min-magnitude",
+                "7.0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        # Breast cancer (p=5e-30, OR=4.2 → mag 8.0) passes floor 7.0
+        assert "Breast cancer" in result.output
+        # Pain sensitivity (p=3e-9 → mag 6.0) still filtered
+        assert "Pain sensitivity" not in result.output
+
+
+class TestDbCommands:
+    def test_status_with_empty_dir(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["db", "status", "--data-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "ClinVar" in result.output
+        assert "no" in result.output  # not ready
+
+    def test_status_with_populated_dir(self, clinvar_data_dir: Path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(main, ["db", "status", "--data-dir", str(clinvar_data_dir)])
+        assert result.exit_code == 0
+        assert "ClinVar" in result.output
+        assert "yes" in result.output
+        assert "20260101" in result.output  # m-6: version from VCF ##fileDate
+        # ADR-0021: clinvar_data_dir populates both build caches.
+        # 13 records per build x 2 builds = 26 composite total.
+        assert "26" in result.output
+
+    def test_db_update_with_file_url(
+        self,
+        tmp_path: Path,
+        mock_clinvar_vcf: Path,
+        mock_pharmgkb_dir: Path,
+        mock_cpic_lookup: dict[tuple[str, str], str],
+        mock_gwas_tsv: Path,
+        monkeypatch,
+    ):
+        """M-3: download+ingest path runs end-to-end against file:// URLs.
+
+        All annotators must succeed — `db update` iterates the whole registry,
+        so each needs a local URL or the loop fails before completion.
+        """
+        import zipfile
+        from urllib.request import pathname2url
+
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+        from allelix.annotators.clinvar import clinvar_db_filename, clinvar_record_name
+        from allelix.databases import manager as manager_module
+        from allelix.databases.gwas_loader import GWAS_DB_FILENAME
+        from allelix.databases.manager import get_database_info
+
+        # ADR-0021: per-build URL map. Point both builds at the same local
+        # mock VCF so db update can populate either cache from one fixture.
+        clinvar_url = f"file:{pathname2url(str(mock_clinvar_vcf.resolve()))}"
+        monkeypatch.setattr(
+            manager_module,
+            "CLINVAR_URL_BY_BUILD",
+            {"GRCh37": clinvar_url, "GRCh38": clinvar_url},
+        )
+
+        pharmgkb_zip = tmp_path / "fixture_clinical_annotations.zip"
+        with zipfile.ZipFile(pharmgkb_zip, "w") as zf:
+            for f in mock_pharmgkb_dir.iterdir():
+                zf.write(f, arcname=f.name)
+        pharmgkb_url = f"file:{pathname2url(str(pharmgkb_zip.resolve()))}"
+        monkeypatch.setattr(pharmgkb_module, "PHARMGKB_CLINICAL_URL", pharmgkb_url)
+
+        # C-1: never hit the real CPIC API from the test suite. The annotator
+        # imports fetch_cpic_allele_functions by name, so patching it on the
+        # pharmgkb module is what setup() actually resolves at call time.
+        monkeypatch.setattr(
+            pharmgkb_module,
+            "fetch_cpic_allele_functions",
+            lambda: dict(mock_cpic_lookup),
+        )
+
+        gwas_zip = tmp_path / "fixture_gwas_catalog.zip"
+        with zipfile.ZipFile(gwas_zip, "w") as zf:
+            zf.write(mock_gwas_tsv, arcname="gwas_catalog_associations.tsv")
+        gwas_url = f"file:{pathname2url(str(gwas_zip.resolve()))}"
+        monkeypatch.setattr(gwas_module, "GWAS_CATALOG_URL", gwas_url)
+
+        from allelix.annotators.clinvar import ClinVarAnnotator
+        from allelix.annotators.gwas import GWASCatalogAnnotator
+        from allelix.annotators.pharmgkb import PharmGKBAnnotator
+
+        monkeypatch.setattr(
+            ClinVarAnnotator,
+            "_fetch_remote_signal_for",
+            staticmethod(lambda _build: "md5:test_signal"),
+        )
+        monkeypatch.setattr(
+            PharmGKBAnnotator,
+            "fetch_remote_signal",
+            lambda _self: "pgkb:etag:test|cpic:test",
+        )
+        monkeypatch.setattr(
+            GWASCatalogAnnotator,
+            "fetch_remote_signal",
+            lambda _self: "etag:test_signal",
+        )
+
+        # The download() helper writes to data_dir/clinvar.vcf.gz and
+        # data_dir/clinicalAnnotations.zip. Use a separate cache subdir so the
+        # source ZIP fixture above doesn't collide.
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+        runner = CliRunner()
+        result = runner.invoke(main, ["db", "update", "--data-dir", str(cache_dir)])
+        assert result.exit_code == 0, result.output
+
+        clinvar_sqlite_grch37 = cache_dir / clinvar_db_filename("GRCh37")
+        clinvar_sqlite_grch38 = cache_dir / clinvar_db_filename("GRCh38")
+        pharmgkb_sqlite = cache_dir / "pharmgkb.sqlite"
+        gwas_sqlite = cache_dir / GWAS_DB_FILENAME
+        assert clinvar_sqlite_grch37.exists()
+        assert clinvar_sqlite_grch38.exists()
+        assert pharmgkb_sqlite.exists()
+        assert gwas_sqlite.exists()
+        # Staged downloads cleaned up after ingest; raw artifacts retained for
+        # auto-reingest on interpreter version bumps (ZIP for PharmGKB, TSV for GWAS)
+        assert not (cache_dir / "clinvar.vcf").exists()
+        assert not (cache_dir / "clinvar.vcf.gz").exists()
+        assert not (cache_dir / "gwas_catalog_associations.zip").exists()
+        assert (cache_dir / "clinicalAnnotations.zip").exists()
+        assert (cache_dir / "gwas_catalog_associations.tsv").exists()
+
+        for build, db_path in (
+            ("GRCh37", clinvar_sqlite_grch37),
+            ("GRCh38", clinvar_sqlite_grch38),
+        ):
+            info = get_database_info(db_path, clinvar_record_name(build))
+            assert info is not None, f"{build} cache missing version row"
+            assert info["record_count"] == 13
+            assert info["version"] == "20260101"
+
+        pharmgkb_info = get_database_info(pharmgkb_sqlite, "pharmgkb")
+        assert pharmgkb_info is not None
+        assert pharmgkb_info["record_count"] == 16
+
+        gwas_info = get_database_info(gwas_sqlite, "gwas")
+        assert gwas_info is not None
+        assert gwas_info["record_count"] == 8
+
+    def test_db_update_bad_url_leaves_old_cache_intact(self, clinvar_data_dir: Path, monkeypatch):
+        """M-1+M-2: a failed update must not destroy a working cache.
+
+        Uses --force because the cache is already ready; without it
+        `db update` would correctly skip the download and the bad URL
+        would never be exercised. ADR-0021: restrict to GRCh37 so the
+        test only stress-tests one URL.
+        """
+        from allelix.annotators.clinvar import clinvar_db_filename, clinvar_record_name
+        from allelix.databases import manager as manager_module
+        from allelix.databases.manager import get_database_info
+
+        sqlite_path = clinvar_data_dir / clinvar_db_filename("GRCh37")
+        info_before = get_database_info(sqlite_path, clinvar_record_name("GRCh37"))
+        assert info_before is not None
+
+        # Connection-refused URL on the GRCh37 build only.
+        monkeypatch.setattr(
+            manager_module,
+            "CLINVAR_URL_BY_BUILD",
+            {"GRCh37": "http://127.0.0.1:1/missing.vcf.gz"},
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "db",
+                "update",
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--force",
+                "--build",
+                "grch37",
+            ],
+        )
+        assert result.exit_code != 0
+
+        info_after = get_database_info(sqlite_path, clinvar_record_name("GRCh37"))
+        assert info_after == info_before
+
+    def test_status_shows_pharmgkb_record_count(self, pharmgkb_data_dir: Path):
+        """Status row for PharmGKB shows ready + version + record count (no ClinVar here)."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(main, ["db", "status", "--data-dir", str(pharmgkb_data_dir)])
+        assert result.exit_code == 0
+        assert "PharmGKB" in result.output
+        assert "yes" in result.output
+        assert "16" in result.output
+
+    def test_db_update_skips_when_remote_signal_matches(
+        self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch
+    ):
+        """Remote signal matches cached signal → skip without --force."""
+        from allelix.annotators import clinvar as clinvar_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+        from allelix.annotators.clinvar import clinvar_db_filename, clinvar_record_name
+        from allelix.databases.manager import load_clinvar_vcf
+
+        # Pre-populate the GRCh37 ClinVar cache with a known signal.
+        load_clinvar_vcf(
+            mock_clinvar_vcf,
+            tmp_path / clinvar_db_filename("GRCh37"),
+            source_url="test",
+            remote_signal="md5:cached_value",
+            record_name=clinvar_record_name("GRCh37"),
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "fetch_remote_signal",
+            lambda self: "md5:cached_value",
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "cached_remote_signal",
+            lambda self: "md5:cached_value",
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "is_ready",
+            lambda self: True,
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "setup",
+            lambda self: (_ for _ in ()).throw(
+                AssertionError("setup() should not run when signal matches")
+            ),
+        )
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
+        )
+        assert result.exit_code == 0, result.output
+        assert "already current" in result.output
+
+    def test_db_update_refreshes_when_remote_signal_differs(
+        self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch
+    ):
+        """Remote signal differs from cached → trigger refresh without --force."""
+        from allelix.annotators import clinvar as clinvar_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+        from allelix.annotators.clinvar import clinvar_db_filename, clinvar_record_name
+        from allelix.databases.manager import load_clinvar_vcf
+
+        load_clinvar_vcf(
+            mock_clinvar_vcf,
+            tmp_path / clinvar_db_filename("GRCh37"),
+            source_url="test",
+            remote_signal="md5:OLD",
+            record_name=clinvar_record_name("GRCh37"),
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "fetch_remote_signal",
+            lambda self: "md5:NEW",
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "cached_remote_signal",
+            lambda self: "md5:OLD",
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "is_ready",
+            lambda self: True,
+        )
+        called = []
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "setup",
+            lambda self: called.append(True),
+        )
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
+        )
+        assert result.exit_code == 0, result.output
+        assert "remote signal changed" in result.output
+        assert called  # setup() ran
+
+    def test_db_update_skips_when_signal_unverifiable(self, clinvar_data_dir: Path, monkeypatch):
+        """Cache present + can't reach remote → skip with notice (don't crash)."""
+        from allelix.annotators import clinvar as clinvar_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator, "fetch_remote_signal", lambda self: None
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "setup",
+            lambda self: (_ for _ in ()).throw(
+                AssertionError("setup() should not run when signal is unverifiable")
+            ),
+        )
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["db", "update", "--data-dir", str(clinvar_data_dir)])
+        assert result.exit_code == 0, result.output
+        assert "can't be verified" in result.output
+
+    def test_db_update_legacy_cache_refreshes_once(
+        self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch
+    ):
+        """v0.4.1 caches (no stored signal) refresh on first v0.4.2 db update."""
+        import sqlite3
+
+        from allelix.annotators import clinvar as clinvar_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+        from allelix.annotators.clinvar import clinvar_db_filename
+
+        # Hand-build a v0.4.1-shaped database (no remote_signal column).
+        legacy_db = tmp_path / clinvar_db_filename("GRCh37")
+        conn = sqlite3.connect(legacy_db)
+        try:
+            conn.executescript(
+                """
+                CREATE TABLE clinvar_variants (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    rsid TEXT NOT NULL, chromosome TEXT NOT NULL,
+                    position INTEGER NOT NULL, ref TEXT NOT NULL, alt TEXT NOT NULL,
+                    clinical_significance TEXT, condition TEXT, gene TEXT,
+                    review_status TEXT, allele_id INTEGER
+                );
+                CREATE TABLE database_versions (
+                    name TEXT PRIMARY KEY, source_url TEXT NOT NULL,
+                    version TEXT, downloaded_at TEXT NOT NULL,
+                    record_count INTEGER NOT NULL
+                );
+                """
+            )
+            conn.execute(
+                "INSERT INTO database_versions VALUES (?, ?, ?, ?, ?)",
+                ("clinvar.GRCh37", "old", "old-version", "2024-01-01T00:00:00", 1),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "fetch_remote_signal",
+            lambda self: "md5:NEW",
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "cached_remote_signal",
+            lambda self: None,
+        )
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "is_ready",
+            lambda self: True,
+        )
+        called = []
+        monkeypatch.setattr(
+            clinvar_module.ClinVarAnnotator,
+            "setup",
+            lambda self: called.append(True),
+        )
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
+        )
+        assert result.exit_code == 0, result.output
+        assert "legacy cache" in result.output
+        assert called  # setup() ran
+
+    def test_db_update_force_refreshes(self, clinvar_data_dir: Path, monkeypatch):
+        """--force must re-run setup() even when already ready."""
+        from allelix.annotators import clinvar as clinvar_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+
+        called = []
+
+        def fake_setup(self):
+            called.append(True)
+
+        monkeypatch.setattr(clinvar_module.ClinVarAnnotator, "setup", fake_setup)
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["db", "update", "--data-dir", str(clinvar_data_dir), "--force"],
+        )
+        assert result.exit_code == 0, result.output
+        assert called  # setup() ran
+
+    def test_db_update_bad_url_shows_friendly_error(self, clinvar_data_dir: Path, monkeypatch):
+        """W-2: failure path must wrap as ClickException — not propagate the raw error.
+
+        Pinned facts:
+          1. Click's `Error: clinvar:` prefix appears in output (only
+             ClickException renders this format).
+          2. result.exception is NOT a URLError. With the wrap, Click handles
+             ClickException internally and `sys.exit(1)`s, so result.exception
+             is SystemExit. Without the wrap, the raw URLError leaks through
+             as result.exception.
+        """
+        import urllib.error
+
+        from allelix.databases import manager as manager_module
+
+        monkeypatch.setattr(
+            manager_module,
+            "CLINVAR_URL_BY_BUILD",
+            {"GRCh37": "http://127.0.0.1:1/missing.vcf.gz"},
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "db",
+                "update",
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--force",
+                "--build",
+                "grch37",
+            ],
+        )
+        assert result.exit_code != 0
+        assert "Error: clinvar:" in result.output
+        assert not isinstance(result.exception, urllib.error.URLError)
+
+
+class TestAnalyzeOutputDispatch:
+    def test_analyze_writes_json(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        out = tmp_path / "report.json"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(out),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert out.exists()
+        import json as _json
+
+        payload = _json.loads(out.read_text())
+        assert payload["input"]["sample_id"] == "MHG000001"
+        assert any(a["attribution"] == "ClinVar" for a in payload["annotations"])
+
+    def test_analyze_writes_html(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        out = tmp_path / "report.html"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(out),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        body = out.read_text()
+        assert body.startswith("<!DOCTYPE html>")
+        assert "rs1801133" in body
+        assert "Informational only" in body
+
+    def test_analyze_unknown_extension_errors(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        out = tmp_path / "report.xyz"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(out),
+            ],
+        )
+        assert result.exit_code != 0
+        assert "Cannot infer report format" in result.output
+
+    def test_analyze_report_format_override(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """--report-format json forces JSON regardless of file extension."""
+        out = tmp_path / "report.weird"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(out),
+                "--report-format",
+                "json",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        import json as _json
+
+        _json.loads(out.read_text())  # parses cleanly
+
+
+class TestMethylationCommand:
+    def test_filters_to_methylation_panel(self, mock_mhg_path, all_annotators_data_dir: Path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["methylation", str(mock_mhg_path), "--data-dir", str(all_annotators_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        # MTHFR is in the panel; BRCA1 is not.
+        assert "MTHFR" in result.output
+        assert "BRCA1" not in result.output
+
+    def test_gwas_excluded_by_default(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """Methylation excludes GWAS by default — biology from ClinVar + PharmGKB only."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "methylation",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "GWAS" not in result.output
+        assert "Homocysteine levels" not in result.output
+
+    def test_include_gwas_flag(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """--include-gwas + --gwas-all restores all GWAS annotations in methylation report.
+
+        --include-gwas re-enables the GWAS annotator (excluded by default
+        in focused reports). --gwas-all disables trait-category filtering
+        so measurement traits like "Homocysteine levels" appear.
+        """
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "methylation",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "0",
+                "--include-gwas",
+                "--gwas-all",
+                "--gwas-min-magnitude",
+                "0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "Homocysteine levels" in result.output
+
+    def test_default_output_below_threshold(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """Default methylation (no flags) on canonical mocks stays under 20 rows."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["methylation", str(mock_mhg_path), "--data-dir", str(all_annotators_data_dir)],
+        )
+        assert result.exit_code == 0, result.output
+        lines = [
+            line for line in result.output.splitlines() if "rs" in line.lower() and "│" in line
+        ]
+        assert len(lines) < 20, (
+            f"Methylation default produced {len(lines)} annotation rows, "
+            f"exceeding the 20-row sanity threshold."
+        )
+
+
+class TestPharmacogenomicsCommand:
+    def test_filters_to_pharma_category(self, mock_mhg_path, all_annotators_data_dir: Path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "pharmacogenomics",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        # PharmGKB rows have category=pharma; ClinVar rows don't.
+        assert "PharmGKB" in result.output
+        assert "pharmgkb_loe_" in result.output
+        assert "clinvar_pathogenic" not in result.output
+
+    def test_gwas_excluded_by_default(self, mock_mhg_path, all_annotators_data_dir: Path):
+        """Pharmacogenomics excludes GWAS by default."""
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "pharmacogenomics",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "GWAS" not in result.output
+
+
+class TestExtractCommand:
+    """v0.5.2: spot-check diploid genotypes at specific rsids."""
+
+    def test_extract_known_carrier(self, mock_mhg_path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(main, ["extract", str(mock_mhg_path), "--snps", "rs1801133"])
+        assert result.exit_code == 0, result.output
+        assert "rs1801133" in result.output
+        # MHG fixture has rs1801133 as G/A heterozygous
+        assert "G/A" in result.output
+        assert "yes" in result.output  # heterozygous
+
+    def test_extract_multiple_snps(self, mock_mhg_path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            ["extract", str(mock_mhg_path), "--snps", "rs1801133,rs4680,rs113993960"],
+        )
+        assert result.exit_code == 0, result.output
+        assert "rs1801133" in result.output
+        assert "rs4680" in result.output
+        # rs113993960 is no-call in the v0.5.1-corrected fixture
+        assert "rs113993960" in result.output
+        assert "-/-" in result.output
+
+    def test_extract_rsid_not_in_file(self, mock_mhg_path):
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(main, ["extract", str(mock_mhg_path), "--snps", "rs999000000"])
+        assert result.exit_code == 0, result.output
+        assert "not in file" in result.output
+
+    def test_extract_empty_snps_errors(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["extract", str(mock_mhg_path), "--snps", ""])
+        assert result.exit_code != 0
+        assert "cannot be empty" in result.output
+
+
+class TestDiffOption:
+    """Integration tests for `--diff previous.json`."""
+
+    def test_diff_no_changes_terminal(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """Same file analyzed twice with same filters → 'No changes'."""
+
+        baseline = tmp_path / "baseline.json"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert baseline.exists()
+
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--diff",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "No changes" in result.output
+
+    def test_diff_detects_removed_annotations(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """Raising min-magnitude should cause some annotations to disappear from current."""
+
+        baseline = tmp_path / "baseline.json"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "0",
+                "--output",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--min-magnitude",
+                "9",
+                "--diff",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "removed" in result.output
+
+    def test_diff_json_output_includes_diff_key(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """JSON output with --diff includes a 'diff' key."""
+        import json as _json
+
+        baseline = tmp_path / "baseline.json"
+        diffed = tmp_path / "diffed.json"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(baseline),
+            ],
+        )
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(diffed),
+                "--diff",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = _json.loads(diffed.read_text())
+        assert "diff" in payload
+        assert "summary" in payload["diff"]
+
+    def test_diff_html_output_includes_diff_banner(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """HTML output with --diff includes the diff summary banner."""
+
+        baseline = tmp_path / "baseline.json"
+        diffed = tmp_path / "diffed.html"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(baseline),
+            ],
+        )
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(diffed),
+                "--diff",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        body = diffed.read_text()
+        assert "Diff:" in body
+        assert "No changes" in body
+
+    def test_diff_invalid_json_errors(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """--diff with an invalid JSON file → ClickException."""
+        bad = tmp_path / "bad.json"
+        bad.write_text("not json {{{")
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--diff",
+                str(bad),
+            ],
+        )
+        assert result.exit_code != 0
+        assert "Cannot parse" in result.output
+
+    def test_diff_wrong_schema_version_errors(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """--diff with a future schema version → ClickException."""
+        import json as _json
+
+        bad = tmp_path / "future.json"
+        bad.write_text(_json.dumps({"schema_version": "99", "annotations": []}))
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--diff",
+                str(bad),
+            ],
+        )
+        assert result.exit_code != 0
+        assert "schema version" in result.output
+
+    def test_diff_on_methylation_command(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """--diff works on the methylation subcommand."""
+
+        baseline = tmp_path / "baseline.json"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        runner.invoke(
+            main,
+            [
+                "methylation",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(baseline),
+            ],
+        )
+        result = runner.invoke(
+            main,
+            [
+                "methylation",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--diff",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "No changes" in result.output
+
+    def test_diff_on_pharmacogenomics_command(
+        self, mock_mhg_path, all_annotators_data_dir: Path, tmp_path: Path
+    ):
+        """--diff works on the pharmacogenomics subcommand."""
+
+        baseline = tmp_path / "baseline.json"
+        runner = CliRunner(env={"COLUMNS": "200"})
+        runner.invoke(
+            main,
+            [
+                "pharmacogenomics",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--output",
+                str(baseline),
+            ],
+        )
+        result = runner.invoke(
+            main,
+            [
+                "pharmacogenomics",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(all_annotators_data_dir),
+                "--diff",
+                str(baseline),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "No changes" in result.output
+
+
+class TestExcludeSnpedia:
+    """--exclude-snpedia wires through to exclude_sources on all three commands."""
+
+    def test_analyze_passes_exclude_sources(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path), "--exclude-snpedia"])
+        assert result.exit_code == 0, result.output
+        assert captured["exclude_sources"] == frozenset({"snpedia"})
+
+    def test_methylation_passes_exclude_sources(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["methylation", str(mock_mhg_path), "--exclude-snpedia"])
+        assert result.exit_code == 0, result.output
+        assert "snpedia" in captured["exclude_sources"]
+
+    def test_pharmacogenomics_passes_exclude_sources(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["pharmacogenomics", str(mock_mhg_path), "--exclude-snpedia"])
+        assert result.exit_code == 0, result.output
+        assert "snpedia" in captured["exclude_sources"]
+
+    def test_methylation_exclude_snpedia_and_gwas(self, mock_mhg_path, monkeypatch):
+        """Both --exclude-snpedia and default GWAS exclusion coexist."""
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["methylation", str(mock_mhg_path), "--exclude-snpedia"])
+        assert result.exit_code == 0, result.output
+        assert captured["exclude_sources"] == frozenset({"snpedia", "gwas"})
+
+
+class TestVersion:
+    def test_version_flag(self):
+        from allelix import __version__
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["--version"])
+        assert result.exit_code == 0
+        # Self-referential: bumping pyproject.toml shouldn't require touching
+        # this test. The pyproject<->__version__ sync is pinned separately by
+        # tests/test_version.py::test_pyproject_version_matches_metadata.
+        assert __version__ in result.output

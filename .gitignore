@@ -1,0 +1,97 @@
+# Claude / AI tooling
+CLAUDE.md
+.claude/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Linting / type checking
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Local database cache (downloaded at runtime)
+data/
+!data/.gitkeep
+
+# Genotype data — NEVER commit real genetic data
+*.vcf
+*.vcf.gz
+*.vcf.gz.tbi
+/*.txt
+/*.csv
+!README.txt
+!CHANGELOG.txt
+# Synthetic test fixtures are committed
+!tests/fixtures/*.vcf
+!tests/fixtures/*.vcf.gz
+!tests/fixtures/*.txt
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Per-user investigative test data / exploratory scripts (Round 23 audit).
+# Anything under test_data/ is local-only — kept out of CI lint/format
+# and out of the committed tree.
+test_data/

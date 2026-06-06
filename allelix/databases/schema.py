@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 dial481
+"""SQLite schemas for cached reference databases.
+
+Each annotator owns its own SQLite file (e.g. `clinvar.sqlite`, `pharmgkb.sqlite`).
+Every per-annotator schema embeds the shared `database_versions` table so that
+`get_database_info(db_path, name)` works uniformly across them.
+"""
+
+from __future__ import annotations
+
+_DATABASE_VERSIONS_TABLE = """
+CREATE TABLE IF NOT EXISTS database_versions (
+    name TEXT PRIMARY KEY,
+    source_url TEXT NOT NULL,
+    version TEXT,
+    downloaded_at TEXT NOT NULL,
+    record_count INTEGER NOT NULL,
+    remote_signal TEXT
+);
+"""
+
+CLINVAR_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS clinvar_variants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rsid TEXT NOT NULL,
+    chromosome TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    ref TEXT NOT NULL,
+    alt TEXT NOT NULL,
+    clinical_significance TEXT,
+    condition TEXT,
+    gene TEXT,
+    review_status TEXT,
+    allele_id INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_clinvar_rsid ON clinvar_variants(rsid);
+"""
+    + _DATABASE_VERSIONS_TABLE
+)
+
+PHARMGKB_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS pharmgkb_annotations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rsid TEXT NOT NULL,
+    genotype TEXT NOT NULL,
+    gene TEXT,
+    drugs TEXT,
+    phenotype TEXT,
+    phenotype_category TEXT,
+    annotation_text TEXT,
+    level_of_evidence TEXT,
+    score REAL,
+    pgkb_annotation_id TEXT,
+    allele_function TEXT,
+    function_class TEXT NOT NULL,
+    is_nonfinding INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pharmgkb_rsid ON pharmgkb_annotations(rsid);
+
+-- ADR-0018: per-allele function extracted from PharmGKB's canonical CPIC
+-- template sentence ("The {allele} allele of {rsid} is assigned {function}
+-- function by CPIC."). Populated at load time by a pre-pass over the
+-- annotation rows. Drives is_nonfinding classification for SNV rows where
+-- the `Allele Function` column is empty (i.e., every in-scope row).
+CREATE TABLE IF NOT EXISTS pharmgkb_allele_function (
+    rsid TEXT NOT NULL,
+    allele TEXT NOT NULL,
+    function_class TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'cpic_template',
+    PRIMARY KEY (rsid, allele)
+);
+"""
+    + _DATABASE_VERSIONS_TABLE
+)
+
+GWAS_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS gwas_associations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rsid TEXT NOT NULL,
+    risk_allele TEXT,
+    trait TEXT NOT NULL,
+    p_value REAL,
+    or_beta REAL,
+    ci_text TEXT,
+    gene TEXT,
+    study_accession TEXT,
+    pubmed_id TEXT,
+    risk_allele_frequency REAL,
+    context TEXT,
+    mapped_trait_uri TEXT,
+    trait_category TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_gwas_rsid ON gwas_associations(rsid);
+"""
+    + _DATABASE_VERSIONS_TABLE
+)

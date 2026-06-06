@@ -1,0 +1,90 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "allelix"
+version = "1.0.0"
+description = "Open-source genotype analysis toolkit. Format-agnostic ingestion, database-agnostic annotation, offline-first."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "AGPL-3.0-or-later"
+authors = [{ name = "dial481", email = "dial481@users.noreply.github.com" }]
+keywords = ["genomics", "genotype", "snp", "bioinformatics", "dna"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "click>=8.2",
+    "mwparserfromhell>=0.6",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.7",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+allelix = "allelix.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dial481/allelix"
+Issues = "https://github.com/dial481/allelix/issues"
+
+[tool.setuptools.packages.find]
+include = ["allelix*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+allelix = ["py.typed"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 99
+extend-exclude = ["test_data"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "SIM",
+    "TCH",
+    "RUF",
+    "D",
+    "ANN",
+]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D", "ANN"]
+"tests/generate_mock_data.py" = ["D", "ANN"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --strict-markers --tb=short --cov=allelix --cov-report=term-missing --cov-fail-under=92"
+markers = [
+    "slow: marks tests that download databases or process large files",
+    "integration: marks end-to-end pipeline tests",
+]
+filterwarnings = [
+    "error::ResourceWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+]
