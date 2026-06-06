@@ -101,6 +101,15 @@ class TestRenderTerminal:
         assert "m" in out
         assert "BRCA1" not in out
 
+    def test_review_status_column_present(self):
+        out, _ = _render([_ann(review_status="criteria_provided,_single_submitter")])
+        assert "Review Status" in out
+        assert "criteria_provided" in out
+
+    def test_review_status_dash_when_empty(self):
+        out, _ = _render([_ann(review_status="")])
+        assert "Review Status" in out
+
 
 def _ann_dict(**overrides) -> dict:
     defaults = {
@@ -126,7 +135,14 @@ class TestRenderTerminalDiff:
         from allelix.reports.diff import DiffResult
 
         diff = DiffResult(
-            new=[_ann(rsid="rs1801133", gene="MTHFR", magnitude=9.0)],
+            new=[
+                _ann(
+                    rsid="rs1801133",
+                    gene="MTHFR",
+                    magnitude=9.0,
+                    review_status="criteria_provided,_single_submitter",
+                )
+            ],
             previous_generated_at="2026-05-01T00:00:00",
         )
         total = render_terminal_diff(diff, Console(force_terminal=True, width=200))
@@ -134,15 +150,17 @@ class TestRenderTerminalDiff:
         assert total == 1
         assert "New Annotations (1)" in out
         assert "rs1801133" in out
+        assert "Review Status" in out
+        assert "criteria_provided" in out
 
     def test_render_terminal_diff_changed_only(self, capsys):
-        """Old Sig / New Sig / Old Mag / New Mag columns all present."""
+        """Old Sig / New Sig / Old Mag / New Mag / Review Status columns all present."""
         from allelix.reports.diff import ChangedAnnotation, DiffResult
 
         diff = DiffResult(
             changed=[
                 ChangedAnnotation(
-                    current=_ann(magnitude=7.0),
+                    current=_ann(magnitude=7.0, review_status="reviewed_by_expert_panel"),
                     previous_significance="old_sig",
                     previous_magnitude=9.0,
                 )
@@ -154,6 +172,8 @@ class TestRenderTerminalDiff:
         assert "Changed Annotations (1)" in out
         assert "old_sig" in out
         assert "9.0" in out and "7.0" in out
+        assert "Review Status" in out
+        assert "reviewed_by_expert_panel" in out
 
     def test_render_terminal_diff_removed_only(self, capsys):
         from allelix.reports.diff import DiffResult

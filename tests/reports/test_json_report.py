@@ -99,3 +99,55 @@ class TestRenderJson:
         assert count == 0
         payload = json.loads(out.read_text())
         assert payload["annotations"] == []
+
+
+class TestLicenseAttributions:
+    def _result_with_annotators(self, annotators: list[tuple[str, str | None]]) -> AnalysisResult:
+        return AnalysisResult(
+            file_path=Path("genotype.txt"),
+            parser_name="myhappygenes",
+            parser_display_name="MyHappyGenes (Tempus)",
+            sample_id="MHG_LICENSE",
+            build="GRCh37",
+            total_variants=10,
+            skipped_count=0,
+            annotators_used=annotators,
+            annotations=[_ann()],
+        )
+
+    def test_pharmgkb_attribution_in_json(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("pharmgkb", "2026-01")])
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        attrs = payload["license_attributions"]
+        assert len(attrs) == 1
+        assert attrs[0]["source"] == "PharmGKB"
+        assert attrs[0]["license"] == "CC BY-SA 4.0"
+
+    def test_no_attributions_for_public_domain_only(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("gwas", "2026-01")])
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        assert "license_attributions" not in payload
+
+    def test_snpedia_attribution_in_json(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("snpedia", None)])
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        attrs = payload["license_attributions"]
+        assert attrs[0]["source"] == "SNPedia"
+        assert attrs[0]["license"] == "CC BY-NC-SA 3.0 US"
+
+    def test_both_attributions_in_json(self, tmp_path: Path):
+        r = self._result_with_annotators(
+            [("clinvar", "20260101"), ("pharmgkb", "2026-01"), ("snpedia", None)]
+        )
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        attrs = payload["license_attributions"]
+        sources = {a["source"] for a in attrs}
+        assert sources == {"PharmGKB", "SNPedia"}

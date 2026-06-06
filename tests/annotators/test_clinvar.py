@@ -190,6 +190,13 @@ class TestAttribution:
         results = annotator.annotate(v)
         assert results[0].description.startswith("ClinVar classifies")
 
+    def test_review_status_populated(self, annotator: ClinVarAnnotator):
+        """CLNREVSTAT is surfaced on the Annotation."""
+        v = Variant("rs1801133", "1", 11796321, "G", "A")
+        results = annotator.annotate(v)
+        assert len(results) >= 1
+        assert results[0].review_status == "criteria_provided,_single_submitter"
+
 
 class TestRegistryMetadata:
     def test_class_attributes(self):

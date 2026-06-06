@@ -6,7 +6,7 @@ Output schema (versioned via `schema_version`):
 
     {
       "schema_version": "1",
-      "allelix_version": "0.4.0",
+      "allelix_version": "1.1.0",
       "generated_at": "2026-05-11T12:34:56+00:00",
       "regulatory_notice": "...",
       "input": {
@@ -53,7 +53,30 @@ if TYPE_CHECKING:
 
 SCHEMA_VERSION = "1"
 
+_LICENSE_ATTRIBUTIONS: dict[str, dict[str, str]] = {
+    "pharmgkb": {
+        "source": "PharmGKB",
+        "url": "https://www.pharmgkb.org",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    },
+    "snpedia": {
+        "source": "SNPedia",
+        "url": "https://www.snpedia.com",
+        "license": "CC BY-NC-SA 3.0 US",
+        "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/us/",
+    },
+}
+
 __all__ = ["REGULATORY_NOTICE", "SCHEMA_VERSION", "render_json"]
+
+
+def _license_attributions(
+    annotators_used: list[tuple[str, str | None]],
+) -> list[dict[str, str]]:
+    """Return license attribution dicts for annotators that require it."""
+    names = {name for name, _version in annotators_used}
+    return [attr for key, attr in _LICENSE_ATTRIBUTIONS.items() if key in names]
 
 
 def render_json(
@@ -65,6 +88,7 @@ def render_json(
     genes: Iterable[str] | None = None,
     source_min_magnitudes: dict[str, float] | None = None,
     diff: DiffResult | None = None,
+    high_value_no_calls: list[dict[str, str]] | None = None,
 ) -> int:
     """Write a JSON report to `output_path`. Returns the number of annotations included."""
     filtered = result.filter(
@@ -95,8 +119,17 @@ def render_json(
             "category": category,
             "genes": sorted(genes) if genes else None,
         },
-        "annotations": [asdict(a) for a in filtered],
+        "annotations": [
+            {k: v for k, v in asdict(a).items() if k != "is_must_include"} for a in filtered
+        ],
     }
+
+    license_attrs = _license_attributions(result.annotators_used)
+    if license_attrs:
+        payload["license_attributions"] = license_attrs
+
+    if high_value_no_calls:
+        payload["high_value_no_calls"] = high_value_no_calls
 
     if diff is not None:
         from allelix.reports.diff import diff_annotation_to_dict, summarize_diff
@@ -104,7 +137,9 @@ def render_json(
         payload["diff"] = {
             "previous_report": diff.previous_generated_at,
             "summary": summarize_diff(diff),
-            "new": [asdict(a) for a in diff.new],
+            "new": [
+                {k: v for k, v in asdict(a).items() if k != "is_must_include"} for a in diff.new
+            ],
             "changed": [diff_annotation_to_dict(c) for c in diff.changed],
             "removed": diff.removed,
         }

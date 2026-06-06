@@ -346,7 +346,7 @@ class ClinVarAnnotator(Annotator):
                 clnsig,
                 condition,
                 gene,
-                _review_status,
+                review_status,
                 allele_id,
             ) = row
             clinvar_is_indel = len(ref) > 1 or len(alt) > 1
@@ -375,6 +375,7 @@ class ClinVarAnnotator(Annotator):
                     references=references,
                     condition=condition or "",
                     gene=gene or "",
+                    review_status=review_status or "",
                 )
             )
         return annotations

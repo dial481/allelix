@@ -83,6 +83,8 @@ class Annotation:
         references: PubMed IDs or URLs supporting the claim.
         condition: Disease or condition name, if applicable.
         gene: Gene symbol, if known.
+        review_status: ClinVar review status (CLNREVSTAT), empty for non-ClinVar.
+        is_must_include: Internal flag for GWAS rollup; excluded from public output.
     """
 
     source: str
@@ -96,4 +98,5 @@ class Annotation:
     references: list[str] = field(default_factory=list)
     condition: str = ""
     gene: str = ""
+    review_status: str = ""
     is_must_include: bool = False

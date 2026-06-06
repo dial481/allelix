@@ -288,6 +288,29 @@ class TestAnnotateGenotype:
         assert any("snpedia.com" in r and "I3000001" in r for r in results[0].references)
         ann.close()
 
+    def test_i_probe_wrong_alleles_returns_empty(self, snpedia_data_dir: Path) -> None:
+        """I-probe with non-matching alleles produces no annotation."""
+        ann = SNPediaAnnotator(snpedia_data_dir)
+        v = Variant(rsid="i3000001", chromosome="7", position=117199646, allele1="T", allele2="T")
+        assert ann.annotate(v) == []
+        ann.close()
+
+    def test_i_probe_not_in_database_returns_empty(self, snpedia_data_dir: Path) -> None:
+        """I-probe rsid not present in the database at all."""
+        ann = SNPediaAnnotator(snpedia_data_dir)
+        v = Variant(rsid="i9999999", chromosome="1", position=1, allele1="A", allele2="G")
+        assert ann.annotate(v) == []
+        ann.close()
+
+    def test_i_probe_uppercase_input_matches(self, snpedia_data_dir: Path) -> None:
+        """Uppercase I3000001 from user input normalizes to lowercase for lookup."""
+        ann = SNPediaAnnotator(snpedia_data_dir)
+        v = Variant(rsid="I3000001", chromosome="7", position=117199646, allele1="A", allele2="G")
+        results = ann.annotate(v)
+        assert len(results) == 1
+        assert results[0].gene == "CFTR"
+        ann.close()
+
     def test_non_rs_non_i_rsid_returns_empty(self, snpedia_data_dir: Path) -> None:
         ann = SNPediaAnnotator(snpedia_data_dir)
         v = Variant(rsid="x12345", chromosome="1", position=1, allele1="A", allele2="A")

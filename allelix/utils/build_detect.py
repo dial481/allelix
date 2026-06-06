@@ -9,8 +9,8 @@ as "37.1" while shipping GRCh38 coordinates; cross-build REF/ALT
 comparison produced a false-positive pathogenic call on NIPA1.
 
 The detection table holds authoritative (chromosome, 1-based position)
-pairs for both builds across ~10 SNPs spread over chromosomes 1, 10,
-11, 12, 17, 19, and 22. Each entry's GRCh37 and GRCh38 positions
+pairs for all three builds (GRCh36, GRCh37, GRCh38) across ~10 SNPs
+spread over chromosomes 1, 10, 11, 12, 17, 19, and 22. Each entry's positions
 differ by tens of thousands to millions of bases — there is no
 ambiguity. A single matched rsID identifies the build; multiple are
 confirmatory.
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from allelix.models import Variant
 
+BUILD_GRCH36 = "GRCh36"
 BUILD_GRCH37 = "GRCh37"
 BUILD_GRCH38 = "GRCh38"
 
@@ -43,23 +44,67 @@ BUILD_GRCH38 = "GRCh38"
 # Verify against dbSNP's web view before editing.
 KNOWN_SNP_POSITIONS: dict[str, dict[str, tuple[str, int]]] = {
     # MTHFR — methylation pathway, chromosome 1 short arm
-    "rs1801133": {BUILD_GRCH37: ("1", 11856378), BUILD_GRCH38: ("1", 11796321)},
-    "rs1801131": {BUILD_GRCH37: ("1", 11854476), BUILD_GRCH38: ("1", 11794419)},
+    "rs1801133": {
+        BUILD_GRCH36: ("1", 11778965),
+        BUILD_GRCH37: ("1", 11856378),
+        BUILD_GRCH38: ("1", 11796321),
+    },
+    "rs1801131": {
+        BUILD_GRCH36: ("1", 11777063),
+        BUILD_GRCH37: ("1", 11854476),
+        BUILD_GRCH38: ("1", 11794419),
+    },
     # CYP2C9 / CYP2C19 cluster — chromosome 10 long arm
-    "rs1799853": {BUILD_GRCH37: ("10", 96702047), BUILD_GRCH38: ("10", 94942290)},
-    "rs1057910": {BUILD_GRCH37: ("10", 96741053), BUILD_GRCH38: ("10", 94981296)},
-    "rs4244285": {BUILD_GRCH37: ("10", 96541616), BUILD_GRCH38: ("10", 94781859)},
+    "rs1799853": {
+        BUILD_GRCH36: ("10", 96692448),
+        BUILD_GRCH37: ("10", 96702047),
+        BUILD_GRCH38: ("10", 94942290),
+    },
+    "rs1057910": {
+        BUILD_GRCH36: ("10", 96731043),
+        BUILD_GRCH37: ("10", 96741053),
+        BUILD_GRCH38: ("10", 94981296),
+    },
+    "rs4244285": {
+        BUILD_GRCH36: ("10", 96532017),
+        BUILD_GRCH37: ("10", 96541616),
+        BUILD_GRCH38: ("10", 94781859),
+    },
     # SLCO1B1 — statin myopathy, chromosome 12
-    "rs4149056": {BUILD_GRCH37: ("12", 21331549), BUILD_GRCH38: ("12", 21178615)},
+    "rs4149056": {
+        BUILD_GRCH36: ("12", 21222816),
+        BUILD_GRCH37: ("12", 21331549),
+        BUILD_GRCH38: ("12", 21178615),
+    },
     # DRD2/ANKK1 — chromosome 11
-    "rs1800497": {BUILD_GRCH37: ("11", 113270828), BUILD_GRCH38: ("11", 113400106)},
+    "rs1800497": {
+        BUILD_GRCH36: ("11", 112776038),
+        BUILD_GRCH37: ("11", 113270828),
+        BUILD_GRCH38: ("11", 113400106),
+    },
     # BRCA1 — hereditary cancer, chromosome 17
-    "rs80357906": {BUILD_GRCH37: ("17", 41209080), BUILD_GRCH38: ("17", 43057063)},
+    "rs80357906": {
+        BUILD_GRCH36: ("17", 38449327),
+        BUILD_GRCH37: ("17", 41209080),
+        BUILD_GRCH38: ("17", 43057063),
+    },
     # APOE — chromosome 19, near telomere
-    "rs429358": {BUILD_GRCH37: ("19", 45411941), BUILD_GRCH38: ("19", 44908684)},
-    "rs7412": {BUILD_GRCH37: ("19", 45412079), BUILD_GRCH38: ("19", 44908822)},
+    "rs429358": {
+        BUILD_GRCH36: ("19", 50103781),
+        BUILD_GRCH37: ("19", 45411941),
+        BUILD_GRCH38: ("19", 44908684),
+    },
+    "rs7412": {
+        BUILD_GRCH36: ("19", 50103919),
+        BUILD_GRCH37: ("19", 45412079),
+        BUILD_GRCH38: ("19", 44908822),
+    },
     # COMT — chromosome 22
-    "rs4680": {BUILD_GRCH37: ("22", 19951271), BUILD_GRCH38: ("22", 19963748)},
+    "rs4680": {
+        BUILD_GRCH36: ("22", 18331271),
+        BUILD_GRCH37: ("22", 19951271),
+        BUILD_GRCH38: ("22", 19963748),
+    },
 }
 
 
@@ -69,7 +114,7 @@ _MIN_CONFIDENT_MATCHES = 3
 class BuildDetectionResult(NamedTuple):
     """Outcome of build detection on an input file.
 
-    `build` is `"GRCh37"`, `"GRCh38"`, or None if no known SNPs were
+    `build` is `"GRCh36"`, `"GRCh37"`, `"GRCh38"`, or None if no known SNPs were
     found in the input. `matched` counts how many table entries matched
     the winning build; `inspected` counts how many table entries were
     found in the input (regardless of which build their positions
@@ -103,7 +148,7 @@ def detect_build(variants: Iterable[Variant]) -> BuildDetectionResult:
     input is exhausted. Streaming-friendly — does not materialize the
     full variant list.
     """
-    votes: dict[str, int] = {BUILD_GRCH37: 0, BUILD_GRCH38: 0}
+    votes: dict[str, int] = {BUILD_GRCH36: 0, BUILD_GRCH37: 0, BUILD_GRCH38: 0}
     inspected = 0
     remaining = set(KNOWN_SNP_POSITIONS)
     for variant in variants:
@@ -122,18 +167,14 @@ def detect_build(variants: Iterable[Variant]) -> BuildDetectionResult:
     if inspected == 0:
         return BuildDetectionResult(build=None, matched=0, inspected=0)
 
-    # Pick the build with the most votes. Tie is impossible in practice
-    # (positions are mutually exclusive between builds), but if it
-    # somehow happens we report inconsistent and don't pick.
-    grch37 = votes[BUILD_GRCH37]
-    grch38 = votes[BUILD_GRCH38]
-    if grch37 == grch38:
+    winner = max(votes, key=votes.__getitem__)
+    if votes[winner] == 0:
         return BuildDetectionResult(build=None, matched=0, inspected=inspected)
-    winner = BUILD_GRCH37 if grch37 > grch38 else BUILD_GRCH38
+    # Tie between two builds with equal non-zero votes — don't pick.
+    top_counts = sorted(votes.values(), reverse=True)
+    if top_counts[0] == top_counts[1]:
+        return BuildDetectionResult(build=None, matched=0, inspected=inspected)
     return BuildDetectionResult(build=winner, matched=votes[winner], inspected=inspected)
-
-
-BUILD_GRCH36 = "GRCh36"
 
 
 def normalize_build_label(label: str | None) -> str | None:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "allelix"
-version = "1.0.0"
+version = "1.1.0"
 description = "Open-source genotype analysis toolkit. Format-agnostic ingestion, database-agnostic annotation, offline-first."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -46,7 +46,7 @@ include = ["allelix*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-allelix = ["py.typed"]
+allelix = ["py.typed", "data/*.yaml"]
 
 [tool.ruff]
 target-version = "py311"

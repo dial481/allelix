@@ -104,6 +104,23 @@ class TestRenderHtml:
         assert ">b<" not in body
 
 
+class TestReviewStatus:
+    def test_review_status_column_header(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "<th>Review Status</th>" in body
+
+    def test_review_status_value_rendered(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(
+            _result([_ann(review_status="criteria_provided,_single_submitter")]),
+            output_path=out,
+        )
+        body = out.read_text()
+        assert "criteria_provided" in body
+
+
 class TestEducationSection:
     def test_education_section_present(self, tmp_path: Path):
         out = tmp_path / "report.html"
@@ -184,3 +201,52 @@ class TestBuildMismatchBanner:
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
         assert "Build mismatch" not in body
+
+
+class TestLicenseAttributions:
+    def _result_with_annotators(self, annotators: list[tuple[str, str | None]]) -> AnalysisResult:
+        return AnalysisResult(
+            file_path=Path("genotype.txt"),
+            parser_name="myhappygenes",
+            parser_display_name="MyHappyGenes (Tempus)",
+            sample_id="MHG_LICENSE",
+            build="GRCh37",
+            total_variants=10,
+            skipped_count=0,
+            annotators_used=annotators,
+            annotations=[_ann()],
+        )
+
+    def test_pharmgkb_attribution_present(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("pharmgkb", "2026-01")])
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "PharmGKB" in body
+        assert "CC BY-SA 4.0" in body
+        assert "pharmgkb.org" in body
+
+    def test_no_pharmgkb_no_attribution(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101")])
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "CC BY-SA 4.0" not in body
+
+    def test_snpedia_attribution_present(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("snpedia", None)])
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "SNPedia" in body
+        assert "CC BY-NC-SA 3.0 US" in body
+
+    def test_both_attributions(self, tmp_path: Path):
+        r = self._result_with_annotators(
+            [("clinvar", "20260101"), ("pharmgkb", "2026-01"), ("snpedia", None)]
+        )
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "CC BY-SA 4.0" in body
+        assert "CC BY-NC-SA 3.0 US" in body

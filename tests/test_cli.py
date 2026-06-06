@@ -1369,6 +1369,34 @@ class TestExcludeSnpedia:
         assert captured["exclude_sources"] == frozenset({"snpedia", "gwas"})
 
 
+class TestHighValueNoCalls:
+    def test_stats_flags_dpyd_no_call(self, mock_mhg_path):
+        """The MHG fixture has rs3918290 (DPYD) as a no-call; stats should flag it."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["stats", str(mock_mhg_path)])
+        assert result.exit_code == 0, result.output
+        assert "High-value no-calls" in result.output
+        assert "rs3918290" in result.output
+        assert "DPYD" in result.output
+
+    def test_analyze_flags_dpyd_no_call(self, mock_mhg_path, clinvar_data_dir):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "analyze",
+                str(mock_mhg_path),
+                "--data-dir",
+                str(clinvar_data_dir),
+                "--min-magnitude",
+                "0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "high-value" in result.output.lower()
+        assert "rs3918290" in result.output
+
+
 class TestVersion:
     def test_version_flag(self):
         from allelix import __version__

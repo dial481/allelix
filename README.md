@@ -2,7 +2,7 @@
 
 Open-source command-line toolkit for analyzing raw genotype files from consumer DNA testing services. Format-agnostic ingestion, database-agnostic annotation, offline-first.
 
-> **Status:** Pre-release — six parser formats, four annotators (ClinVar +
+> **Status:** Production — six parser formats, four annotators (ClinVar +
 > PharmGKB + GWAS Catalog + SNPedia), dual-build ClinVar caches
 > (GRCh37 + GRCh38), HTML/JSON/terminal reports, methylation +
 > pharmacogenomics focused commands, report diffing. Build
@@ -20,7 +20,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Generate a synthetic test fixture (real fixtures contain personal data; we use mock data)
+# Generate a synthetic test fixture (real fixtures contain identifying data; we use mock data)
 python tests/generate_mock_data.py
 
 # Show summary statistics for a genotype file
@@ -38,6 +38,9 @@ allelix analyze tests/fixtures/mock_myhappygenes.txt --min-magnitude 5
 # Same data, focused subsets
 allelix methylation tests/fixtures/mock_myhappygenes.txt
 allelix pharmacogenomics tests/fixtures/mock_myhappygenes.txt
+
+# Compare two genotype files (coverage, concordance, strand-flip detection)
+allelix compare file1.txt file2.txt
 
 # Output to a self-contained HTML or JSON report
 allelix analyze tests/fixtures/mock_myhappygenes.txt --output report.html

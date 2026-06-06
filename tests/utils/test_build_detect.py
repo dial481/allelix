@@ -107,6 +107,37 @@ class TestDetectBuild:
         assert result.build == BUILD_GRCH37
         assert result.is_confident
 
+    def test_grch36_positions_detect_grch36(self):
+        variants = [
+            _v(rsid, *KNOWN_SNP_POSITIONS[rsid][BUILD_GRCH36])
+            for rsid in ("rs1801133", "rs4680", "rs4149056")
+        ]
+        result = detect_build(variants)
+        assert result.build == BUILD_GRCH36
+        assert result.matched == 3
+        assert result.inspected == 3
+        assert result.is_confident
+
+    def test_grch36_single_match_not_confident(self):
+        variants = [_v("rs4680", "22", 18331271)]  # GRCh36
+        result = detect_build(variants)
+        assert result.build == BUILD_GRCH36
+        assert result.matched == 1
+        assert not result.is_confident
+
+    def test_grch36_majority_wins_over_minority(self):
+        """Three GRCh36 + one GRCh37 → GRCh36 wins by majority."""
+        variants = [
+            _v("rs1801133", *KNOWN_SNP_POSITIONS["rs1801133"][BUILD_GRCH36]),
+            _v("rs4680", *KNOWN_SNP_POSITIONS["rs4680"][BUILD_GRCH36]),
+            _v("rs4149056", *KNOWN_SNP_POSITIONS["rs4149056"][BUILD_GRCH36]),
+            _v("rs1800497", *KNOWN_SNP_POSITIONS["rs1800497"][BUILD_GRCH37]),
+        ]
+        result = detect_build(variants)
+        assert result.build == BUILD_GRCH36
+        assert result.matched == 3
+        assert result.inspected == 4
+
 
 class TestNormalizeBuildLabel:
     def test_grch37_canonical(self):
@@ -151,29 +182,25 @@ class TestKnownSnpTable:
     assertion.
     """
 
-    def test_every_entry_has_both_builds(self):
+    def test_every_entry_has_all_three_builds(self):
         for rsid, entry in KNOWN_SNP_POSITIONS.items():
+            assert BUILD_GRCH36 in entry, f"{rsid} missing GRCh36 position"
             assert BUILD_GRCH37 in entry, f"{rsid} missing GRCh37 position"
             assert BUILD_GRCH38 in entry, f"{rsid} missing GRCh38 position"
 
     def test_chromosomes_agree_across_builds(self):
-        """A SNP's chromosome doesn't change between GRCh37 and GRCh38.
-        Different chromosomes for the same rsID would mean the table is
-        looking at two different SNPs.
-        """
+        """A SNP's chromosome doesn't change between builds."""
         for rsid, entry in KNOWN_SNP_POSITIONS.items():
-            chr37, _ = entry[BUILD_GRCH37]
-            chr38, _ = entry[BUILD_GRCH38]
-            assert chr37 == chr38, f"{rsid}: chr differs between builds: {chr37} vs {chr38}"
+            chroms = {entry[b][0] for b in (BUILD_GRCH36, BUILD_GRCH37, BUILD_GRCH38)}
+            assert len(chroms) == 1, f"{rsid}: chr differs across builds: {chroms}"
 
     def test_positions_differ_between_builds(self):
-        """The whole point of detection: positions are different enough
-        between builds that they can't be confused.
-        """
+        """Positions must be unique across all three builds for each SNP."""
         for rsid, entry in KNOWN_SNP_POSITIONS.items():
-            _, pos37 = entry[BUILD_GRCH37]
-            _, pos38 = entry[BUILD_GRCH38]
-            assert pos37 != pos38, f"{rsid}: same position in both builds — useless for detection"
+            positions = [entry[b][1] for b in (BUILD_GRCH36, BUILD_GRCH37, BUILD_GRCH38)]
+            assert len(set(positions)) == 3, (
+                f"{rsid}: duplicate position across builds — useless for detection"
+            )
 
     def test_positions_are_positive_integers(self):
         for rsid, entry in KNOWN_SNP_POSITIONS.items():

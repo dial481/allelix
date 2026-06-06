@@ -66,6 +66,7 @@ def render_terminal_diff(
         table.add_column("Gene", style="magenta", no_wrap=True)
         table.add_column("Source", style="blue", no_wrap=True)
         table.add_column("Significance", style="yellow")
+        table.add_column("Review Status", style="dim")
         table.add_column("Magnitude", justify="right")
         table.add_column("Genotype", no_wrap=True)
         table.add_column("Condition", overflow="fold")
@@ -75,6 +76,7 @@ def render_terminal_diff(
                 a.gene or "—",
                 a.attribution,
                 a.significance,
+                a.review_status or "—",
                 f"{a.magnitude:.1f}",
                 a.genotype_match,
                 a.condition or "—",
@@ -89,6 +91,7 @@ def render_terminal_diff(
         table.add_column("Source", style="blue", no_wrap=True)
         table.add_column("Old Sig", style="dim")
         table.add_column("New Sig", style="yellow")
+        table.add_column("Review Status", style="dim")
         table.add_column("Old Mag", justify="right", style="dim")
         table.add_column("New Mag", justify="right")
         table.add_column("Condition", overflow="fold")
@@ -99,6 +102,7 @@ def render_terminal_diff(
                 c.current.attribution,
                 c.previous_significance,
                 c.current.significance,
+                c.current.review_status or "—",
                 f"{c.previous_magnitude:.1f}",
                 f"{c.current.magnitude:.1f}",
                 c.current.condition or "—",
@@ -112,6 +116,7 @@ def render_terminal_diff(
         table.add_column("Gene", style="dim magenta", no_wrap=True)
         table.add_column("Source", style="dim blue", no_wrap=True)
         table.add_column("Significance", style="dim")
+        table.add_column("Review Status", style="dim")
         table.add_column("Magnitude", justify="right", style="dim")
         table.add_column("Condition", overflow="fold", style="dim")
         for d in diff.removed:
@@ -120,6 +125,7 @@ def render_terminal_diff(
                 d.get("gene", "") or "—",
                 d.get("attribution", ""),
                 d.get("significance", ""),
+                d.get("review_status", "") or "—",
                 f"{d.get('magnitude', 0.0):.1f}",
                 d.get("condition", "") or "—",
             )
@@ -139,6 +145,7 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
     table.add_column("Gene", style="magenta", no_wrap=True)
     table.add_column("Source", style="blue", no_wrap=True)
     table.add_column("Significance", style="yellow")
+    table.add_column("Review Status", style="dim")
     table.add_column("Magnitude", justify="right")
     table.add_column("Genotype", no_wrap=True)
     table.add_column("Condition", overflow="fold")
@@ -149,6 +156,7 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
             a.gene or "—",
             a.attribution,
             a.significance,
+            a.review_status or "—",
             f"{a.magnitude:.1f}",
             a.genotype_match,
             a.condition or "—",

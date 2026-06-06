@@ -163,7 +163,7 @@ def summarize_diff(diff: DiffResult) -> str:
 
 def diff_annotation_to_dict(a: ChangedAnnotation) -> dict:
     """Serialize a ChangedAnnotation for JSON output."""
-    d = asdict(a.current)
+    d = {k: v for k, v in asdict(a.current).items() if k != "is_must_include"}
     d["previous_significance"] = a.previous_significance
     d["previous_magnitude"] = a.previous_magnitude
     return d

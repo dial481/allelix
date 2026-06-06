@@ -51,10 +51,12 @@ dmypy.json
 .pyre/
 .pytype/
 
-# Local database cache (downloaded at runtime)
-data/
-!data/.gitkeep
+# Local database cache (downloaded at runtime, project root only)
+/data/
+!/data/.gitkeep
 
+# Real genotype files — NEVER commit
+MHG.txt
 # Genotype data — NEVER commit real genetic data
 *.vcf
 *.vcf.gz
@@ -91,7 +93,7 @@ desktop.ini
 *.pem
 *.key
 
-# Per-user investigative test data / exploratory scripts (Round 23 audit).
-# Anything under test_data/ is local-only — kept out of CI lint/format
-# and out of the committed tree.
-test_data/
+# Test data library (committed; only databases/ stays gitignored)
+test_data/databases/
+test_data/baselines_local/
+

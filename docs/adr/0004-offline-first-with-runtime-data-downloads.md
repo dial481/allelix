@@ -7,7 +7,7 @@
 
 Two forces push the same direction:
 
-1. **Privacy.** Genotype data is the most personal data that exists. It cannot be un-leaked. Any architecture that puts genotype bytes on a network — telemetry, cloud lookups, "anonymous" usage stats — leaks data the user can never recall.
+1. **Privacy.** Genotype data is the most identifying data that exists. It cannot be un-leaked. Any architecture that puts genotype bytes on a network — telemetry, cloud lookups, "anonymous" usage stats — leaks data the user can never recall.
 2. **Licensing.** Reference databases have incompatible licenses. ClinVar, dbSNP, and GWAS Catalog are public domain (NCBI). PharmGKB is CC BY-SA 4.0. SNPedia is CC BY-NC-SA 3.0 — non-commercial. Bundling SNPedia content with an MIT-licensed Allelix distribution would create a license conflict; bundling PharmGKB without attribution would violate ShareAlike.
 
 A naive design would query reference databases over the network at analysis time. That violates privacy (the rsIDs you look up reveal what variants you carry) AND creates network/rate-limit dependencies for offline analysis.
@@ -18,7 +18,7 @@ Allelix ships with **zero third-party data**. Reference databases are downloaded
 
 Each downloaded database retains its original license on the user's machine. The user, not Allelix, is the licensee. Allelix's role is plumbing.
 
-For SNPedia specifically: content is downloaded and cached the same way as ClinVar (the source's API allows this for personal/research use), but the CLI provides `--exclude-snpedia` so commercial users can run analysis without SNPedia-derived annotations. README and reports must attribute SNPedia content prominently.
+For SNPedia specifically: content is downloaded and cached the same way as ClinVar (the source's API permits research-purpose retrieval), but the CLI provides `--exclude-snpedia` so commercial users can run analysis without SNPedia-derived annotations. README and reports must attribute SNPedia content prominently.
 
 No telemetry. No analytics. No "optional" crash reports that might contain file paths or rsIDs. Privacy is non-negotiable.
 

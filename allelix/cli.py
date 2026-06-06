@@ -19,6 +19,7 @@ from allelix.databases import resolve_data_dir
 from allelix.parsers import ParserNotFoundError, detect_parser, get_parser_by_name
 from allelix.reports._pipeline import run_analysis
 from allelix.reports.diff import compute_diff, load_previous_report
+from allelix.reports.high_value import format_warnings, load_high_value_snps, scan_no_calls
 from allelix.reports.html import render_html
 from allelix.reports.json_report import render_json
 from allelix.reports.methylation import METHYLATION_PANEL_GENES
@@ -26,6 +27,7 @@ from allelix.reports.terminal import render_terminal, render_terminal_diff
 
 if TYPE_CHECKING:
     from allelix.annotators.base import Annotator
+    from allelix.models import Variant
     from allelix.parsers.base import GenotypeParser
 
 console = Console()
@@ -106,7 +108,7 @@ def _ready_annotators(
     *,
     include_benign: bool = False,
     gwas_filter_traits: bool = True,
-) -> tuple[Path, list[Annotator], list[str]]:
+) -> tuple[Path, list[Annotator], list[Annotator]]:
     resolved = resolve_data_dir(data_dir)
     annotators = get_annotators(
         resolved, include_benign=include_benign, gwas_filter_traits=gwas_filter_traits
@@ -196,6 +198,17 @@ def _run_analysis_command(
 
     _emit_build_diagnostics(result)
 
+    high_value = load_high_value_snps()
+    hv_rsids = set(high_value)
+    hv_variants: list[Variant] = [v for v in parser.parse(file_path) if v.rsid in hv_rsids]
+    hv_warnings = scan_no_calls(hv_variants, high_value)
+    if hv_warnings:
+        console.print(
+            f"[bold red]Warning:[/bold red] {len(hv_warnings)} high-value SNP(s) returned no-call:"
+        )
+        for line in format_warnings(hv_warnings):
+            console.print(f"  [red]⚠[/red] {line}")
+
     if counter.count:
         console.print(
             f"[yellow]Note:[/yellow] {counter.count:,} malformed line(s) skipped "
@@ -245,7 +258,13 @@ def _run_analysis_command(
             )
     else:
         chosen = _format_from_path(output, report_format)
+        hv_warning_lines = format_warnings(hv_warnings) if hv_warnings else None
         if chosen == "json":
+            hv_dicts = (
+                [{"rsid": w.snp.rsid, "gene": w.snp.gene, "note": w.snp.note} for w in hv_warnings]
+                if hv_warnings
+                else None
+            )
             rendered = render_json(
                 result,
                 output_path=output,
@@ -254,6 +273,7 @@ def _run_analysis_command(
                 genes=genes,
                 source_min_magnitudes=source_floors,
                 diff=diff_result,
+                high_value_no_calls=hv_dicts,
             )
         else:
             rendered = render_html(
@@ -264,6 +284,7 @@ def _run_analysis_command(
                 genes=genes,
                 source_min_magnitudes=source_floors,
                 diff=diff_result,
+                high_value_no_calls=hv_warning_lines,
             )
         console.print(f"[green]Wrote {rendered:,} annotation(s) to {output}[/green]")
 
@@ -295,6 +316,10 @@ def stats(file_path: Path, fmt: str | None) -> None:
     parser = _resolve_parser(file_path, fmt)
     counter, stderr_handler, snapshot = _wire_parser_logging()
 
+    high_value = load_high_value_snps()
+    hv_rsids = set(high_value)
+    hv_variants: list[Variant] = []
+
     total = 0
     no_calls = 0
     het = 0
@@ -304,6 +329,8 @@ def stats(file_path: Path, fmt: str | None) -> None:
         metadata = parser.get_metadata(file_path)
         for variant in parser.parse(file_path):
             total += 1
+            if variant.rsid in hv_rsids:
+                hv_variants.append(variant)
             if variant.is_no_call:
                 no_calls += 1
             elif variant.is_heterozygous:
@@ -329,7 +356,18 @@ def stats(file_path: Path, fmt: str | None) -> None:
             "Skipped (malformed)",
             f"[yellow]{counter.count:,}[/yellow] (see warnings on stderr)",
         )
+
+    hv_warnings = scan_no_calls(hv_variants, high_value)
+    if hv_warnings:
+        summary.add_row(
+            "High-value no-calls",
+            f"[red]{len(hv_warnings)}[/red]",
+        )
     console.print(summary)
+
+    if hv_warnings:
+        for line in format_warnings(hv_warnings):
+            console.print(f"  [red]⚠[/red] {line}")
 
     chrom_table = Table(title="Variants per Chromosome")
     chrom_table.add_column("Chromosome", style="cyan", no_wrap=True)
@@ -602,6 +640,87 @@ def extract(file_path: Path, fmt: str | None, snps: str) -> None:
             "[red]yes[/red]" if variant.is_no_call else "no",
         )
     console.print(table)
+
+
+@main.command()
+@click.argument("file1", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("file2", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--format1", "fmt1", default=None, help="Force parser for file 1.")
+@click.option("--format2", "fmt2", default=None, help="Force parser for file 2.")
+def compare(file1: Path, file2: Path, fmt1: str | None, fmt2: str | None) -> None:
+    """Compare two genotype files — coverage overlap and concordance.
+
+    Reports shared rsIDs, file-specific rsIDs, genotype agreement,
+    strand-flip matches (complementary alleles on opposite strands),
+    discordant calls, and strand-ambiguous positions.
+    """
+    from allelix.compare import compare_variants
+    from allelix.utils.build_detect import detect_build
+
+    parser1 = _resolve_parser(file1, fmt1)
+    parser2 = _resolve_parser(file2, fmt2)
+    variants1 = list(parser1.parse(file1))
+    variants2 = list(parser2.parse(file2))
+
+    det1 = detect_build(variants1)
+    det2 = detect_build(variants2)
+    build1 = det1.build or parser1.get_metadata(file1).get("build", "unknown")
+    build2 = det2.build or parser2.get_metadata(file2).get("build", "unknown")
+
+    result = compare_variants(variants1, variants2, build1=build1, build2=build2)
+
+    if result.build1 != result.build2:
+        console.print(
+            f"[yellow]Warning: builds differ ({result.build1} vs {result.build2}). "
+            "Position-based comparisons may be unreliable.[/yellow]"
+        )
+
+    table = Table(title="Coverage Summary")
+    table.add_column("Metric", style="bold")
+    table.add_column("Value", justify="right")
+    table.add_row("File 1", f"{file1.name} ({result.file1_total:,} variants)")
+    table.add_row("File 2", f"{file2.name} ({result.file2_total:,} variants)")
+    table.add_row("Build (file 1)", result.build1)
+    table.add_row("Build (file 2)", result.build2)
+    table.add_row("Shared rsIDs", f"{result.shared:,}")
+    table.add_row("File 1 only", f"{result.file1_only:,}")
+    table.add_row("File 2 only", f"{result.file2_only:,}")
+    console.print(table)
+
+    conc_table = Table(title="Genotype Concordance")
+    conc_table.add_column("Category", style="bold")
+    conc_table.add_column("Count", justify="right")
+    conc_table.add_column("%", justify="right")
+    for label, count in [
+        ("Concordant", result.concordant),
+        ("Strand-flip match", result.strand_flip_match),
+        ("Discordant", result.discordant),
+        ("Strand-ambiguous", result.strand_ambiguous),
+        ("No-call (either file)", result.no_call),
+    ]:
+        pct = _percent(count, result.shared) if result.shared else "—"
+        conc_table.add_row(label, f"{count:,}", pct)
+    console.print(conc_table)
+
+    if result.chromosome_counts:
+        chrom_table = Table(title="Per-Chromosome Breakdown")
+        chrom_table.add_column("Chr", style="cyan", no_wrap=True)
+        chrom_table.add_column("Concordant", justify="right")
+        chrom_table.add_column("Flip", justify="right")
+        chrom_table.add_column("Discordant", justify="right")
+        chrom_table.add_column("Ambiguous", justify="right")
+        chrom_table.add_column("No-call", justify="right")
+        for chrom in sorted(result.chromosome_counts, key=_chrom_sort_key):
+            c = result.chromosome_counts[chrom]
+            chrom_table.add_row(
+                chrom,
+                str(c.get("concordant", 0)),
+                str(c.get("strand_flip_match", 0)),
+                str(c.get("discordant", 0)),
+                str(c.get("strand_ambiguous", 0)),
+                str(c.get("no_call", 0)),
+            )
+        console.print(chrom_table)
 
 
 @main.command()
