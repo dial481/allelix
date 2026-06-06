@@ -20,7 +20,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Generate a synthetic test fixture (real fixtures contain identifying data; we use mock data)
+# Generate a synthetic test fixture
 python tests/generate_mock_data.py
 
 # Show summary statistics for a genotype file

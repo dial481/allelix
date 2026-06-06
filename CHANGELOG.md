@@ -2,6 +2,27 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.1.1] — 2026-06-07
+
+### Changed
+- Relocated real genotype test data (`test_data/real/` and
+  `test_data/transcoded/`) to GitHub release assets. Fresh clone size
+  reduced from ~650 MB to ~150 MB. Tests skip gracefully when data is
+  absent; `scripts/fetch_testdata.sh` restores it.
+- Clarified `.gitignore` and `test_data/README.md`: the "never commit"
+  rule applies to private genetic data, not CC0 public-domain openSNP
+  fixtures hosted as release assets.
+
+### Fixed
+- Orphaned `[Unreleased]` changelog sections assigned proper version
+  numbers (`[0.7.2]` and `[0.8.0]`) matching their chronological
+  position in the development history.
+- Duplicate `[0.7.1]` changelog header consolidated into a single entry.
+- Dead compare links for internal pre-release versions removed (0.x tags
+  were never pushed to the public repository).
+
 ## [1.1.0] — 2026-06-06
 
 ### Added
@@ -234,7 +255,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   source floor bypass, global min-magnitude enforcement, and trait
   filter enforcement.
 
-## [Unreleased]
+## [0.8.0] — 2026-05-13
 
 > **ClinVar REF allele is the primary PharmGKB non-finding filter (ADR-0023).**
 > Five prior releases (v0.5.x–v0.7.1) iterated on a CPIC-based filter that
@@ -358,91 +379,23 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   mode that spanned v0.5.x–v0.7.1 is structurally resolved: the
   filter no longer depends on CPIC's per-gene vocabulary.
 
-## [Unreleased — Round 23 audit follow-up]
+## [0.7.2] — 2026-05-13
 
-> **Round 23 audit follow-up.** Three fixture-layer defects + one
-> .gitignore omission found by external review of the build-detection
-> work. The new code was right; the test fixtures were lying about
-> what they covered.
-
-### Fixed
-- **Per-build ClinVar fixtures.** The pre-Round-23 mock_clinvar.vcf
-  had mixed-build positions (some GRCh37, some GRCh38, rs80357906 at
-  41245466 matching neither). This was the exact failure mode
-  ADR-0021 was written to detect, hardcoded into the project's own
-  test fixture. Replaced by two build-correct fixtures:
-  `tests/fixtures/mock_clinvar_grch37.vcf` and `mock_clinvar_grch38.vcf`.
-  Generator rewritten (`tests/generate_clinvar_fixture.py`) to emit
-  per-build VCFs with positions verified against NCBI dbSNP. The old
-  `mock_clinvar.vcf` is removed.
-- **rs80357906 BRCA1 position corrected.** Old fixture had 41245466;
-  authoritative is GRCh37 41209080 / GRCh38 43057063 (verified
-  against NCBI Variation API and the live ClinVar GRCh37 VCF). The
-  `build_detect.py` table was correct; the fixture was wrong.
-- **Dual-cache dispatch test coverage is no longer fictional.** The
-  conftest now loads `mock_clinvar_grch37.vcf` into the GRCh37 cache
-  and `mock_clinvar_grch38.vcf` into the GRCh38 cache, so per-build
-  dispatch produces DIFFERENT results across caches. Two new
-  end-to-end tests pin the contract directly using rs104894490 NIPA1:
-  - `test_nipa1_strand_inversion_no_emission_on_grch38_data` — the
-    smoking-gun case from the user's report. MHG fixture has G/G at
-    the GRCh38 NIPA1 position; auto-detection identifies GRCh38;
-    dispatch queries the GRCh38 cache (REF=G ALT=A); zero A alleles
-    → no annotation. The false positive is gone.
-  - `test_nipa1_grch37_dispatch_reproduces_legacy_false_positive` —
-    forces `--build grch37` on the same data; dispatch queries the
-    GRCh37 cache (REF=C ALT=G); user's G matches ALT=G → annotation
-    DOES emit. This is the OLD wrong behavior pinned so a future
-    "default to GRCh37" regression visibly flips this assertion.
-
-### Added
-- **`tests/fixtures/mock_clinvar_grch37.vcf` and `mock_clinvar_grch38.vcf`**
-  with 11 single-allele records + 1 multi-allelic row. rs104894490
-  NIPA1 included with build-specific REF/ALT (the strand-inverted
-  regression case).
-- **`tests/test_mock_data_invariants.py::TestClinvarFixturePositionInvariants`**
-  pinning that every rsID in the build-detect table uses
-  build-authoritative positions in the matching fixture, and that
-  rs104894490 specifically has the strand-inverted REF/ALT pair
-  preserved across the two fixtures. ADR-0015's "mock-as-spec"
-  invariant now applies to the ClinVar fixture too.
-- **rs104894490 NIPA1 entry in the MHG generator's known SNPs**
-  (chr15, G/G genotype, both build positions). The mock MHG default
-  fixture grew from 2,015 to 2,016 SNPs to carry the regression case.
-
-### Changed
-- **`mock_clinvar.vcf` fixture removed.** The single mixed-build file
-  predated ADR-0021's per-build split. Callers that referenced the
-  generic name (test_manager.py, test_cli.py legacy paths) now use a
-  back-compat alias fixture that points to `mock_clinvar_grch37.vcf`.
-  New tests should use the build-specific fixtures directly.
-- **Count snapshots updated for the +1 NIPA1 row.** MHG 2,015 → 2,016;
-  ClinVar 12 → 13 per build; composite status display 24 → 26.
-
-### Tooling
-- **`.gitignore` excludes `test_data/`** — exploratory scripts kept
-  out of CI lint/format and out of the committed tree.
-- **`pyproject.toml [tool.ruff]` adds `extend-exclude = ["test_data"]`**
-  belt-and-braces: even if ruff is run with `--no-respect-gitignore`,
-  exploratory scripts under `test_data/` are skipped.
-
-### Verification
-- 341 tests pass (was 336; +5: two end-to-end NIPA1 regressions, three
-  fixture invariants). Coverage 95.61%. Lint and format clean.
-- The NIPA1 case from the user's real-world report has BOTH directions
-  of the dispatch contract pinned: correct behavior on GRCh38 data,
-  reproducible legacy false positive when GRCh37 is forced.
-
-### Earlier Unreleased entries — build auto-detection (ADR-0021 + ADR-0022)
-
-> **Genome build auto-detection (ADR-0021) and the PharmGKB non-CPIC
-> documentation policy (ADR-0022).** A real-world MyHappyGenes/Tempus
-> export was confirmed to ship GRCh38 positions while its header claims
-> "build 37.1." Cross-build REF/ALT comparison against ClinVar's GRCh37
-> VCF produced a false-positive pathogenic call on NIPA1 `rs104894490`.
+> **Genome build auto-detection (ADR-0021 + ADR-0022) with Round 23
+> audit follow-up.** A real-world MyHappyGenes/Tempus export was
+> confirmed to ship GRCh38 positions while its header claims "build
+> 37.1." Cross-build REF/ALT comparison against ClinVar's GRCh37 VCF
+> produced a false-positive pathogenic call on NIPA1 `rs104894490`.
 > The carrier check (ADR-0007) was correct — it was matching against
 > the wrong build's REF/ALT. The fix is structural: detect build from
 > position data, hold per-build ClinVar caches, dispatch per variant.
+> ADR-0022 documents the deliberate decision NOT to filter PharmGKB
+> reference-genotype rows on non-CPIC genes.
+>
+> An external audit (Round 23) subsequently found three fixture-layer
+> defects and one `.gitignore` omission in the build-detection work.
+> The new code was right; the test fixtures were lying about what they
+> covered.
 
 ### Added
 - **`allelix/utils/build_detect.py`** with a hardcoded ~11-entry
@@ -486,6 +439,49 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   `test_analyze_build_override_skips_detection`.
 - **README "Known PharmGKB limitation" section** documenting non-CPIC
   reference-genotype rows per ADR-0022.
+- **`tests/fixtures/mock_clinvar_grch37.vcf` and `mock_clinvar_grch38.vcf`**
+  with 11 single-allele records + 1 multi-allelic row. rs104894490
+  NIPA1 included with build-specific REF/ALT (the strand-inverted
+  regression case).
+- **`tests/test_mock_data_invariants.py::TestClinvarFixturePositionInvariants`**
+  pinning that every rsID in the build-detect table uses
+  build-authoritative positions in the matching fixture, and that
+  rs104894490 specifically has the strand-inverted REF/ALT pair
+  preserved across the two fixtures. ADR-0015's "mock-as-spec"
+  invariant now applies to the ClinVar fixture too.
+- **rs104894490 NIPA1 entry in the MHG generator's known SNPs**
+  (chr15, G/G genotype, both build positions). The mock MHG default
+  fixture grew from 2,015 to 2,016 SNPs to carry the regression case.
+
+### Fixed
+- **Per-build ClinVar fixtures.** The pre-Round-23 mock_clinvar.vcf
+  had mixed-build positions (some GRCh37, some GRCh38, rs80357906 at
+  41245466 matching neither). This was the exact failure mode
+  ADR-0021 was written to detect, hardcoded into the project's own
+  test fixture. Replaced by two build-correct fixtures:
+  `tests/fixtures/mock_clinvar_grch37.vcf` and `mock_clinvar_grch38.vcf`.
+  Generator rewritten (`tests/generate_clinvar_fixture.py`) to emit
+  per-build VCFs with positions verified against NCBI dbSNP. The old
+  `mock_clinvar.vcf` is removed.
+- **rs80357906 BRCA1 position corrected.** Old fixture had 41245466;
+  authoritative is GRCh37 41209080 / GRCh38 43057063 (verified
+  against NCBI Variation API and the live ClinVar GRCh37 VCF). The
+  `build_detect.py` table was correct; the fixture was wrong.
+- **Dual-cache dispatch test coverage is no longer fictional.** The
+  conftest now loads `mock_clinvar_grch37.vcf` into the GRCh37 cache
+  and `mock_clinvar_grch38.vcf` into the GRCh38 cache, so per-build
+  dispatch produces DIFFERENT results across caches. Two new
+  end-to-end tests pin the contract directly using rs104894490 NIPA1:
+  - `test_nipa1_strand_inversion_no_emission_on_grch38_data` — the
+    smoking-gun case from the user's report. MHG fixture has G/G at
+    the GRCh38 NIPA1 position; auto-detection identifies GRCh38;
+    dispatch queries the GRCh38 cache (REF=G ALT=A); zero A alleles
+    → no annotation. The false positive is gone.
+  - `test_nipa1_grch37_dispatch_reproduces_legacy_false_positive` —
+    forces `--build grch37` on the same data; dispatch queries the
+    GRCh37 cache (REF=C ALT=G); user's G matches ALT=G → annotation
+    DOES emit. This is the OLD wrong behavior pinned so a future
+    "default to GRCh37" regression visibly flips this assertion.
 
 ### Changed
 - **Auto-detection is the analyze default.** Files without a CLI
@@ -501,6 +497,20 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   the rsID-based annotator queries work regardless of detected build.
 - **Database versioning** uses per-build record names
   (`clinvar.GRCh37` / `clinvar.GRCh38`) in `database_versions`.
+- **`mock_clinvar.vcf` fixture removed.** The single mixed-build file
+  predated ADR-0021's per-build split. Callers that referenced the
+  generic name (test_manager.py, test_cli.py legacy paths) now use a
+  back-compat alias fixture that points to `mock_clinvar_grch37.vcf`.
+  New tests should use the build-specific fixtures directly.
+- **Count snapshots updated for the +1 NIPA1 row.** MHG 2,015 → 2,016;
+  ClinVar 12 → 13 per build; composite status display 24 → 26.
+
+### Tooling
+- **`.gitignore` excludes `test_data/`** — exploratory scripts kept
+  out of CI lint/format and out of the committed tree.
+- **`pyproject.toml [tool.ruff]` adds `extend-exclude = ["test_data"]`**
+  belt-and-braces: even if ruff is run with `--no-respect-gitignore`,
+  exploratory scripts under `test_data/` are skipped.
 
 ### Migration
 - v0.7.x users have a single `clinvar.sqlite` cache, which the new
@@ -508,6 +518,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   the new per-build caches (`clinvar.GRCh37.sqlite` and
   `clinvar.GRCh38.sqlite`). The legacy `clinvar.sqlite` can be
   deleted; nothing references it anymore.
+
+### Verification
+- 341 tests pass (was 336; +5: two end-to-end NIPA1 regressions, three
+  fixture invariants). Coverage 95.61%. Lint and format clean.
+- The NIPA1 case from the user's real-world report has BOTH directions
+  of the dispatch contract pinned: correct behavior on GRCh38 data,
+  reproducible legacy false positive when GRCh37 is forced.
 
 ### Notes
 - The user's NIPA1 false positive was diagnosed in this cycle: header
@@ -519,58 +536,6 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   GP9, ADRA2A, TMPRSS6, PKD1, FLG) requires running `db update --force`
   on real data and re-annotating; some may be the same cross-build
   artifact as NIPA1. The tool now uses the correct build automatically.
-
-## [0.7.1] — 2026-05-13
-
-### Fixed
-- **C-1: test suite no longer hits the real CPIC API.**
-  `test_db_update_with_file_url` monkey-patches
-  `fetch_cpic_allele_functions` on the annotator module to return the
-  same `MOCK_CPIC_LOOKUP` the rest of the suite uses. Run time on that
-  single test dropped from ~4 s (network-bound) to 0.6 s (offline).
-- **C-2: README refreshed to v0.7.1.** Status banner, supported-
-  databases table, and architecture-decision summary reflect ADR-0020
-  (CPIC API as the structured per-allele function source) and drop
-  obsolete references to ADR-0013 / ADR-0014.
-- **M-3: CPIC conflict-resolution policy flipped.** When the same
-  `(rsid, base)` appears under multiple allele definitions with a
-  Normal-vs-non-Normal disagreement, the loader now picks the
-  non-Normal classification. Suppressing happens only when EVERY base
-  is Normal — biasing conflicts toward non-Normal ensures we never
-  silently suppress a real variant just because one CPIC row flagged
-  it Normal. Pinned by `test_conflict_prefers_non_normal`.
-
-### Added
-- **M-1: retry-with-backoff on CPIC fetches.** `_http_get_json`
-  retries up to 3 times with `(1, 2, 4) s` backoff on `URLError`,
-  `TimeoutError`, and `JSONDecodeError`. A single transient TCP RST
-  during `db update` no longer aborts the refresh.
-- **M-2: composite PharmGKB + CPIC freshness signal.**
-  `PharmGKBAnnotator.fetch_remote_signal()` now returns
-  `pgkb:<pgkb-signal>|cpic:<cpic-signal>` where the CPIC portion is
-  the latest date from CPIC's `change_log` table. If CPIC publishes
-  new allele functions while PharmGKB's zip is unchanged, the next
-  `db update` detects it and refreshes. CPIC probe failure returns
-  None (existing "can't verify, pass --force" UX).
-- **M-4: mutation-gap tests pinning critical policies.**
-  `_classify_cpic_status` returning None for unknown statuses, and
-  `fetch_cpic_allele_functions` skipping multi-base / non-ACGT values,
-  both have direct pins. A future refactor can't silently break
-  either without a test failure.
-- **m-2: zip cleanup wrapped in try/finally** in
-  `PharmGKBAnnotator.setup()`. A failure between download and ingest
-  no longer leaves the staged `clinicalAnnotations.zip` on disk.
-- **m-6: `MOCK_CPIC_LOOKUP` shape invariants.** New
-  `TestCpicLookupMockInvariants` checks every fixture entry is
-  `(rsid, single-base)` keyed and every value is a recognized
-  `function_class`. Mirrors what real `fetch_cpic_allele_functions`
-  returns, so the same fixture-as-spec violation that bit v0.6.0 and
-  v0.7.0 can't recur with CPIC data.
-- **`tests/databases/test_cpic_loader.py`** with 16 tests covering
-  the three-way join, multi-base filtering, unknown-status filtering,
-  null-dbsnp filtering, conflict resolution, network-error
-  propagation, retry-then-success, timeout retry, malformed-JSON
-  retry, and the CPIC freshness probe's failure modes.
 
 ## [0.7.1] — 2026-05-13
 
@@ -605,6 +570,22 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
     → all `is_nonfinding=1`.
   - Known carriers (rs1801133 AG/AA ×20, rs1799853 CT ×3, rs4149056 CT ×39,
     rs4244285 AG ×7) → all `is_nonfinding=0`. Zero over-suppression.
+- **C-1: test suite no longer hits the real CPIC API.**
+  `test_db_update_with_file_url` monkey-patches
+  `fetch_cpic_allele_functions` on the annotator module to return the
+  same `MOCK_CPIC_LOOKUP` the rest of the suite uses. Run time on that
+  single test dropped from ~4 s (network-bound) to 0.6 s (offline).
+- **C-2: README refreshed to v0.7.1.** Status banner, supported-
+  databases table, and architecture-decision summary reflect ADR-0020
+  (CPIC API as the structured per-allele function source) and drop
+  obsolete references to ADR-0013 / ADR-0014.
+- **M-3: CPIC conflict-resolution policy flipped.** When the same
+  `(rsid, base)` appears under multiple allele definitions with a
+  Normal-vs-non-Normal disagreement, the loader now picks the
+  non-Normal classification. Suppressing happens only when EVERY base
+  is Normal — biasing conflicts toward non-Normal ensures we never
+  silently suppress a real variant just because one CPIC row flagged
+  it Normal. Pinned by `test_conflict_prefers_non_normal`.
 
 ### Added
 - **ADR-0020: CPIC API as the structured per-allele function source.**
@@ -618,6 +599,36 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   tests inject a synthetic dict.
 - **`mock_cpic_lookup` pytest fixture** in `conftest.py` holds the
   canonical synthetic CPIC lookup the test suite joins against.
+- **M-1: retry-with-backoff on CPIC fetches.** `_http_get_json`
+  retries up to 3 times with `(1, 2, 4) s` backoff on `URLError`,
+  `TimeoutError`, and `JSONDecodeError`. A single transient TCP RST
+  during `db update` no longer aborts the refresh.
+- **M-2: composite PharmGKB + CPIC freshness signal.**
+  `PharmGKBAnnotator.fetch_remote_signal()` now returns
+  `pgkb:<pgkb-signal>|cpic:<cpic-signal>` where the CPIC portion is
+  the latest date from CPIC's `change_log` table. If CPIC publishes
+  new allele functions while PharmGKB's zip is unchanged, the next
+  `db update` detects it and refreshes. CPIC probe failure returns
+  None (existing "can't verify, pass --force" UX).
+- **M-4: mutation-gap tests pinning critical policies.**
+  `_classify_cpic_status` returning None for unknown statuses, and
+  `fetch_cpic_allele_functions` skipping multi-base / non-ACGT values,
+  both have direct pins. A future refactor can't silently break
+  either without a test failure.
+- **m-2: zip cleanup wrapped in try/finally** in
+  `PharmGKBAnnotator.setup()`. A failure between download and ingest
+  no longer leaves the staged `clinicalAnnotations.zip` on disk.
+- **m-6: `MOCK_CPIC_LOOKUP` shape invariants.** New
+  `TestCpicLookupMockInvariants` checks every fixture entry is
+  `(rsid, single-base)` keyed and every value is a recognized
+  `function_class`. Mirrors what real `fetch_cpic_allele_functions`
+  returns, so the same fixture-as-spec violation that bit v0.6.0 and
+  v0.7.0 can't recur with CPIC data.
+- **`tests/databases/test_cpic_loader.py`** with 16 tests covering
+  the three-way join, multi-base filtering, unknown-status filtering,
+  null-dbsnp filtering, conflict resolution, network-error
+  propagation, retry-then-success, timeout retry, malformed-JSON
+  retry, and the CPIC freshness probe's failure modes.
 
 ### Removed (regressions reverted)
 - **All regex-on-prose tiers gone.** `_NONFINDING_PROSE_FALLBACK`,
@@ -1190,21 +1201,8 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - ADRs 0001–0005 documenting the meta process, plugin architecture, source-attributed annotations, offline-first data model, and the parse-derived SNP count contract.
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
+
+[Unreleased]: https://github.com/dial481/allelix/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/dial481/allelix/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/dial481/allelix/compare/v1.0.0...v1.1.0
-[Unreleased]: https://github.com/dial481/allelix/compare/v1.1.0...HEAD
-[1.0.0]: https://github.com/dial481/allelix/compare/v0.9.2...v1.0.0
-[0.9.2]: https://github.com/dial481/allelix/compare/v0.9.1...v0.9.2
-[0.9.1]: https://github.com/dial481/allelix/compare/v0.8.2...v0.9.1
-[0.8.2]: https://github.com/dial481/allelix/compare/v0.8.1...v0.8.2
-[0.8.1]: https://github.com/dial481/allelix/compare/v0.7.1...v0.8.1
-[0.6.1]: https://github.com/dial481/allelix/compare/v0.6.0...v0.6.1
-[0.6.0]: https://github.com/dial481/allelix/compare/v0.5.2...v0.6.0
-[0.5.2]: https://github.com/dial481/allelix/compare/v0.5.1...v0.5.2
-[0.5.1]: https://github.com/dial481/allelix/compare/v0.5.0...v0.5.1
-[0.5.0]: https://github.com/dial481/allelix/compare/v0.4.2...v0.5.0
-[0.4.2]: https://github.com/dial481/allelix/compare/v0.4.1...v0.4.2
-[0.4.1]: https://github.com/dial481/allelix/compare/v0.4.0...v0.4.1
-[0.4.0]: https://github.com/dial481/allelix/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/dial481/allelix/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/dial481/allelix/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/dial481/allelix/releases/tag/v0.1.0
+[1.0.0]: https://github.com/dial481/allelix/releases/tag/v1.0.0

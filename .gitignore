@@ -55,9 +55,10 @@ dmypy.json
 /data/
 !/data/.gitkeep
 
-# Real genotype files — NEVER commit
+# Private genotype files — NEVER commit
+# CC0 openSNP test fixtures are hosted as release assets (see scripts/fetch_testdata.sh)
 MHG.txt
-# Genotype data — NEVER commit real genetic data
+# Genotype data — NEVER commit private genetic data
 *.vcf
 *.vcf.gz
 *.vcf.gz.tbi

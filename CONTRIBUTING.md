@@ -150,7 +150,9 @@ Create `tests/fixtures/mock_vendorname.txt` with synthetic data. Include:
 - A no-call line
 - An edge case (blank line, extra whitespace, etc.)
 
-No real genetic data. All fixtures are synthetic.
+All `tests/fixtures/` files are synthetic (produced by mock data
+generators). Real-data integration tests use CC0 public-domain openSNP
+genotype files available via `scripts/fetch_testdata.sh`.
 
 ### Step 4: Write tests
 
@@ -357,5 +359,5 @@ ruff check allelix/annotators/mydb.py tests/annotators/test_mydb.py
 - [ ] Lint clean: `ruff check .`
 - [ ] Format clean: `ruff format --check .`
 - [ ] License header on new files
-- [ ] No real genetic data in fixtures
+- [ ] No private or identifying genetic data in fixtures
 - [ ] Source attribution on all annotations

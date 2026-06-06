@@ -1,5 +1,9 @@
 # Allelix Test Data Library
 
+> **Note:** The `real/` and `transcoded/` directories are not committed
+> to the repository. They are hosted as GitHub release assets. Run
+> `scripts/fetch_testdata.sh` to download them.
+
 Curated test data and frozen regression baselines for parser and annotator
 verification.
 
