@@ -19,6 +19,7 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from allelix.utils.build_detect import (
+    BUILD_GRCH36,
     BUILD_GRCH37,
     BUILD_GRCH38,
     KNOWN_SNP_POSITIONS,
@@ -325,9 +326,17 @@ class _BuildDetectionState:
                 self._buffer.clear()
                 return True, batch
         if len(self._buffer) >= _DETECTION_BUFFER_LIMIT:
-            # Stream is unusually large with no known SNPs hit; fall back so we
-            # don't OOM. Detection failed → use header build, then GRCh37.
-            self.effective = self.header_build or BUILD_GRCH37
+            # Buffer full before detection converged. Run partial detection
+            # so the GRCh36 safety guard can fire (same logic as flush()).
+            result = detect_build(self._buffer)
+            if result.build is not None:
+                self.detected = result.build
+            self.matched_count = result.matched
+            self.inspected_count = result.inspected
+            if result.build == BUILD_GRCH36:
+                self.effective = BUILD_GRCH36
+            else:
+                self.effective = self.header_build or BUILD_GRCH37
             batch = [replace(v, build=self.effective) for v in self._buffer]
             self._buffer.clear()
             return True, batch
@@ -343,10 +352,15 @@ class _BuildDetectionState:
             self.detected = result.build
             self.effective = result.build
         else:
-            # Fall back to header → default. Surface partial counts.
-            self.effective = self.header_build or BUILD_GRCH37
             if result.build is not None:
                 self.detected = result.build
+            # GRCh36 must fail safe: there is no GRCh36 ClinVar cache,
+            # so falling back to GRCh37 would silently query wrong
+            # coordinates and bypass the GRCh36 safety guard.
+            if result.build == BUILD_GRCH36:
+                self.effective = BUILD_GRCH36
+            else:
+                self.effective = self.header_build or BUILD_GRCH37
         self.matched_count = result.matched
         self.inspected_count = result.inspected
         out = [replace(v, build=self.effective) for v in self._buffer]

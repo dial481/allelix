@@ -8,8 +8,15 @@ from typing import TYPE_CHECKING
 
 from allelix.annotators.clinvar import ClinVarAnnotator
 from allelix.annotators.pharmgkb import PharmGKBAnnotator
+from allelix.models import Variant
 from allelix.parsers.myhappygenes import MyHappyGenesParser
-from allelix.reports._pipeline import AnalysisResult, run_analysis
+from allelix.reports._pipeline import (
+    _DETECTION_BUFFER_LIMIT,
+    AnalysisResult,
+    _BuildDetectionState,
+    run_analysis,
+)
+from allelix.utils.build_detect import BUILD_GRCH36, BUILD_GRCH37, KNOWN_SNP_POSITIONS
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -102,3 +109,93 @@ class TestRunAnalysis:
         run_analysis(mock_mhg_path, parser, [ann])
         # ExitStack closed every per-build connection.
         assert ann._conns == {}
+
+
+class TestGRCh36FlushFailSafe:
+    """GRCh36 non-confident detection must use GRCh36 as effective build.
+
+    Issue #6: when detection points to GRCh36 but isn't confident
+    (matched < inspected), the pipeline was falling back to header_build
+    or GRCh37. This bypassed the ClinVar safety guard (no GRCh36 cache)
+    and silently annotated GRCh36 data against GRCh37 coordinates.
+    """
+
+    def _grch36_variants(self, count=3, discordant=1):
+        """Build variants: `count` at GRCh36 positions + `discordant` at junk positions."""
+        variants = []
+        grch36_rsids = [
+            rsid for rsid, builds in KNOWN_SNP_POSITIONS.items() if BUILD_GRCH36 in builds
+        ]
+        for rsid in grch36_rsids[:count]:
+            chrom, pos = KNOWN_SNP_POSITIONS[rsid][BUILD_GRCH36]
+            variants.append(
+                Variant(rsid=rsid, chromosome=chrom, position=pos, allele1="A", allele2="A")
+            )
+        for rsid in grch36_rsids[count : count + discordant]:
+            chrom, _ = KNOWN_SNP_POSITIONS[rsid][BUILD_GRCH36]
+            variants.append(
+                Variant(rsid=rsid, chromosome=chrom, position=99999999, allele1="A", allele2="A")
+            )
+        return variants
+
+    def test_non_confident_grch36_uses_grch36_effective(self):
+        state = _BuildDetectionState(override=None, header_build=None)
+        variants = self._grch36_variants(count=3, discordant=1)
+        for v in variants:
+            state.feed(v)
+        state.flush()
+        assert state.effective_build == BUILD_GRCH36
+
+    def test_non_confident_grch36_with_header_grch37_still_uses_grch36(self):
+        state = _BuildDetectionState(override=None, header_build=BUILD_GRCH37)
+        variants = self._grch36_variants(count=3, discordant=1)
+        for v in variants:
+            state.feed(v)
+        state.flush()
+        assert state.effective_build == BUILD_GRCH36
+
+    def test_confident_grch36_uses_grch36(self):
+        state = _BuildDetectionState(override=None, header_build=None)
+        variants = self._grch36_variants(count=3, discordant=0)
+        for v in variants:
+            state.feed(v)
+        state.flush()
+        assert state.effective_build == BUILD_GRCH36
+
+    def test_diagnostics_report_grch36_as_effective(self):
+        state = _BuildDetectionState(override=None, header_build=None)
+        variants = self._grch36_variants(count=3, discordant=1)
+        for v in variants:
+            state.feed(v)
+        state.flush()
+        diag = state.diagnostics()
+        assert diag.effective_build == BUILD_GRCH36
+        assert diag.detected_build == BUILD_GRCH36
+
+    def test_buffer_limit_with_single_grch36_probe_uses_grch36(self):
+        """Buffer-limit path must apply the same GRCh36 safety as flush().
+
+        Real FTDNA GRCh36 files have 687K+ variants but only 1 probe SNP
+        in the first 100K lines. The buffer-limit fallback must run
+        detect_build and trigger the GRCh36 guard, not hard-fall-back to
+        GRCh37.
+        """
+        state = _BuildDetectionState(override=None, header_build=BUILD_GRCH37)
+        grch36_rsids = [
+            rsid for rsid, builds in KNOWN_SNP_POSITIONS.items() if BUILD_GRCH36 in builds
+        ]
+        rsid = grch36_rsids[0]
+        chrom, pos = KNOWN_SNP_POSITIONS[rsid][BUILD_GRCH36]
+        probe = Variant(rsid=rsid, chromosome=chrom, position=pos, allele1="A", allele2="A")
+        state.feed(probe)
+        filler = [
+            Variant(rsid=f"rs9{i:06d}", chromosome="1", position=i, allele1="A", allele2="A")
+            for i in range(_DETECTION_BUFFER_LIMIT)
+        ]
+        for v in filler:
+            ready, _batch = state.feed(v)
+            if ready:
+                break
+        assert state.effective_build == BUILD_GRCH36
+        diag = state.diagnostics()
+        assert diag.detected_build == BUILD_GRCH36

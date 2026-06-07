@@ -33,3 +33,11 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+
+      - id: version-tag-match
+        name: version-tag-match (pyproject.toml == pushed tag)
+        entry: scripts/check_version_tag.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

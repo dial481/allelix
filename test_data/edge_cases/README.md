@@ -59,13 +59,24 @@ what it tests, and the expected parser behavior.
 - **Expected behavior:** `allelix stats` returns `Error: No parser recognized`.
 
 ### `unsupported_23andme_exome_vcf.txt`
-- **Source:** openSNP user1, file 3302. Provenance: CC0.
-- **What it is:** 23andMe whole-exome VCF (a research-only deliverable,
-  distinct from 23andMe's standard chip export). VCF format, not supported
-  by Allelix v1.x (VCF is on the v2 roadmap).
+- **Source:** Corpas family "Corpasome" release; dataset via figshare,
+  project tag "Corpasome". Originally deposited on openSNP as user1,
+  file 3302.
+- **Citation:** Corpas M et al., "Crowdsourced direct-to-consumer genomic
+  analysis of a family quartet," *BMC Genomics* 2015.
+  doi:10.1186/s12864-015-1973-7
+- **License:** Released CC-BY by the family (2013); described as CC0 in
+  the 2015 paper. Attributed here to satisfy CC-BY.
+- **What it is:** Whole-exome variant calls (~115k variants) from a
+  GATK HaplotypeCaller pipeline. VCF format, not supported by Allelix
+  v1.x (VCF is on the v2 roadmap).
 - **What it tests:** Unsupported format rejected cleanly even when the
   filename suggests it might be 23andMe.
 - **Expected behavior:** `allelix stats` returns `Error: No parser recognized`.
+- **Note:** This is the only named-individual dataset in the repo. The
+  Corpas family deliberately released their genomic data to the public.
+  Replacement with a synthetic or fully anonymous exome VCF is tracked
+  as a follow-up.
 
 ### `mhg_grch38_with_grch37_header.txt`
 - **Source:** Synthetic MHG (Tempus) fixture. Hand-built from the project's

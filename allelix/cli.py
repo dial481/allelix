@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -128,6 +129,50 @@ def _ready_annotators(
     return resolved, ready, not_ready
 
 
+_STALENESS_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
+
+def _maybe_refresh_databases(data_dir: Path) -> None:
+    """Check database mtimes; refresh any that are stale and have a changed remote signal.
+
+    Only runs for annotators that download data (SNPedia excluded).
+    If the network is unreachable, warns and continues with stale caches.
+    """
+    now = time.time()
+    annotators = get_annotators(data_dir)
+    for annotator in annotators:
+        with annotator:
+            if not annotator.requires_download or not annotator.is_ready():
+                continue
+            db_files = list(data_dir.glob(f"{annotator.name}*sqlite*"))
+            if not db_files:
+                continue
+            newest_mtime = max(f.stat().st_mtime for f in db_files)
+            age = now - newest_mtime
+            if age <= _STALENESS_SECONDS:
+                continue
+
+            remote = annotator.fetch_remote_signal()
+            if remote is None:
+                age_days = int(age / 86400)
+                console.print(
+                    f"[yellow]{annotator.display_name} database is {age_days} days old. "
+                    "Run `allelix db update` when online.[/yellow]"
+                )
+                continue
+
+            cached = annotator.cached_remote_signal()
+            if cached == remote:
+                continue
+
+            console.print(f"[bold]Updating {annotator.display_name}…[/bold]")
+            _run_setup(annotator)
+            console.print(
+                f"[green]✓ {annotator.display_name} updated[/green] "
+                f"(version {annotator.version() or '(unknown)'})"
+            )
+
+
 def _format_from_path(output: Path, override: str | None) -> str:
     if override:
         return override.lower()
@@ -158,7 +203,11 @@ def _run_analysis_command(
     exclude_sources: frozenset[str] | None = None,
     gwas_all: bool = False,
     diff_path: Path | None = None,
+    no_update: bool = False,
 ) -> None:
+    resolved = resolve_data_dir(data_dir)
+    if not no_update:
+        _maybe_refresh_databases(resolved)
     parser = _resolve_parser(file_path, fmt)
     _, ready, not_ready = _ready_annotators(
         data_dir, include_benign=include_benign, gwas_filter_traits=not gwas_all
@@ -458,6 +507,12 @@ _DIFF_OPT = click.option(
         "Not a monitoring tool — use for version-to-version validation."
     ),
 )
+_NO_UPDATE_OPT = click.option(
+    "--no-update",
+    is_flag=True,
+    default=False,
+    help="Skip the pre-analysis database freshness check.",
+)
 _BUILD_OPT = click.option(
     "--build",
     type=click.Choice(["grch37", "grch38", "auto"], case_sensitive=False),
@@ -551,6 +606,7 @@ def _emit_build_diagnostics(result: object) -> None:
 @_GWAS_ALL_OPT
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
+@_NO_UPDATE_OPT
 def analyze(
     file_path: Path,
     fmt: str | None,
@@ -566,6 +622,7 @@ def analyze(
     gwas_all: bool,
     exclude_snpedia: bool,
     diff_path: Path | None,
+    no_update: bool,
 ) -> None:
     """Annotate a genotype file against all ready reference databases."""
     _run_analysis_command(
@@ -584,6 +641,7 @@ def analyze(
         exclude_sources=frozenset({"snpedia"}) if exclude_snpedia else None,
         gwas_all=gwas_all,
         diff_path=diff_path,
+        no_update=no_update,
     )
 
 
@@ -738,6 +796,7 @@ def compare(file1: Path, file2: Path, fmt1: str | None, fmt2: str | None) -> Non
 @_GWAS_ALL_OPT
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
+@_NO_UPDATE_OPT
 def methylation(
     file_path: Path,
     fmt: str | None,
@@ -753,6 +812,7 @@ def methylation(
     gwas_all: bool,
     exclude_snpedia: bool,
     diff_path: Path | None,
+    no_update: bool,
 ) -> None:
     """Methylation-pathway-focused report (MTHFR, MTR, MTRR, COMT, CBS, …)."""
     excluded: set[str] = set()
@@ -776,6 +836,7 @@ def methylation(
         exclude_sources=frozenset(excluded) if excluded else None,
         gwas_all=gwas_all,
         diff_path=diff_path,
+        no_update=no_update,
     )
 
 
@@ -794,6 +855,7 @@ def methylation(
 @_GWAS_ALL_OPT
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
+@_NO_UPDATE_OPT
 def pharmacogenomics(
     file_path: Path,
     fmt: str | None,
@@ -809,6 +871,7 @@ def pharmacogenomics(
     gwas_all: bool,
     exclude_snpedia: bool,
     diff_path: Path | None,
+    no_update: bool,
 ) -> None:
     """Pharmacogenomics-focused report (annotations from PharmGKB-style sources)."""
     excluded: set[str] = set()
@@ -832,6 +895,7 @@ def pharmacogenomics(
         exclude_sources=frozenset(excluded) if excluded else None,
         gwas_all=gwas_all,
         diff_path=diff_path,
+        no_update=no_update,
     )
 
 

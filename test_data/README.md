@@ -55,7 +55,8 @@ formats.
 
 | Source | License | Notes |
 |---|---|---|
-| openSNP genotype files (real/, transcoded/, plus the synthetic source for baselines) | [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) | Public domain. |
+| openSNP genotype files (real/, transcoded/, edge_cases/, plus the synthetic source for baselines) | [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) | Public domain. |
+| Corpas family exome VCF (edge_cases/unsupported_23andme_exome_vcf.txt) | CC-BY / CC0 (see [Corpas et al. 2015](https://doi.org/10.1186/s12864-015-1973-7)) | Deliberately public-released by subjects. Attributed to satisfy CC-BY. |
 | ClinVar (in databases/) | NCBI public domain | Restore via `allelix db update`. |
 | GWAS Catalog (in databases/) | NCBI/EBI public domain | Same. |
 | PharmGKB (in databases/) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Attribution required if reports are redistributed. |

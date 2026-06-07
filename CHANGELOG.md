@@ -2,9 +2,39 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] — 2026-06-07
 
-## [1.1.1] — 2026-06-07
+### Fixed
+- `pyproject.toml` version corrected to match release (was `1.1.0` on
+  the v1.1.1 release).
+- **GRCh36 fallback bug.** Non-confident GRCh36 detection (e.g., 3/4
+  probe SNPs matched) was falling back to GRCh37 as the effective build,
+  silently bypassing the ClinVar safety guard and annotating GRCh36
+  positions against GRCh37 coordinates. Fixed in both the end-of-stream
+  `flush()` path AND the buffer-limit path (large files where probe SNPs
+  appear past the 100K-variant buffer cap). The pipeline now uses GRCh36
+  as the effective build whenever detection points to GRCh36, even
+  non-confidently or with a single probe SNP match.
+
+### Added
+- **Auto-refresh stale databases.** `analyze`, `methylation`, and
+  `pharmacogenomics` now check database file ages before running. If any
+  database is older than 7 days and the remote signal (MD5/ETag) has
+  changed, the database is refreshed automatically. If the network is
+  unreachable, a warning is printed and analysis continues with the stale
+  cache. SNPedia is excluded (no remote download). Use `--no-update` to
+  skip the freshness check entirely.
+- Corpas family exome VCF attribution in `test_data/edge_cases/README.md`
+  with paper DOI (Corpas et al., *BMC Genomics* 2015,
+  doi:10.1186/s12864-015-1973-7). Licensing table in `test_data/README.md`
+  updated. Every genotype fixture in the repo now has documented
+  provenance and license.
+- **Version-tag drift guard.** Pre-push hook
+  (`scripts/check_version_tag.sh`) asserts any pushed `v*` tag matches
+  the version in `pyproject.toml`. Prevents the class of bug where a
+  release ships with a stale version string.
+
+## [1.1.1] — 2026-06-06
 
 ### Changed
 - Relocated real genotype test data (`test_data/real/` and
@@ -1202,7 +1232,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
-[Unreleased]: https://github.com/dial481/allelix/compare/v1.1.1...HEAD
+[1.2.0]: https://github.com/dial481/allelix/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/dial481/allelix/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/dial481/allelix/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/dial481/allelix/releases/tag/v1.0.0
