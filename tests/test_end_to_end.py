@@ -78,16 +78,13 @@ class TestEndToEndAgainstMockGenerators:
         import sqlite3
 
         db = all_annotators_data_dir / "pharmgkb.sqlite"
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             nonfinding_rows = {
                 (rsid, geno)
                 for rsid, geno in conn.execute(
                     "SELECT rsid, genotype FROM pharmgkb_annotations WHERE is_nonfinding = 1"
                 )
             }
-        finally:
-            conn.close()
 
         result = _analyze(mock_mhg_path, all_annotators_data_dir)
         leaked = [

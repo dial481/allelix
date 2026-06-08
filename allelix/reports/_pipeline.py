@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from allelix.annotators.base import Annotator
+    from allelix.annotators.gnomad import GnomadAnnotator
     from allelix.models import Annotation, Variant
     from allelix.parsers.base import GenotypeParser
 
@@ -234,6 +235,7 @@ def run_analysis(
     skipped_count_provider: Callable[[], int] = lambda: 0,
     *,
     build_override: str | None = None,
+    gnomad: GnomadAnnotator | None = None,
 ) -> AnalysisResult:
     """Stream the file once, query every ready annotator per variant, return results.
 
@@ -269,6 +271,16 @@ def run_analysis(
             for annotator in bound:
                 annotations.extend(annotator.annotate(v))
 
+    if gnomad is not None and gnomad.is_ready():
+        rsids = {a.rsid for a in annotations}
+        freq_map = gnomad.bulk_lookup(rsids)
+        for a in annotations:
+            a.allele_frequency = freq_map.get(a.rsid)
+
+    annotators_used = [(a.name, a.version()) for a in annotators]
+    if gnomad is not None and gnomad.is_ready():
+        annotators_used.append((gnomad.name, gnomad.version()))
+
     return AnalysisResult(
         file_path=file_path,
         parser_name=parser.name,
@@ -277,7 +289,7 @@ def run_analysis(
         build=diag.effective_build,
         total_variants=total,
         skipped_count=skipped_count_provider(),
-        annotators_used=[(a.name, a.version()) for a in annotators],
+        annotators_used=annotators_used,
         annotations=annotations,
         build_diagnostics=diag.diagnostics(),
     )

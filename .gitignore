@@ -1,5 +1,6 @@
 # Claude / AI tooling
 CLAUDE.md
+GITHUB_WORKFLOW.md
 .claude/
 
 # Virtual environments
@@ -94,7 +95,11 @@ desktop.ini
 *.pem
 *.key
 
-# Test data library (committed; only databases/ stays gitignored)
+# Test data library (committed fixtures; downloads stay gitignored)
 test_data/databases/
 test_data/baselines_local/
+test_data/gwas_catalog*
+test_data/gwas-catalog*
+test_data/data/
+test_data.tar.gz
 

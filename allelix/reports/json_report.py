@@ -5,7 +5,7 @@
 Output schema (versioned via `schema_version`):
 
     {
-      "schema_version": "1",
+      "schema_version": "2",
       "allelix_version": "1.1.0",
       "generated_at": "2026-05-11T12:34:56+00:00",
       "regulatory_notice": "...",
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from allelix.reports.diff import DiffResult
 
 
-SCHEMA_VERSION = "1"
+SCHEMA_VERSION = "2"
 
 _LICENSE_ATTRIBUTIONS: dict[str, dict[str, str]] = {
     "pharmgkb": {
@@ -65,6 +65,12 @@ _LICENSE_ATTRIBUTIONS: dict[str, dict[str, str]] = {
         "url": "https://www.snpedia.com",
         "license": "CC BY-NC-SA 3.0 US",
         "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/us/",
+    },
+    "gnomad": {
+        "source": "gnomAD",
+        "url": "https://gnomad.broadinstitute.org",
+        "license": "ODbL v1.0",
+        "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
     },
 }
 

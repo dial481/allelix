@@ -134,7 +134,16 @@ def _hv_nocall_banner(warnings: list[str] | None) -> str:
     )
 
 
-def _row_html(a: Annotation, css_class: str = "") -> str:
+def _format_freq(af: float | None) -> str:
+    if af is None:
+        return "—"
+    pct = af * 100
+    if pct < 0.01:
+        return "&lt;0.01%"
+    return f"{pct:.2f}%"
+
+
+def _row_html(a: Annotation, css_class: str = "", *, show_freq: bool = False) -> str:
     bar_width = max(1, int(a.magnitude * 8))
     refs_html = ""
     if a.references:
@@ -142,6 +151,7 @@ def _row_html(a: Annotation, css_class: str = "") -> str:
             '<div class="condition">refs: ' + " ".join(_escape(r) for r in a.references) + "</div>"
         )
     tr_open = f'<tr class="{css_class}">' if css_class else "<tr>"
+    freq_td = f"<td>{_format_freq(a.allele_frequency)}</td>" if show_freq else ""
     return (
         f"{tr_open}"
         f'<td class="rsid">{_escape(a.rsid)}</td>'
@@ -152,6 +162,7 @@ def _row_html(a: Annotation, css_class: str = "") -> str:
         f'<td><span class="bar" style="width: {bar_width}px;"></span>'
         f"{a.magnitude:.1f}</td>"
         f"<td>{_escape(a.genotype_match)}</td>"
+        f"{freq_td}"
         f"<td>{_escape(a.condition) or '—'}<br>"
         f'<span class="condition">{_escape(a.description)}</span>{refs_html}</td>'
         "</tr>"
@@ -188,6 +199,11 @@ _LICENSE_ATTRIBUTIONS: dict[str, str] = {
         " <a href='https://www.snpedia.com'>SNPedia</a>,"
         " used under"
         " <a href='https://creativecommons.org/licenses/by-nc-sa/3.0/us/'>CC BY-NC-SA 3.0 US</a>."
+    ),
+    "gnomad": (
+        " Population frequencies sourced from"
+        " <a href='https://gnomad.broadinstitute.org'>gnomAD</a>,"
+        " used under <a href='https://opendatacommons.org/licenses/odbl/1-0/'>ODbL v1.0</a>."
     ),
 }
 
@@ -249,6 +265,8 @@ def render_html(
             for c in diff.changed
         }
 
+    has_freq = any(a.allele_frequency is not None for a in filtered)
+
     if filtered or (diff and diff.removed):
         rows_parts: list[str] = []
         for a in filtered:
@@ -259,15 +277,17 @@ def render_html(
                 css = "diff-changed"
             else:
                 css = ""
-            rows_parts.append(_row_html(a, css_class=css))
+            rows_parts.append(_row_html(a, css_class=css, show_freq=has_freq))
         if diff and diff.removed:
             rows_parts.extend(_removed_row_html(d) for d in diff.removed)
         rows_html = "\n".join(rows_parts)
+        freq_th = "<th>Pop. Freq</th>" if has_freq else ""
         body = (
             "<table>"
             "<thead><tr>"
             "<th>rsID</th><th>Gene</th><th>Source</th><th>Significance</th>"
-            "<th>Review Status</th><th>Magnitude</th><th>Genotype</th>"
+            f"<th>Review Status</th><th>Magnitude</th><th>Genotype</th>"
+            f"{freq_th}"
             "<th>Condition / Description</th>"
             "</tr></thead>"
             f"<tbody>{rows_html}</tbody></table>"

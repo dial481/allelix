@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from allelix.annotators.base import Annotator
 from allelix.annotators.clinvar import CLINVAR_SUPPORTED_BUILDS, ClinVarAnnotator
+from allelix.annotators.gnomad import GnomadAnnotator
 from allelix.annotators.gwas import GWASCatalogAnnotator
 from allelix.annotators.pharmgkb import PharmGKBAnnotator
 from allelix.annotators.snpedia import SNPediaAnnotator
@@ -44,13 +45,15 @@ def get_annotators(
     pharmgkb = PharmGKBAnnotator(data_dir, clinvar_ref_provider=clinvar.reference_for)
     gwas = GWASCatalogAnnotator(data_dir, filter_traits=gwas_filter_traits)
     snpedia = SNPediaAnnotator(data_dir, clinvar_ref_provider=clinvar.reference_for)
-    return [clinvar, pharmgkb, gwas, snpedia]
+    gnomad = GnomadAnnotator(data_dir)
+    return [clinvar, pharmgkb, gwas, snpedia, gnomad]
 
 
 __all__ = [
     "Annotator",
     "ClinVarAnnotator",
     "GWASCatalogAnnotator",
+    "GnomadAnnotator",
     "PharmGKBAnnotator",
     "SNPediaAnnotator",
     "get_annotators",

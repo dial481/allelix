@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 from typing import TYPE_CHECKING
 
@@ -102,54 +103,50 @@ class TestCategorizerVersion:
 
     def test_schema_is_current_rejects_cache_without_cv_marker(self, tmp_path: Path) -> None:
         db = tmp_path / "stale.sqlite"
-        conn = sqlite3.connect(db)
-        conn.executescript(GWAS_SCHEMA)
-        conn.execute(
-            "INSERT INTO database_versions "
-            "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-            "VALUES ('gwas', 'http://x', '2026-05-19', '2026-05-19T00:00:00Z', 0, 'etag:abc')",
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(GWAS_SCHEMA)
+            conn.execute(
+                "INSERT INTO database_versions "
+                "(name, source_url, version, downloaded_at, record_count, remote_signal) "
+                "VALUES ('gwas', 'http://x', '2026-05-19', '2026-05-19T00:00:00Z', 0, 'etag:abc')",
+            )
+            conn.commit()
         assert not schema_is_current(db)
 
     def test_schema_is_current_accepts_matching_cv_marker(self, tmp_path: Path) -> None:
         db = tmp_path / "fresh.sqlite"
-        conn = sqlite3.connect(db)
-        conn.executescript(GWAS_SCHEMA)
-        conn.execute(
-            "INSERT INTO database_versions "
-            "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-            "VALUES ('gwas', 'http://x', '2026-05-19', '2026-05-19T00:00:00Z', 0, ?)",
-            (f"etag:abc|cv:{_CATEGORIZER_VERSION}",),
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(GWAS_SCHEMA)
+            conn.execute(
+                "INSERT INTO database_versions "
+                "(name, source_url, version, downloaded_at, record_count, remote_signal) "
+                "VALUES ('gwas', 'http://x', '2026-05-19', '2026-05-19T00:00:00Z', 0, ?)",
+                (f"etag:abc|cv:{_CATEGORIZER_VERSION}",),
+            )
+            conn.commit()
         assert schema_is_current(db)
 
     def test_schema_is_current_rejects_old_cv_marker(self, tmp_path: Path) -> None:
         db = tmp_path / "old.sqlite"
-        conn = sqlite3.connect(db)
-        conn.executescript(GWAS_SCHEMA)
-        old_signal = "etag:abc|cv:1"
-        conn.execute(
-            "INSERT INTO database_versions "
-            "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-            "VALUES ('gwas', 'http://x', '2026-05-19', '2026-05-19T00:00:00Z', 0, ?)",
-            (old_signal,),
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(GWAS_SCHEMA)
+            old_signal = "etag:abc|cv:1"
+            conn.execute(
+                "INSERT INTO database_versions "
+                "(name, source_url, version, downloaded_at, record_count, remote_signal) "
+                "VALUES ('gwas', 'http://x', '2026-05-19', '2026-05-19T00:00:00Z', 0, ?)",
+                (old_signal,),
+            )
+            conn.commit()
         assert not schema_is_current(db)
 
     def test_load_stamps_categorizer_version(self, tmp_path: Path, mock_gwas_tsv: Path) -> None:
         db = tmp_path / "gwas.sqlite"
         load_gwas_tsv(mock_gwas_tsv, db, source_url="test://cv", remote_signal="etag:xyz")
-        conn = sqlite3.connect(db)
-        row = conn.execute(
-            "SELECT remote_signal FROM database_versions WHERE name='gwas'"
-        ).fetchone()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name='gwas'"
+            ).fetchone()
         assert row is not None
         assert f"|cv:{_CATEGORIZER_VERSION}" in row[0]
         assert row[0].startswith("etag:xyz")

@@ -166,11 +166,11 @@ def _maybe_refresh_databases(data_dir: Path) -> None:
                 continue
 
             console.print(f"[bold]Updating {annotator.display_name}…[/bold]")
-            _run_setup(annotator)
-            console.print(
-                f"[green]✓ {annotator.display_name} updated[/green] "
-                f"(version {annotator.version() or '(unknown)'})"
-            )
+            if _run_setup(annotator):
+                console.print(
+                    f"[green]✓ {annotator.display_name} updated[/green] "
+                    f"(version {annotator.version() or '(unknown)'})"
+                )
 
 
 def _format_from_path(output: Path, override: str | None) -> str:
@@ -204,6 +204,7 @@ def _run_analysis_command(
     gwas_all: bool = False,
     diff_path: Path | None = None,
     no_update: bool = False,
+    no_gnomad: bool = False,
 ) -> None:
     resolved = resolve_data_dir(data_dir)
     if not no_update:
@@ -214,6 +215,16 @@ def _run_analysis_command(
     )
     if exclude_sources:
         ready = [a for a in ready if a.name not in exclude_sources]
+
+    gnomad_annotator = None
+    if not no_gnomad:
+        from allelix.annotators.gnomad import GnomadAnnotator
+
+        for a in ready:
+            if isinstance(a, GnomadAnnotator):
+                gnomad_annotator = a
+                break
+    ready = [a for a in ready if a.name != "gnomad"]
 
     if not_ready:
         downloadable = [a.name for a in not_ready if a.requires_download]
@@ -241,6 +252,7 @@ def _run_analysis_command(
             ready,
             skipped_count_provider=lambda: counter.count,
             build_override=build,
+            gnomad=gnomad_annotator,
         )
     finally:
         _unwire_parser_logging(counter, stderr_handler, snapshot)
@@ -513,6 +525,12 @@ _NO_UPDATE_OPT = click.option(
     default=False,
     help="Skip the pre-analysis database freshness check.",
 )
+_NO_GNOMAD_OPT = click.option(
+    "--no-gnomad",
+    is_flag=True,
+    default=False,
+    help="Skip gnomAD population frequency enrichment.",
+)
 _BUILD_OPT = click.option(
     "--build",
     type=click.Choice(["grch37", "grch38", "auto"], case_sensitive=False),
@@ -578,11 +596,11 @@ def _emit_build_diagnostics(result: object) -> None:
         )
     if diag.effective_build == "GRCh36":
         console.print(
-            "[yellow]Warning: GRCh36 (hg18) detected. Allelix has no GRCh36 ClinVar cache, "
-            "so ClinVar annotations will be skipped entirely for this file. PharmGKB, "
-            "GWAS Catalog, and SNPedia continue to fire via rsID-only lookups and are "
-            "unaffected. Consider re-exporting from your provider on a newer build for "
-            "full coverage.[/yellow]"
+            "[yellow]Warning: GRCh36 (hg18) detected. rsID-based annotations "
+            "(PharmGKB, GWAS Catalog, SNPedia, gnomAD) are complete. ClinVar "
+            "position-matching is skipped (no GRCh36 cache — see ADR-0025). "
+            "For full ClinVar coverage, liftOver to GRCh38 first: "
+            "docs/grch36-liftover.md[/yellow]"
         )
 
 
@@ -607,6 +625,7 @@ def _emit_build_diagnostics(result: object) -> None:
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
 @_NO_UPDATE_OPT
+@_NO_GNOMAD_OPT
 def analyze(
     file_path: Path,
     fmt: str | None,
@@ -623,6 +642,7 @@ def analyze(
     exclude_snpedia: bool,
     diff_path: Path | None,
     no_update: bool,
+    no_gnomad: bool,
 ) -> None:
     """Annotate a genotype file against all ready reference databases."""
     _run_analysis_command(
@@ -642,6 +662,7 @@ def analyze(
         gwas_all=gwas_all,
         diff_path=diff_path,
         no_update=no_update,
+        no_gnomad=no_gnomad,
     )
 
 
@@ -797,6 +818,7 @@ def compare(file1: Path, file2: Path, fmt1: str | None, fmt2: str | None) -> Non
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
 @_NO_UPDATE_OPT
+@_NO_GNOMAD_OPT
 def methylation(
     file_path: Path,
     fmt: str | None,
@@ -813,6 +835,7 @@ def methylation(
     exclude_snpedia: bool,
     diff_path: Path | None,
     no_update: bool,
+    no_gnomad: bool,
 ) -> None:
     """Methylation-pathway-focused report (MTHFR, MTR, MTRR, COMT, CBS, …)."""
     excluded: set[str] = set()
@@ -837,6 +860,7 @@ def methylation(
         gwas_all=gwas_all,
         diff_path=diff_path,
         no_update=no_update,
+        no_gnomad=no_gnomad,
     )
 
 
@@ -856,6 +880,7 @@ def methylation(
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
 @_NO_UPDATE_OPT
+@_NO_GNOMAD_OPT
 def pharmacogenomics(
     file_path: Path,
     fmt: str | None,
@@ -872,6 +897,7 @@ def pharmacogenomics(
     exclude_snpedia: bool,
     diff_path: Path | None,
     no_update: bool,
+    no_gnomad: bool,
 ) -> None:
     """Pharmacogenomics-focused report (annotations from PharmGKB-style sources)."""
     excluded: set[str] = set()
@@ -896,6 +922,7 @@ def pharmacogenomics(
         gwas_all=gwas_all,
         diff_path=diff_path,
         no_update=no_update,
+        no_gnomad=no_gnomad,
     )
 
 
@@ -904,12 +931,22 @@ def db() -> None:
     """Manage local reference database cache."""
 
 
-def _run_setup(annotator: Annotator) -> None:
-    """Invoke annotator.setup(); convert any failure to a friendly ClickException."""
+def _run_setup(annotator: Annotator) -> bool:
+    """Invoke annotator.setup(). Returns True on success, False on failure."""
     try:
         annotator.setup()
     except Exception as exc:
-        raise click.ClickException(f"{annotator.name}: {exc}") from exc
+        if hasattr(exc, "close"):
+            exc.close()
+        console.print(f"  [red]{annotator.name}: {exc}[/red]")
+        return False
+    sig = getattr(annotator, "cached_remote_signal", lambda: None)()
+    if sig and "cpic:unavailable" in sig:
+        console.print(
+            f"  [yellow]{annotator.name}: updated (CPIC unavailable — "
+            "non-finding filter degraded, retry later)[/yellow]"
+        )
+    return True
 
 
 @db.command("update")
@@ -919,6 +956,12 @@ def _run_setup(annotator: Annotator) -> None:
     is_flag=True,
     default=False,
     help="Re-download even if the local cache appears current.",
+)
+@click.option(
+    "--no-gnomad",
+    is_flag=True,
+    default=False,
+    help="Skip gnomAD population frequency database.",
 )
 @click.option(
     "--build",
@@ -931,7 +974,7 @@ def _run_setup(annotator: Annotator) -> None:
         "save bandwidth."
     ),
 )
-def db_update(data_dir: Path | None, force: bool, build: str) -> None:
+def db_update(data_dir: Path | None, force: bool, no_gnomad: bool, build: str) -> None:
     """Download or refresh reference databases.
 
     For each annotator:
@@ -951,6 +994,10 @@ def db_update(data_dir: Path | None, force: bool, build: str) -> None:
     clinvar_builds = _resolve_clinvar_builds(build)
     for annotator in get_annotators(resolved, clinvar_builds=clinvar_builds):
         with annotator:
+            if no_gnomad and annotator.name == "gnomad":
+                console.print(f"  [dim]{annotator.name}: skipped (--no-gnomad)[/dim]")
+                continue
+
             if not annotator.requires_download:
                 if annotator.is_ready():
                     console.print(
@@ -967,20 +1014,20 @@ def db_update(data_dir: Path | None, force: bool, build: str) -> None:
 
             if not annotator.is_ready():
                 console.print(f"  [bold]{annotator.name}[/bold]: downloading…")
-                _run_setup(annotator)
-                console.print(
-                    f"  [green]✓ {annotator.name} ready[/green] "
-                    f"(version {annotator.version() or '(unknown)'})"
-                )
+                if _run_setup(annotator):
+                    console.print(
+                        f"  [green]✓ {annotator.name} ready[/green] "
+                        f"(version {annotator.version() or '(unknown)'})"
+                    )
                 continue
 
             if force:
                 console.print(f"  [bold]{annotator.name}[/bold]: --force; refreshing…")
-                _run_setup(annotator)
-                console.print(
-                    f"  [green]✓ {annotator.name} refreshed[/green] "
-                    f"(version {annotator.version() or '(unknown)'})"
-                )
+                if _run_setup(annotator):
+                    console.print(
+                        f"  [green]✓ {annotator.name} refreshed[/green] "
+                        f"(version {annotator.version() or '(unknown)'})"
+                    )
                 continue
 
             remote = annotator.fetch_remote_signal()
@@ -1004,11 +1051,11 @@ def db_update(data_dir: Path | None, force: bool, build: str) -> None:
                 "legacy cache (no stored signal)" if cached is None else "remote signal changed"
             )
             console.print(f"  [bold]{annotator.name}[/bold]: {reason}; refreshing…")
-            _run_setup(annotator)
-            console.print(
-                f"  [green]✓ {annotator.name} refreshed[/green] "
-                f"(version {annotator.version() or '(unknown)'})"
-            )
+            if _run_setup(annotator):
+                console.print(
+                    f"  [green]✓ {annotator.name} refreshed[/green] "
+                    f"(version {annotator.version() or '(unknown)'})"
+                )
 
 
 @db.command("status")
@@ -1026,6 +1073,9 @@ def db_status(data_dir: Path | None) -> None:
             ready = annotator.is_ready()
             ready_marker = "[green]yes[/green]" if ready else "[red]no[/red]"
             version = annotator.version() or "—"
+            sig = getattr(annotator, "cached_remote_signal", lambda: None)()
+            if sig and "cpic:unavailable" in sig:
+                version += " (no CPIC)"
             records = "—"
             count_fn = getattr(annotator, "record_count", None)
             if callable(count_fn):

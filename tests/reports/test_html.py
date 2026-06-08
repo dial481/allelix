@@ -250,3 +250,44 @@ class TestLicenseAttributions:
         body = out.read_text()
         assert "CC BY-SA 4.0" in body
         assert "CC BY-NC-SA 3.0 US" in body
+
+    def test_gnomad_attribution_present(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("gnomad", "4.1")])
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "ODbL" in body
+        assert "gnomAD" in body
+
+
+class TestFrequencyColumn:
+    """Pop. Freq column appears only when annotations have frequency data."""
+
+    def test_freq_column_present(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(allele_frequency=0.35)]), output_path=out)
+        body = out.read_text()
+        assert "Pop. Freq" in body
+        assert "35.00%" in body
+
+    def test_freq_column_absent(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "Pop. Freq" not in body
+
+    def test_freq_rare_variant(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(allele_frequency=0.00005)]), output_path=out)
+        body = out.read_text()
+        assert "&lt;0.01%" in body
+
+    def test_freq_none_shows_dash(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        annotations = [
+            _ann(rsid="rs1", allele_frequency=0.35),
+            _ann(rsid="rs2", allele_frequency=None),
+        ]
+        render_html(_result(annotations), output_path=out)
+        body = out.read_text()
+        assert "Pop. Freq" in body

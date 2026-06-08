@@ -101,3 +101,29 @@ CREATE INDEX IF NOT EXISTS idx_gwas_rsid ON gwas_associations(rsid);
 """
     + _DATABASE_VERSIONS_TABLE
 )
+
+GNOMAD_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS gnomad_frequencies (
+    chrom TEXT NOT NULL,
+    pos INTEGER NOT NULL,
+    ref TEXT NOT NULL,
+    alt TEXT NOT NULL,
+    rsid TEXT,
+    af REAL,
+    af_popmax REAL,
+    popmax TEXT,
+    af_afr REAL,
+    af_amr REAL,
+    af_asj REAL,
+    af_eas REAL,
+    af_fin REAL,
+    af_nfe REAL,
+    af_sas REAL,
+    PRIMARY KEY (chrom, pos, ref, alt)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gnomad_rsid ON gnomad_frequencies(rsid);
+"""
+    + _DATABASE_VERSIONS_TABLE
+)

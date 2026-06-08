@@ -19,6 +19,7 @@ See ADR-0009 for the genotype-matching rationale.
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import logging
 import os
@@ -167,23 +168,20 @@ def schema_is_current(db_path: Path) -> bool:
     if not db_path.exists():
         return False
     try:
-        conn = sqlite3.connect(db_path)
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            try:
+                tables = {
+                    row[0]
+                    for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+                }
+                if not _REQUIRED_PHARMGKB_TABLES.issubset(tables):
+                    return False
+                cols = {row[1] for row in conn.execute("PRAGMA table_info(pharmgkb_annotations)")}
+            except sqlite3.DatabaseError:
+                return False
+            return _REQUIRED_PHARMGKB_COLUMNS.issubset(cols)
     except sqlite3.DatabaseError:
         return False
-    try:
-        try:
-            tables = {
-                row[0]
-                for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
-            }
-            if not _REQUIRED_PHARMGKB_TABLES.issubset(tables):
-                return False
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(pharmgkb_annotations)")}
-        except sqlite3.DatabaseError:
-            return False
-        return _REQUIRED_PHARMGKB_COLUMNS.issubset(cols)
-    finally:
-        conn.close()
 
 
 def is_nonfinding_by_allele_lookup(
@@ -362,8 +360,7 @@ def load_pharmgkb_tsv(
     lookup = allele_function_lookup or {}
 
     try:
-        conn = sqlite3.connect(tmp_path)
-        try:
+        with contextlib.closing(sqlite3.connect(tmp_path)) as conn:
             conn.executescript(PHARMGKB_SCHEMA)
 
             # Populate the per-allele function table (ADR-0020) first.
@@ -428,8 +425,6 @@ def load_pharmgkb_tsv(
                 ),
             )
             conn.commit()
-        finally:
-            conn.close()
         os.replace(tmp_path, db_path)
         return count
     except Exception:

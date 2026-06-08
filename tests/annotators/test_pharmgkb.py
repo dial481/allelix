@@ -4,7 +4,10 @@
 
 from __future__ import annotations
 
+import contextlib
+import urllib.error
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
@@ -67,13 +70,12 @@ class TestInterpreterVersionStamp:
                 zf.write(f, f.name)
 
         # Tamper the stamp to a stale version
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "UPDATE database_versions SET remote_signal = 'test-signal|iv:0' "
-            "WHERE name = 'pharmgkb'"
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "UPDATE database_versions SET remote_signal = 'test-signal|iv:0' "
+                "WHERE name = 'pharmgkb'"
+            )
+            conn.commit()
 
         ann = PharmGKBAnnotator(tmp_path)
         try:
@@ -91,13 +93,12 @@ class TestInterpreterVersionStamp:
         db_path = tmp_path / "pharmgkb.sqlite"
         load_pharmgkb_tsv(mock_pharmgkb_dir, db_path, remote_signal="test-signal")
 
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "UPDATE database_versions SET remote_signal = 'test-signal|iv:0' "
-            "WHERE name = 'pharmgkb'"
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "UPDATE database_versions SET remote_signal = 'test-signal|iv:0' "
+                "WHERE name = 'pharmgkb'"
+            )
+            conn.commit()
 
         ann = PharmGKBAnnotator(tmp_path)
         try:
@@ -115,12 +116,12 @@ class TestInterpreterVersionStamp:
         load_pharmgkb_tsv(mock_pharmgkb_dir, db_path, remote_signal="test-signal")
 
         # Strip the |iv: stamp to simulate a legacy cache
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "UPDATE database_versions SET remote_signal = 'test-signal' WHERE name = 'pharmgkb'"
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "UPDATE database_versions SET remote_signal = 'test-signal'"
+                " WHERE name = 'pharmgkb'"
+            )
+            conn.commit()
 
         ann = PharmGKBAnnotator(tmp_path)
         try:
@@ -365,8 +366,7 @@ class TestSchemaMigration:
 
         # v0.5.x shape: has is_nonfinding + is_somatic but no function_class.
         db = tmp_path / "pharmgkb.sqlite"
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             conn.executescript(
                 """
                 CREATE TABLE pharmgkb_annotations (
@@ -389,8 +389,6 @@ class TestSchemaMigration:
                 ("pharmgkb", "old", "v0.5.x", "2025-01-01T00:00:00", 1, "lm:old"),
             )
             conn.commit()
-        finally:
-            conn.close()
 
         ann = PharmGKBAnnotator(tmp_path)
         try:
@@ -450,10 +448,10 @@ class TestRemoteSignal:
         )
         assert annotator.fetch_remote_signal() is None
 
-    def test_returns_none_when_cpic_probe_fails(self, annotator: PharmGKBAnnotator, monkeypatch):
-        """M-2: CPIC probe failure must NOT silently degrade to PharmGKB-only.
-        The freshness check skips with notice; user can run --force.
-        """
+    def test_returns_unavailable_when_cpic_probe_fails(
+        self, annotator: PharmGKBAnnotator, monkeypatch
+    ):
+        """R-5: CPIC probe failure is non-fatal — signal carries cpic:unavailable."""
         from allelix.annotators import pharmgkb as pharmgkb_module
 
         monkeypatch.setattr(
@@ -462,7 +460,10 @@ class TestRemoteSignal:
             lambda url: {"ETag": '"abc123"'},
         )
         monkeypatch.setattr(pharmgkb_module, "fetch_cpic_remote_signal", lambda: None)
-        assert annotator.fetch_remote_signal() is None
+        signal = annotator.fetch_remote_signal()
+        assert signal is not None
+        assert "cpic:unavailable" in signal
+        assert "pgkb:etag:" in signal
 
     def test_cached_round_trip(self, tmp_path: Path, mock_pharmgkb_dir: Path):
         from allelix.databases.pharmgkb_loader import load_pharmgkb_tsv
@@ -497,3 +498,78 @@ class TestCloseable:
             assert bound is ann
             ann.annotate(Variant("rs1801133", "1", 11796321, "G", "A"))
         assert ann._conn is None
+
+
+class TestCpicFallback:
+    """R-5: PharmGKB setup succeeds when CPIC API is down."""
+
+    def test_setup_succeeds_when_cpic_down(self, tmp_path: Path, mock_pharmgkb_dir: Path):
+        ann = PharmGKBAnnotator(tmp_path)
+        signal = "pgkb:etag:test123|cpic:unavailable"
+        with (
+            patch.object(ann, "fetch_remote_signal", return_value=signal),
+            patch(
+                "allelix.annotators.pharmgkb.download",
+                side_effect=lambda url, dest: _fake_download(mock_pharmgkb_dir, url, dest),
+            ),
+            patch(
+                "allelix.annotators.pharmgkb.fetch_cpic_allele_functions",
+                side_effect=urllib.error.URLError("CPIC is down"),
+            ),
+        ):
+            ann.setup()
+        assert ann.is_ready()
+        assert ann.version() is not None
+
+    def test_signal_triggers_refresh_when_cpic_recovers(self):
+        cached = "pgkb:etag:abc|cpic:unavailable"
+        remote = "pgkb:etag:abc|cpic:lastchange:2026-06-01"
+        assert cached != remote
+
+    def test_signal_cpic_down_returns_unavailable(self):
+        ann = PharmGKBAnnotator.__new__(PharmGKBAnnotator)
+        with (
+            patch(
+                "allelix.annotators.pharmgkb.head_request_headers",
+                return_value={"ETag": '"test-etag"'},
+            ),
+            patch(
+                "allelix.annotators.pharmgkb.fetch_cpic_remote_signal",
+                return_value=None,
+            ),
+        ):
+            signal = ann.fetch_remote_signal()
+        assert signal is not None
+        assert "cpic:unavailable" in signal
+        assert "pgkb:etag:" in signal
+
+    def test_nonfinding_filter_degraded_without_cpic(
+        self, tmp_path: Path, mock_pharmgkb_dir: Path
+    ):
+        ann = PharmGKBAnnotator(tmp_path)
+        signal = "pgkb:etag:test123|cpic:unavailable"
+        with (
+            patch.object(ann, "fetch_remote_signal", return_value=signal),
+            patch(
+                "allelix.annotators.pharmgkb.download",
+                side_effect=lambda url, dest: _fake_download(mock_pharmgkb_dir, url, dest),
+            ),
+            patch(
+                "allelix.annotators.pharmgkb.fetch_cpic_allele_functions",
+                side_effect=TimeoutError("CPIC timeout"),
+            ),
+        ):
+            ann.setup()
+        v = Variant("rs1801133", "1", 11796321, "G", "A")
+        with ann:
+            results = ann.annotate(v)
+        assert len(results) > 0
+
+
+def _fake_download(mock_dir: Path, _url: str, dest: Path) -> None:
+    """Create a zip from the mock fixture dir, simulating a real download."""
+    import zipfile
+
+    with zipfile.ZipFile(dest, "w") as zf:
+        for tsv in mock_dir.glob("*.tsv"):
+            zf.write(tsv, arcname=tsv.name)

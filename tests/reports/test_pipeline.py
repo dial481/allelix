@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING
 
 from allelix.annotators.clinvar import ClinVarAnnotator
@@ -199,3 +200,64 @@ class TestGRCh36FlushFailSafe:
         assert state.effective_build == BUILD_GRCH36
         diag = state.diagnostics()
         assert diag.detected_build == BUILD_GRCH36
+
+
+class TestGnomadEnrichment:
+    """gnomAD frequency enrichment stamps allele_frequency on annotations."""
+
+    def test_enrichment_stamps_frequency(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """run_analysis with gnomAD annotator stamps allele_frequency."""
+        import sqlite3
+
+        from allelix.annotators.clinvar import ClinVarAnnotator
+        from allelix.annotators.gnomad import GnomadAnnotator
+        from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME
+        from allelix.databases.schema import GNOMAD_SCHEMA
+
+        db_path = clinvar_data_dir / GNOMAD_DB_FILENAME
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            for stmt in GNOMAD_SCHEMA.split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    conn.execute(stmt)
+            conn.execute(
+                "INSERT OR REPLACE INTO gnomad_frequencies"
+                " (chrom, pos, ref, alt, rsid, af) VALUES (?, ?, ?, ?, ?, ?)",
+                ("1", 11856378, "C", "T", "rs1801133", 0.35),
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("gnomad", "test://mock", "4.1", "2026-01-01T00:00:00Z", 1),
+            )
+            conn.commit()
+
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        gnomad = GnomadAnnotator(clinvar_data_dir)
+        result = run_analysis(
+            mock_mhg_path,
+            parser,
+            [clinvar],
+            gnomad=gnomad,
+        )
+        mthfr = [a for a in result.annotations if a.rsid == "rs1801133"]
+        assert any(a.allele_frequency is not None for a in mthfr)
+        assert ("gnomad", "4.1") in result.annotators_used
+
+    def test_no_gnomad_no_frequency(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """run_analysis without gnomAD leaves allele_frequency as None."""
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        result = run_analysis(mock_mhg_path, parser, [clinvar])
+        assert all(a.allele_frequency is None for a in result.annotations)
+        assert all(name != "gnomad" for name, _ in result.annotators_used)

@@ -112,6 +112,8 @@ def fetch_cpic_remote_signal(api_base: str = CPIC_API_BASE) -> str | None:
         with urllib.request.urlopen(request, timeout=CPIC_TIMEOUT_SECONDS) as response:
             rows = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        if hasattr(exc, "close"):
+            exc.close()
         logger.warning("CPIC freshness probe failed: %s", exc)
         return None
     if not rows or not isinstance(rows[0], dict):
@@ -146,6 +148,8 @@ def _http_get_json(url: str, timeout: float = CPIC_TIMEOUT_SECONDS) -> list[dict
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            if hasattr(exc, "close"):
+                exc.close()
             last_error = exc
             if attempt + 1 < CPIC_RETRY_ATTEMPTS:
                 backoff = CPIC_RETRY_BACKOFF_SECONDS[attempt]

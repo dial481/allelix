@@ -110,6 +110,28 @@ class TestRenderTerminal:
         out, _ = _render([_ann(review_status="")])
         assert "Review Status" in out
 
+    def test_freq_column_present_when_frequency_set(self):
+        out, _ = _render([_ann(allele_frequency=0.35)])
+        assert "Freq" in out
+        assert "35.00%" in out
+
+    def test_freq_column_absent_when_no_frequency(self):
+        out, _ = _render([_ann()])
+        assert "Freq" not in out
+
+    def test_freq_rare_variant_format(self):
+        out, _ = _render([_ann(allele_frequency=0.00005)])
+        assert "<0.01%" in out
+
+    def test_freq_none_shows_dash(self):
+        annotations = [
+            _ann(rsid="rs1", allele_frequency=0.35),
+            _ann(rsid="rs2", allele_frequency=None),
+        ]
+        out, _ = _render(annotations)
+        assert "Freq" in out
+        assert "35.00%" in out
+
 
 def _ann_dict(**overrides) -> dict:
     defaults = {

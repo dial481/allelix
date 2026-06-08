@@ -26,14 +26,6 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-      - id: pytest
-        name: pytest (fast suite, skips @slow real-data tests)
-        entry: pytest -m "not slow"
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
       - id: version-tag-match
         name: version-tag-match (pyproject.toml == pushed tag)
         entry: scripts/check_version_tag.sh

@@ -9,6 +9,7 @@ standalone via ``scripts/parse_snpedia.py``.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sqlite3
 from datetime import UTC, datetime
@@ -148,11 +149,8 @@ def parse_raw_pages(db_path: str, *, verbose: bool = False) -> int:
 
     Returns the number of structured rows created.
     """
-    conn = sqlite3.connect(db_path)
-    try:
+    with contextlib.closing(sqlite3.connect(db_path)) as conn:
         return _parse_raw_pages_inner(conn, verbose=verbose)
-    finally:
-        conn.close()
 
 
 def _parse_raw_pages_inner(conn: sqlite3.Connection, *, verbose: bool = False) -> int:

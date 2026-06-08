@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 import zipfile
 from typing import TYPE_CHECKING
@@ -226,8 +227,7 @@ class TestSchemaIsCurrent:
     def test_returns_false_for_v05x_cache(self, tmp_path: Path):
         """A v0.5.x cache has `is_nonfinding` + `is_somatic` but no `function_class`."""
         db = tmp_path / "legacy.sqlite"
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             conn.executescript(
                 """
                 CREATE TABLE pharmgkb_annotations (
@@ -241,15 +241,12 @@ class TestSchemaIsCurrent:
                 """
             )
             conn.commit()
-        finally:
-            conn.close()
         assert not schema_is_current(db)
 
     def test_returns_false_for_v04x_cache(self, tmp_path: Path):
         """A v0.4.x cache lacks both `function_class` AND `is_nonfinding`."""
         db = tmp_path / "legacy.sqlite"
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             conn.executescript(
                 """
                 CREATE TABLE pharmgkb_annotations (
@@ -262,8 +259,6 @@ class TestSchemaIsCurrent:
                 """
             )
             conn.commit()
-        finally:
-            conn.close()
         assert not schema_is_current(db)
 
 
@@ -376,18 +371,15 @@ class TestLoadPharmgkbTsv:
             allele_function_lookup=mock_cpic_lookup,
         )
         assert count == 16
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             row = conn.execute(
                 "SELECT gene, drugs, level_of_evidence, function_class "
                 "FROM pharmgkb_annotations WHERE rsid = ? AND genotype = ?",
                 ("rs1801133", "AG"),
             ).fetchone()
-            # SNV rows have Allele Function = "" in real PharmGKB; the
-            # structured function_class column reflects that (`unknown`).
-            assert row == ("MTHFR", "methotrexate", "2A", FUNCTION_CLASS_UNKNOWN)
-        finally:
-            conn.close()
+        # SNV rows have Allele Function = "" in real PharmGKB; the
+        # structured function_class column reflects that (`unknown`).
+        assert row == ("MTHFR", "methotrexate", "2A", FUNCTION_CLASS_UNKNOWN)
 
     def test_records_database_version(self, tmp_path: Path, mock_pharmgkb_dir: Path):
         db = tmp_path / "pharmgkb.sqlite"

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import gzip
 import logging
 import os
@@ -58,7 +59,9 @@ def fetch_remote_text(url: str, timeout: float = SIGNAL_TIMEOUT_SECONDS) -> str 
         request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read().decode("utf-8", errors="replace")
-    except (OSError, ValueError):
+    except (OSError, ValueError) as exc:
+        if hasattr(exc, "close"):
+            exc.close()
         return None
 
 
@@ -73,7 +76,9 @@ def head_request_headers(
         request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT}, method="HEAD")
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return dict(response.headers.items())
-    except (OSError, ValueError):
+    except (OSError, ValueError) as exc:
+        if hasattr(exc, "close"):
+            exc.close()
         return None
 
 
@@ -105,7 +110,9 @@ def download(url: str, dest: Path) -> None:
             except OSError:
                 logger.debug("fsync unsupported on this filesystem; continuing")
         os.replace(part_path, dest)
-    except Exception:
+    except Exception as exc:
+        if hasattr(exc, "close"):
+            exc.close()
         if part_path.exists():
             try:
                 part_path.unlink()
@@ -254,8 +261,7 @@ def load_clinvar_vcf(
     version = file_date or datetime.now(UTC).strftime("%Y-%m-%d")
 
     try:
-        conn = sqlite3.connect(tmp_path)
-        try:
+        with contextlib.closing(sqlite3.connect(tmp_path)) as conn:
             conn.executescript(CLINVAR_SCHEMA)
             insert_sql = (
                 "INSERT INTO clinvar_variants "
@@ -304,8 +310,6 @@ def load_clinvar_vcf(
                 ),
             )
             conn.commit()
-        finally:
-            conn.close()
         os.replace(tmp_path, db_path)
         return count
     except Exception:
@@ -328,45 +332,41 @@ def get_database_info(db_path: Path, name: str) -> DatabaseInfo | None:
     if not db_path.exists():
         return None
     try:
-        conn = sqlite3.connect(db_path)
-    except sqlite3.DatabaseError:
-        return None
-    try:
-        remote_signal: str | None = None
-        try:
-            row = conn.execute(
-                "SELECT source_url, version, downloaded_at, record_count, remote_signal "
-                "FROM database_versions WHERE name = ?",
-                (name,),
-            ).fetchone()
-        except sqlite3.OperationalError:
-            # Legacy cache (pre-v0.4.2): no remote_signal column. Re-query.
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            remote_signal: str | None = None
             try:
                 row = conn.execute(
-                    "SELECT source_url, version, downloaded_at, record_count "
+                    "SELECT source_url, version, downloaded_at, record_count, remote_signal "
                     "FROM database_versions WHERE name = ?",
                     (name,),
                 ).fetchone()
+            except sqlite3.OperationalError:
+                try:
+                    row = conn.execute(
+                        "SELECT source_url, version, downloaded_at, record_count "
+                        "FROM database_versions WHERE name = ?",
+                        (name,),
+                    ).fetchone()
+                except sqlite3.DatabaseError:
+                    return None
+                if row is None:
+                    return None
+                source_url, version, downloaded_at, record_count = row
             except sqlite3.DatabaseError:
                 return None
-            if row is None:
-                return None
-            source_url, version, downloaded_at, record_count = row
-        except sqlite3.DatabaseError:
-            return None
-        else:
-            if row is None:
-                return None
-            source_url, version, downloaded_at, record_count, remote_signal = row
-        return DatabaseInfo(
-            source_url=source_url,
-            version=version,
-            downloaded_at=downloaded_at,
-            record_count=record_count,
-            remote_signal=remote_signal,
-        )
-    finally:
-        conn.close()
+            else:
+                if row is None:
+                    return None
+                source_url, version, downloaded_at, record_count, remote_signal = row
+            return DatabaseInfo(
+                source_url=source_url,
+                version=version,
+                downloaded_at=downloaded_at,
+                record_count=record_count,
+                remote_signal=remote_signal,
+            )
+    except sqlite3.DatabaseError:
+        return None
 
 
 def stamp_existing_clinvar_cache(db_path: Path) -> bool:

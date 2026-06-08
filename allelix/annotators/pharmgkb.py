@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
+import urllib.error
 from typing import TYPE_CHECKING, ClassVar
 
 from allelix.annotators._versions import PHARMGKB_INTERPRETER_VERSION
@@ -109,7 +111,15 @@ class PharmGKBAnnotator(Annotator):
             raise RuntimeError(msg)
         zip_path = self.data_dir / "clinicalAnnotations.zip"
         download(url, zip_path)
-        cpic_lookup = fetch_cpic_allele_functions()
+        try:
+            cpic_lookup = fetch_cpic_allele_functions()
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            logger.warning(
+                "CPIC API unavailable (%s) -- proceeding without "
+                "allele function data. Non-finding filter degraded.",
+                exc,
+            )
+            cpic_lookup = {}
         load_pharmgkb_tsv(
             zip_path,
             self._db_path,
@@ -160,17 +170,17 @@ class PharmGKBAnnotator(Annotator):
     def fetch_remote_signal(self) -> str | None:
         """Composite freshness signal for PharmGKB + CPIC (M-2, ADR-0020).
 
-        Both data sources must agree the cache is current — if either
-        side has moved, `db update` should refresh. The signal format
-        is `pgkb:<pgkb-signal>|cpic:<cpic-signal>`:
+        The signal format is `pgkb:<pgkb-signal>|cpic:<cpic-signal>`.
 
           - PharmGKB portion: ETag if available, else Last-Modified
             (per ADR-0012).
-          - CPIC portion: latest `change_log` date from CPIC's API.
+          - CPIC portion: latest `change_log` date from CPIC's API,
+            or ``unavailable`` if the CPIC probe fails.
 
-        Returns None on any failure of either probe, so the CLI prints
-        "freshness can't be verified" and skips rather than refreshing
-        on partial information. Pass `--force` to refresh unconditionally.
+        Returns None only when PharmGKB itself is unreachable. CPIC
+        failure is non-fatal: the signal carries ``cpic:unavailable``
+        so the cache is still refreshable (and the mismatch when CPIC
+        recovers triggers a re-download automatically).
         """
         headers = head_request_headers(PHARMGKB_CLINICAL_URL)
         if headers is None:
@@ -186,7 +196,7 @@ class PharmGKBAnnotator(Annotator):
 
         cpic_signal = fetch_cpic_remote_signal()
         if cpic_signal is None:
-            return None
+            return f"pgkb:{pgkb_signal}|cpic:unavailable"
         return f"pgkb:{pgkb_signal}|cpic:{cpic_signal}"
 
     def cached_remote_signal(self) -> str | None:

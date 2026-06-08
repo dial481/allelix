@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 from typing import TYPE_CHECKING
 
@@ -189,15 +190,12 @@ class TestLoadClinvarVcf:
         db = tmp_path / "clinvar.sqlite"
         count = load_clinvar_vcf(mock_clinvar_vcf, db, source_url="test://mock")
         assert count == 13
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             row = conn.execute(
                 "SELECT clinical_significance, gene FROM clinvar_variants WHERE rsid = ?",
                 ("rs1801133",),
             ).fetchone()
-            assert row == ("Pathogenic", "MTHFR")
-        finally:
-            conn.close()
+        assert row == ("Pathogenic", "MTHFR")
 
     def test_records_database_version(self, tmp_path: Path, mock_clinvar_vcf: Path):
         db = tmp_path / "clinvar.sqlite"
@@ -214,14 +212,11 @@ class TestLoadClinvarVcf:
         db = tmp_path / "clinvar.sqlite"
         load_clinvar_vcf(mock_clinvar_vcf, db, source_url="test://mock")
         load_clinvar_vcf(mock_clinvar_vcf, db, source_url="test://mock-v2")
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             count = conn.execute("SELECT COUNT(*) FROM clinvar_variants").fetchone()[0]
             assert count == 13  # not 26 — reload replaces, not appends.
             versions = conn.execute("SELECT COUNT(*) FROM database_versions").fetchone()[0]
             assert versions == 1
-        finally:
-            conn.close()
 
     def test_batched_insert_flushes(
         self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch: pytest.MonkeyPatch
@@ -313,8 +308,7 @@ class TestGetDatabaseInfo:
         (because remote != cached==None) and writes a v0.4.2 row.
         """
         db = tmp_path / "legacy.sqlite"
-        conn = sqlite3.connect(db)
-        try:
+        with contextlib.closing(sqlite3.connect(db)) as conn:
             # Recreate the v0.4.1 schema verbatim — no remote_signal column.
             conn.executescript(
                 """
@@ -332,8 +326,6 @@ class TestGetDatabaseInfo:
                 ("clinvar", "old://url", "20240101", "2024-01-01T00:00:00", 100),
             )
             conn.commit()
-        finally:
-            conn.close()
 
         info = get_database_info(db, "clinvar")
         assert info is not None

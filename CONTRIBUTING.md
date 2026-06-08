@@ -14,11 +14,15 @@ pip install -e ".[dev]"
 pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
-Run the test suite (excludes slow tests that download databases):
+Run the test suite:
 
 ```bash
-pytest -m "not slow"
+pytest
 ```
+
+Tests marked `@slow` require `test_data/gwas_catalog.zip` (fetched by
+`scripts/fetch_testdata.sh`). CI runs the full suite including slow tests;
+locally they are skipped when the fixture is absent.
 
 Lint and format:
 
@@ -353,9 +357,16 @@ ruff check allelix/annotators/mydb.py tests/annotators/test_mydb.py
 - The `data/` directory at project root is the local database cache.
   It is gitignored and populated by `allelix db update`.
 
+## Hooks and CI
+
+Pre-commit hooks (ruff check, ruff format) run on every commit. The
+pre-push hook runs only the version-tag check (fast, no test suite).
+The full test suite runs in CI on every pull request — there is no
+pre-push pytest gate.
+
 ## Pull Request Checklist
 
-- [ ] Tests pass: `pytest -m "not slow"`
+- [ ] Tests pass: `pytest`
 - [ ] Lint clean: `ruff check .`
 - [ ] Format clean: `ruff format --check .`
 - [ ] License header on new files

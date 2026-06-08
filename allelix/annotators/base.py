@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar
 
@@ -55,6 +56,11 @@ class Annotator(ABC):
     def __init__(self, data_dir: Path) -> None:
         """Bind the annotator to a data directory (created elsewhere)."""
         self.data_dir = data_dir
+
+    def __del__(self) -> None:
+        """Release resources on GC to prevent ResourceWarning."""
+        with contextlib.suppress(Exception):
+            self.close()
 
     def __enter__(self) -> Annotator:
         """Return self for `with` usage."""

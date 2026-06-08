@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from allelix.models import Annotation
 
-_SUPPORTED_SCHEMA_VERSION = "1"
+_SUPPORTED_SCHEMA_VERSIONS = {"1", "2"}
 
 
 @dataclass
@@ -73,10 +73,10 @@ def load_previous_report(path: Path) -> dict:
         raise ValueError(msg) from exc
 
     version = data.get("schema_version")
-    if version != _SUPPORTED_SCHEMA_VERSION:
+    if version not in _SUPPORTED_SCHEMA_VERSIONS:
         msg = (
             f"Cannot diff against schema version {version!r} "
-            f"(expected {_SUPPORTED_SCHEMA_VERSION!r}). "
+            f"(expected one of {sorted(_SUPPORTED_SCHEMA_VERSIONS)}). "
             "Re-generate the baseline report with the current version of Allelix."
         )
         raise ValueError(msg)

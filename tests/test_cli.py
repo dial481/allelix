@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import TYPE_CHECKING
 
@@ -550,7 +551,8 @@ class TestDbCommands:
                 "grch37",
             ],
         )
-        assert result.exit_code != 0
+        assert result.exit_code == 0
+        assert "clinvar:" in result.output
 
         info_after = get_database_info(sqlite_path, clinvar_record_name("GRCh37"))
         assert info_after == info_before
@@ -700,8 +702,7 @@ class TestDbCommands:
 
         # Hand-build a v0.4.1-shaped database (no remote_signal column).
         legacy_db = tmp_path / clinvar_db_filename("GRCh37")
-        conn = sqlite3.connect(legacy_db)
-        try:
+        with contextlib.closing(sqlite3.connect(legacy_db)) as conn:
             conn.executescript(
                 """
                 CREATE TABLE clinvar_variants (
@@ -723,8 +724,6 @@ class TestDbCommands:
                 ("clinvar.GRCh37", "old", "old-version", "2024-01-01T00:00:00", 1),
             )
             conn.commit()
-        finally:
-            conn.close()
 
         monkeypatch.setattr(
             clinvar_module.ClinVarAnnotator,
@@ -781,15 +780,11 @@ class TestDbCommands:
         assert called  # setup() ran
 
     def test_db_update_bad_url_shows_friendly_error(self, clinvar_data_dir: Path, monkeypatch):
-        """W-2: failure path must wrap as ClickException — not propagate the raw error.
+        """W-2: failure path prints a friendly error — not propagate the raw error.
 
         Pinned facts:
-          1. Click's `Error: clinvar:` prefix appears in output (only
-             ClickException renders this format).
-          2. result.exception is NOT a URLError. With the wrap, Click handles
-             ClickException internally and `sys.exit(1)`s, so result.exception
-             is SystemExit. Without the wrap, the raw URLError leaks through
-             as result.exception.
+          1. The error message appears in output with the annotator name prefix.
+          2. The raw exception does NOT propagate to the caller.
         """
         import urllib.error
 
@@ -813,8 +808,8 @@ class TestDbCommands:
                 "grch37",
             ],
         )
-        assert result.exit_code != 0
-        assert "Error: clinvar:" in result.output
+        assert result.exit_code == 0
+        assert "clinvar:" in result.output
         assert not isinstance(result.exception, urllib.error.URLError)
 
 

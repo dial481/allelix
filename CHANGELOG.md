@@ -2,6 +2,44 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0]
+
+### Added
+- **gnomAD population allele frequencies (R-6).** New `GnomadAnnotator`
+  enriches report annotations with population frequency context from
+  gnomAD v4.1 exomes (~16M rsIDs). Pre-built cache downloaded from
+  HuggingFace via `db update`. Frequency column appears in terminal,
+  HTML, and JSON reports when gnomAD data is available. `--no-gnomad`
+  flag on `analyze`, `methylation`, `pharmacogenomics`, and `db update`
+  to skip.
+- **CPIC fallback for PharmGKB (R-5).** `db update` succeeds when the
+  CPIC API is unreachable — PharmGKB downloads complete and the
+  non-finding filter degrades gracefully. Signal carries
+  `cpic:unavailable` so recovery auto-triggers a refresh.
+- `scripts/build_gnomad_cache.py` — streaming VCF build script for
+  the gnomAD frequency cache. Downloads ~120GB over HTTPS, never saves
+  VCFs to disk, outputs ~1GB SQLite.
+- `scripts/extract_array_manifest.py` — extracts rsID superset from
+  genotype files for filtered gnomAD cache builds.
+- gnomAD ODbL v1.0 attribution in HTML and JSON reports.
+- JSON report `schema_version` bumped to `"2"` (added `allele_frequency`
+  field on annotations). Diff engine accepts both v1 and v2 baselines.
+- `db update` now handles individual annotator failures gracefully —
+  prints error and continues to remaining annotators instead of aborting.
+
+### Fixed
+- Offline claim in README and ADR-0012 corrected: analysis runs offline
+  by default with an opt-out freshness check (`--no-update`), not
+  opt-in network access (#10).
+- `.gitignore` updated for GWAS Catalog test data (#12).
+- `scripts/fetch_testdata.sh` downloads GWAS Catalog associations
+  from EBI FTP (#12).
+
+### Changed
+- Pre-push hook reduced to version-tag check only; pytest removed
+  (CI runs the full suite on every PR, pre-push pytest caused SSH timeouts).
+- CI version-tag guard job added to `.github/workflows/ci.yml` (#11).
+
 ## [1.2.0] — 2026-06-07
 
 ### Fixed
@@ -1172,8 +1210,8 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   installed via `pre-commit install --hook-type pre-commit --hook-type pre-push`:
   - **pre-commit** runs `ruff check` + `ruff format --check` so a commit
     that doesn't lint or format clean is blocked.
-  - **pre-push** runs `pytest`, which enforces the 92% coverage floor and
-    the strict warning filters; a push with failing tests is blocked.
+  - **pre-push** runs the version-tag check only (fast, no test suite).
+    The full test suite runs in CI on every pull request.
 - Annotator test fixture now closes connections on teardown (round-4 N-1).
 - `pytest.PytestUnraisableExceptionWarning` is escalated to error in
   `filterwarnings`, so future fixtures without teardown fail CI loudly.

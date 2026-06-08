@@ -100,3 +100,4 @@ class Annotation:
     gene: str = ""
     review_status: str = ""
     is_must_include: bool = False
+    allele_frequency: float | None = None

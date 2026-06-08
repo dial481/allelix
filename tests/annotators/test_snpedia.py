@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 from typing import TYPE_CHECKING
 
@@ -22,105 +23,113 @@ from allelix.models import Variant
 def snpedia_data_dir(tmp_path: Path) -> Path:
     """Create a minimal SNPedia structured database for testing."""
     db_path = tmp_path / "snpedia.sqlite"
-    conn = sqlite3.connect(db_path)
-    conn.executescript("""
-        CREATE TABLE snpedia_genotypes (
-            rsid TEXT NOT NULL,
-            allele1 TEXT NOT NULL,
-            allele2 TEXT NOT NULL,
-            magnitude REAL,
-            repute TEXT,
-            summary TEXT,
-            gene TEXT,
-            scraped_at TEXT
-        );
-        CREATE INDEX idx_snpedia_rsid_alleles
-            ON snpedia_genotypes(rsid, allele1, allele2);
-        CREATE TABLE database_versions (
-            name TEXT PRIMARY KEY,
-            source_url TEXT NOT NULL,
-            version TEXT,
-            downloaded_at TEXT NOT NULL,
-            record_count INTEGER NOT NULL,
-            remote_signal TEXT
-        );
-    """)
-    genotypes = [
-        (
-            "rs1801133",
-            "C",
-            "C",
-            0.0,
-            "Good",
-            "Common genotype: normal homocysteine levels",
-            "MTHFR",
-            "2026-05-20T00:00:00",
-        ),
-        (
-            "rs1801133",
-            "C",
-            "T",
-            2.2,
-            "Bad",
-            "1 copy of C677T allele of MTHFR",
-            "MTHFR",
-            "2026-05-20T00:00:00",
-        ),
-        (
-            "rs1801133",
-            "T",
-            "T",
-            2.8,
-            "Bad",
-            "homozygous C677T of MTHFR",
-            "MTHFR",
-            "2026-05-20T00:00:00",
-        ),
-        (
-            "rs4680",
-            "A",
-            "G",
-            None,
-            None,
-            "Intermediate dopamine levels",
-            "COMT",
-            "2026-05-20T00:00:00",
-        ),
-        ("rs9999999", "A", "A", 0.0, "Good", None, None, "2026-05-20T00:00:00"),
-        (
-            "rs52820871",
-            "G",
-            "G",
-            0.0,
-            "Good",
-            "common genotype",
-            "TNFRSF13B",
-            "2026-05-20T00:00:00",
-        ),
-        ("rs52820871", "G", "T", 3.0, "Bad", "TACI variant", "TNFRSF13B", "2026-05-20T00:00:00"),
-        ("i3000001", "A", "G", 4.0, "Bad", "CF carrier", "CFTR", "2026-05-20T00:00:00"),
-    ]
-    conn.executemany(
-        "INSERT INTO snpedia_genotypes "
-        "(rsid, allele1, allele2, magnitude, repute, summary, gene, scraped_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        genotypes,
-    )
-    conn.execute(
-        "INSERT INTO database_versions "
-        "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (
-            "snpedia",
-            "https://bots.snpedia.com/api.php",
-            "scraped 2026-05-20 (8 genotypes)",
-            "2026-05-20T00:00:00",
-            8,
-            f"|pv:{_PARSER_VERSION}",
-        ),
-    )
-    conn.commit()
-    conn.close()
+    with contextlib.closing(sqlite3.connect(db_path)) as conn:
+        conn.executescript("""
+            CREATE TABLE snpedia_genotypes (
+                rsid TEXT NOT NULL,
+                allele1 TEXT NOT NULL,
+                allele2 TEXT NOT NULL,
+                magnitude REAL,
+                repute TEXT,
+                summary TEXT,
+                gene TEXT,
+                scraped_at TEXT
+            );
+            CREATE INDEX idx_snpedia_rsid_alleles
+                ON snpedia_genotypes(rsid, allele1, allele2);
+            CREATE TABLE database_versions (
+                name TEXT PRIMARY KEY,
+                source_url TEXT NOT NULL,
+                version TEXT,
+                downloaded_at TEXT NOT NULL,
+                record_count INTEGER NOT NULL,
+                remote_signal TEXT
+            );
+        """)
+        genotypes = [
+            (
+                "rs1801133",
+                "C",
+                "C",
+                0.0,
+                "Good",
+                "Common genotype: normal homocysteine levels",
+                "MTHFR",
+                "2026-05-20T00:00:00",
+            ),
+            (
+                "rs1801133",
+                "C",
+                "T",
+                2.2,
+                "Bad",
+                "1 copy of C677T allele of MTHFR",
+                "MTHFR",
+                "2026-05-20T00:00:00",
+            ),
+            (
+                "rs1801133",
+                "T",
+                "T",
+                2.8,
+                "Bad",
+                "homozygous C677T of MTHFR",
+                "MTHFR",
+                "2026-05-20T00:00:00",
+            ),
+            (
+                "rs4680",
+                "A",
+                "G",
+                None,
+                None,
+                "Intermediate dopamine levels",
+                "COMT",
+                "2026-05-20T00:00:00",
+            ),
+            ("rs9999999", "A", "A", 0.0, "Good", None, None, "2026-05-20T00:00:00"),
+            (
+                "rs52820871",
+                "G",
+                "G",
+                0.0,
+                "Good",
+                "common genotype",
+                "TNFRSF13B",
+                "2026-05-20T00:00:00",
+            ),
+            (
+                "rs52820871",
+                "G",
+                "T",
+                3.0,
+                "Bad",
+                "TACI variant",
+                "TNFRSF13B",
+                "2026-05-20T00:00:00",
+            ),
+            ("i3000001", "A", "G", 4.0, "Bad", "CF carrier", "CFTR", "2026-05-20T00:00:00"),
+        ]
+        conn.executemany(
+            "INSERT INTO snpedia_genotypes "
+            "(rsid, allele1, allele2, magnitude, repute, summary, gene, scraped_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            genotypes,
+        )
+        conn.execute(
+            "INSERT INTO database_versions "
+            "(name, source_url, version, downloaded_at, record_count, remote_signal) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                "snpedia",
+                "https://bots.snpedia.com/api.php",
+                "scraped 2026-05-20 (8 genotypes)",
+                "2026-05-20T00:00:00",
+                8,
+                f"|pv:{_PARSER_VERSION}",
+            ),
+        )
+        conn.commit()
     return tmp_path
 
 
@@ -138,14 +147,13 @@ class TestAnnotatorLifecycle:
 
     def test_not_ready_no_structured_table(self, tmp_path: Path) -> None:
         db_path = tmp_path / "snpedia.sqlite"
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "CREATE TABLE pages (title TEXT PRIMARY KEY, category TEXT, "
-            "content TEXT, scraped_at TEXT)"
-        )
-        conn.execute("INSERT INTO pages VALUES ('Rs1', 'snp', 'content', '2026-01-01')")
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "CREATE TABLE pages (title TEXT PRIMARY KEY, category TEXT, "
+                "content TEXT, scraped_at TEXT)"
+            )
+            conn.execute("INSERT INTO pages VALUES ('Rs1', 'snp', 'content', '2026-01-01')")
+            conn.commit()
         ann = SNPediaAnnotator(tmp_path)
         assert not ann.is_ready()
         ann.close()
@@ -448,22 +456,21 @@ class TestSummarySuppressionFilter:
     def test_mis_oriented_summary_suppressed(self, snpedia_data_dir: Path) -> None:
         """Pages whose summary flags orientation uncertainty must not emit."""
         db_path = snpedia_data_dir / "snpedia.sqlite"
-        conn = sqlite3.connect(db_path)
-        conn.execute(
-            "INSERT INTO snpedia_genotypes VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                "rs1064651",
-                "C",
-                "C",
-                8.0,
-                "Bad",
-                "Gaucher disease, but more likely a mis-oriented interpretation",
-                "GBA",
-                "2026-05-20T00:00:00",
-            ),
-        )
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "INSERT INTO snpedia_genotypes VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    "rs1064651",
+                    "C",
+                    "C",
+                    8.0,
+                    "Bad",
+                    "Gaucher disease, but more likely a mis-oriented interpretation",
+                    "GBA",
+                    "2026-05-20T00:00:00",
+                ),
+            )
+            conn.commit()
         ann = SNPediaAnnotator(snpedia_data_dir)
         v = Variant(rsid="rs1064651", chromosome="1", position=155204239, allele1="C", allele2="C")
         assert ann.annotate(v) == []

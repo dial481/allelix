@@ -108,7 +108,7 @@ This is not a disclaimer afterthought. It is a design constraint that affects mo
 
 - No data leaves your machine. No telemetry. No uploads. No analytics.
 - Reference databases are downloaded via `allelix db update` and cached locally.
-- Analysis runs entirely offline.
+- Analysis runs offline against local database caches. A brief freshness check runs before analysis by default (skipped with `--no-update`).
 
 ## Data Sources & Licensing
 
@@ -121,6 +121,7 @@ Allelix source code is licensed under the **GNU Affero General Public License v3
 | PharmGKB | pharmgkb.org | CC BY-SA 4.0 | Attribution required |
 | CPIC | cpicpgx.org | CC BY-SA 4.0 | Attribution required. Per-allele function data fetched from `api.cpicpgx.org` at `db update` time; used internally for the PharmGKB non-finding filter (ADR-0020), not surfaced as its own annotator. |
 | SNPedia | snpedia.com | CC BY-NC-SA 3.0 US | Attribution required, **non-commercial only**. Use `--exclude-snpedia` to omit. |
+| gnomAD | gnomad.broadinstitute.org | ODbL v1.0 | Attribution required. Population allele frequencies for context; not a clinical annotator. Use `--no-gnomad` to omit. |
 
 **Commercial users:** SNPedia content is non-commercial. Pass `--exclude-snpedia` to any analysis command, or skip the `scripts/scrape_snpedia.py` step entirely — either way, `analyze` runs using all other databases and omits SNPedia annotations automatically.
 

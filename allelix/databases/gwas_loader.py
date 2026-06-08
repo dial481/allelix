@@ -8,6 +8,7 @@ domain -- no licensing restrictions. One row per study x SNP x trait.
 
 from __future__ import annotations
 
+import contextlib
 import csv
 import logging
 import os
@@ -358,24 +359,21 @@ def schema_is_current(db_path: Path) -> bool:
     if not db_path.exists():
         return False
     try:
-        conn = sqlite3.connect(db_path)
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            try:
+                cols = {row[1] for row in conn.execute("PRAGMA table_info(gwas_associations)")}
+            except sqlite3.DatabaseError:
+                return False
+            if not _REQUIRED_GWAS_COLUMNS.issubset(cols):
+                return False
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name='gwas'"
+            ).fetchone()
+            if not row or not row[0]:
+                return False
+            return f"|cv:{_CATEGORIZER_VERSION}" in row[0]
     except sqlite3.DatabaseError:
         return False
-    try:
-        try:
-            cols = {row[1] for row in conn.execute("PRAGMA table_info(gwas_associations)")}
-        except sqlite3.DatabaseError:
-            return False
-        if not _REQUIRED_GWAS_COLUMNS.issubset(cols):
-            return False
-        row = conn.execute(
-            "SELECT remote_signal FROM database_versions WHERE name='gwas'"
-        ).fetchone()
-        if not row or not row[0]:
-            return False
-        return f"|cv:{_CATEGORIZER_VERSION}" in row[0]
-    finally:
-        conn.close()
 
 
 def _parse_risk_allele(field: str) -> str | None:
@@ -479,8 +477,7 @@ def load_gwas_tsv(
     version = datetime.now(UTC).strftime("%Y-%m-%d")
 
     try:
-        conn = sqlite3.connect(tmp_path)
-        try:
+        with contextlib.closing(sqlite3.connect(tmp_path)) as conn:
             conn.executescript(GWAS_SCHEMA)
             insert_sql = (
                 "INSERT INTO gwas_associations "
@@ -531,8 +528,6 @@ def load_gwas_tsv(
                 ),
             )
             conn.commit()
-        finally:
-            conn.close()
         os.replace(tmp_path, db_path)
         return count
     except Exception:
