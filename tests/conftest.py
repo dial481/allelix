@@ -236,6 +236,17 @@ def pharmgkb_data_dir(tmp_path: Path, mock_pharmgkb_dir: Path) -> Path:
 
 
 @pytest.fixture
+def mock_gnomad_gz() -> Path:
+    """Path to the gzipped mock gnomAD SQLite fixture."""
+    path = FIXTURES_DIR / "mock_gnomad.sqlite.gz"
+    if not path.exists():
+        pytest.fail(
+            f"Mock gnomAD fixture missing: {path}. Run: python tests/generate_mock_data.py"
+        )
+    return path
+
+
+@pytest.fixture
 def mock_gwas_tsv() -> Path:
     """Path to the synthetic GWAS Catalog associations TSV."""
     path = FIXTURES_DIR / "mock_gwas_catalog.tsv"

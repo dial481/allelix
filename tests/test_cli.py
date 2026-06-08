@@ -406,12 +406,14 @@ class TestDbCommands:
         mock_pharmgkb_dir: Path,
         mock_cpic_lookup: dict[tuple[str, str], str],
         mock_gwas_tsv: Path,
+        mock_gnomad_gz: Path,
         monkeypatch,
     ):
         """M-3: download+ingest path runs end-to-end against file:// URLs.
 
-        All annotators must succeed — `db update` iterates the whole registry,
-        so each needs a local URL or the loop fails before completion.
+        All annotators must succeed -- `db update` iterates the whole registry,
+        so each needs a local file:// URL or mock fixture. ClinVar, PharmGKB,
+        and GWAS use mock archives; gnomAD uses a mock gzipped SQLite cache.
         """
         import zipfile
         from urllib.request import pathname2url
@@ -453,6 +455,16 @@ class TestDbCommands:
             zf.write(mock_gwas_tsv, arcname="gwas_catalog_associations.tsv")
         gwas_url = f"file:{pathname2url(str(gwas_zip.resolve()))}"
         monkeypatch.setattr(gwas_module, "GWAS_CATALOG_URL", gwas_url)
+
+        from allelix.annotators import gnomad as gnomad_module
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
 
         from allelix.annotators.clinvar import ClinVarAnnotator
         from allelix.annotators.gwas import GWASCatalogAnnotator
@@ -516,7 +528,15 @@ class TestDbCommands:
         assert gwas_info is not None
         assert gwas_info["record_count"] == 8
 
-    def test_db_update_bad_url_leaves_old_cache_intact(self, clinvar_data_dir: Path, monkeypatch):
+        gnomad_sqlite = cache_dir / "gnomad.sqlite"
+        assert gnomad_sqlite.exists()
+        gnomad_info = get_database_info(gnomad_sqlite, "gnomad")
+        assert gnomad_info is not None
+        assert gnomad_info["record_count"] == 3
+
+    def test_db_update_bad_url_leaves_old_cache_intact(
+        self, clinvar_data_dir: Path, mock_gnomad_gz: Path, monkeypatch
+    ):
         """M-1+M-2: a failed update must not destroy a working cache.
 
         Uses --force because the cache is already ready; without it
@@ -538,6 +558,19 @@ class TestDbCommands:
             "CLINVAR_URL_BY_BUILD",
             {"GRCh37": "http://127.0.0.1:1/missing.vcf.gz"},
         )
+
+        from urllib.request import pathname2url
+
+        from allelix.annotators import gnomad as gnomad_module
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(
             main,
@@ -567,7 +600,7 @@ class TestDbCommands:
         assert "16" in result.output
 
     def test_db_update_skips_when_remote_signal_matches(
-        self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch
+        self, tmp_path: Path, mock_clinvar_vcf: Path, mock_gnomad_gz: Path, monkeypatch
     ):
         """Remote signal matches cached signal → skip without --force."""
         from allelix.annotators import clinvar as clinvar_module
@@ -609,6 +642,18 @@ class TestDbCommands:
         monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
         monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
+        from urllib.request import pathname2url
+
+        from allelix.annotators import gnomad as gnomad_module
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
@@ -617,7 +662,7 @@ class TestDbCommands:
         assert "already current" in result.output
 
     def test_db_update_refreshes_when_remote_signal_differs(
-        self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch
+        self, tmp_path: Path, mock_clinvar_vcf: Path, mock_gnomad_gz: Path, monkeypatch
     ):
         """Remote signal differs from cached → trigger refresh without --force."""
         from allelix.annotators import clinvar as clinvar_module
@@ -657,6 +702,18 @@ class TestDbCommands:
         monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
         monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
+        from urllib.request import pathname2url
+
+        from allelix.annotators import gnomad as gnomad_module
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
@@ -665,7 +722,9 @@ class TestDbCommands:
         assert "remote signal changed" in result.output
         assert called  # setup() ran
 
-    def test_db_update_skips_when_signal_unverifiable(self, clinvar_data_dir: Path, monkeypatch):
+    def test_db_update_skips_when_signal_unverifiable(
+        self, clinvar_data_dir: Path, mock_gnomad_gz: Path, monkeypatch
+    ):
         """Cache present + can't reach remote → skip with notice (don't crash)."""
         from allelix.annotators import clinvar as clinvar_module
         from allelix.annotators import gwas as gwas_module
@@ -684,13 +743,25 @@ class TestDbCommands:
         monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
         monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
+        from urllib.request import pathname2url
+
+        from allelix.annotators import gnomad as gnomad_module
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(main, ["db", "update", "--data-dir", str(clinvar_data_dir)])
         assert result.exit_code == 0, result.output
         assert "can't be verified" in result.output
 
     def test_db_update_legacy_cache_refreshes_once(
-        self, tmp_path: Path, mock_clinvar_vcf: Path, monkeypatch
+        self, tmp_path: Path, mock_clinvar_vcf: Path, mock_gnomad_gz: Path, monkeypatch
     ):
         """v0.4.1 caches (no stored signal) refresh on first v0.4.2 db update."""
         import sqlite3
@@ -749,6 +820,18 @@ class TestDbCommands:
         monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
         monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
+        from urllib.request import pathname2url
+
+        from allelix.annotators import gnomad as gnomad_module
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
@@ -757,9 +840,14 @@ class TestDbCommands:
         assert "legacy cache" in result.output
         assert called  # setup() ran
 
-    def test_db_update_force_refreshes(self, clinvar_data_dir: Path, monkeypatch):
+    def test_db_update_force_refreshes(
+        self, clinvar_data_dir: Path, mock_gnomad_gz: Path, monkeypatch
+    ):
         """--force must re-run setup() even when already ready."""
+        from urllib.request import pathname2url
+
         from allelix.annotators import clinvar as clinvar_module
+        from allelix.annotators import gnomad as gnomad_module
         from allelix.annotators import gwas as gwas_module
         from allelix.annotators import pharmgkb as pharmgkb_module
 
@@ -771,6 +859,15 @@ class TestDbCommands:
         monkeypatch.setattr(clinvar_module.ClinVarAnnotator, "setup", fake_setup)
         monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
         monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(
             main,
@@ -779,7 +876,9 @@ class TestDbCommands:
         assert result.exit_code == 0, result.output
         assert called  # setup() ran
 
-    def test_db_update_bad_url_shows_friendly_error(self, clinvar_data_dir: Path, monkeypatch):
+    def test_db_update_bad_url_shows_friendly_error(
+        self, clinvar_data_dir: Path, mock_gnomad_gz: Path, monkeypatch
+    ):
         """W-2: failure path prints a friendly error — not propagate the raw error.
 
         Pinned facts:
@@ -787,7 +886,9 @@ class TestDbCommands:
           2. The raw exception does NOT propagate to the caller.
         """
         import urllib.error
+        from urllib.request import pathname2url
 
+        from allelix.annotators import gnomad as gnomad_module
         from allelix.databases import manager as manager_module
 
         monkeypatch.setattr(
@@ -795,6 +896,15 @@ class TestDbCommands:
             "CLINVAR_URL_BY_BUILD",
             {"GRCh37": "http://127.0.0.1:1/missing.vcf.gz"},
         )
+
+        gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
+        monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
+        monkeypatch.setattr(
+            gnomad_module.GnomadAnnotator,
+            "fetch_remote_signal",
+            lambda self: "etag:mock",
+        )
+
         runner = CliRunner()
         result = runner.invoke(
             main,

@@ -1,8 +1,11 @@
-# Allelix pre-commit / pre-push hooks
+# Allelix pre-commit hooks
 #
 # Install once after cloning:
 #   pip install -e ".[dev]"
-#   pre-commit install --hook-type pre-commit --hook-type pre-push
+#   pre-commit install --hook-type pre-commit
+#
+# Version-tag guard is a raw .git/hooks/pre-push script installed by
+# scripts/tag-release.sh flow — not managed by pre-commit.
 #
 # `language: system` means hooks run via PATH — works as long as your
 # venv (which contains ruff and pytest) is activated.
@@ -25,11 +28,3 @@ repos:
         types: [python]
         pass_filenames: false
         stages: [pre-commit]
-
-      - id: version-tag-match
-        name: version-tag-match (pyproject.toml == pushed tag)
-        entry: scripts/check_version_tag.sh
-        language: script
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]

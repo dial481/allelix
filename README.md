@@ -173,20 +173,15 @@ Release history: see [`CHANGELOG.md`](CHANGELOG.md).
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# One-time: install git hooks that block bad commits and pushes
-pre-commit install --hook-type pre-commit --hook-type pre-push
+# One-time: install pre-commit hooks
+pre-commit install --hook-type pre-commit
 
 ruff check .
 ruff format --check .
 pytest
 ```
 
-The hooks (`.pre-commit-config.yaml`) enforce:
-
-- **pre-commit**: `ruff check` + `ruff format --check` (fast lint/format gate)
-- **pre-push**: `pytest` (full suite + 92% coverage floor)
-
-If a commit or push is blocked, fix the underlying problem rather than skipping the hook. `git commit --no-verify` and `git push --no-verify` exist but should be used only when you know exactly why.
+The pre-commit hook enforces `ruff check` + `ruff format --check`. If a commit is blocked, fix the underlying problem rather than skipping the hook.
 
 ## License
 

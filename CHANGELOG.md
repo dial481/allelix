@@ -2,6 +2,30 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1]
+
+### Fixed
+- Test suite downloaded real ~6 GB gnomAD cache on every run, filling CI
+  runner disk. All `db update` tests now use a 792-byte mock fixture via
+  `file://` URL -- same pattern as ClinVar, PharmGKB, and GWAS. No
+  production code changes.
+
+### Changed
+- CI: job timeout (20 min), pytest step timeout (15 min),
+  `workflow_dispatch` trigger, verbose output (`pytest -v --tb=short`)
+- Ship tooling: `scripts/tag-release.sh` derives tag from pyproject.toml
+  (single source of truth)
+- Git hooks: raw `.githooks/pre-push` replaces pre-commit framework shim,
+  blocks tag pushes where version doesn't match
+- CONTRIBUTING.md: corrected slow-test documentation (CI skips them, not
+  runs them), added "Run the full suite locally" section emphasizing that
+  developers must run the full suite with real-data fixtures locally
+  before pushing
+- Documentation: fixed stale hook instructions, added missing changelog
+  comparison links and ADR index entries
+- Removed dead code: `scripts/check_version_tag.sh`
+- Removed `version-tag-match` entry from `.pre-commit-config.yaml`
+
 ## [1.3.0]
 
 ### Added
@@ -1270,6 +1294,8 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.3.1]: https://github.com/dial481/allelix/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/dial481/allelix/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/dial481/allelix/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/dial481/allelix/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/dial481/allelix/compare/v1.0.0...v1.1.0

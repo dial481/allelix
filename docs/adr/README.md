@@ -30,6 +30,8 @@ Each ADR captures one decision: the context that forced it, what we chose, and t
 - [ADR-0022: PharmGKB reference-genotype annotations on non-CPIC genes are documented, not filtered](0022-pharmgkb-non-cpic-reference-annotations-are-documented-not-filtered.md) — scope reduced by ADR-0023
 - [ADR-0023: ClinVar REF allele is the primary PharmGKB non-finding filter](0023-clinvar-ref-as-primary-pharmgkb-filter.md)
 - [ADR-0024: GWAS Catalog magnitude scoring from p-value + effect size](0024-gwas-magnitude-scoring.md)
+- [ADR-0025: GRCh36 graceful degradation (no full build support)](0025-grch36-graceful-degradation.md)
+- [ADR-0026: gnomAD exome frequency cache](0026-gnomad-exome-frequency-cache.md)
 
 ## Writing a new ADR
 

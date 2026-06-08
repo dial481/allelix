@@ -19,6 +19,7 @@ Usage:
 
 import argparse
 import hashlib
+import shutil
 from pathlib import Path
 
 # ============================================================================
@@ -263,6 +264,45 @@ def write_mhg_file(
     print(f"  Heterozygous:  {het} ({het / total * 100:.1f}%)")
 
 
+def generate_mock_gnomad(fixtures_dir: Path) -> None:
+    """Build a tiny gzipped gnomAD SQLite for test_cli.py db update tests."""
+    import contextlib
+    import gzip
+    import sqlite3
+
+    from allelix.databases.schema import GNOMAD_SCHEMA
+
+    raw_db = fixtures_dir / "mock_gnomad.sqlite"
+    gz_path = fixtures_dir / "mock_gnomad.sqlite.gz"
+
+    with contextlib.closing(sqlite3.connect(raw_db)) as conn:
+        for stmt in GNOMAD_SCHEMA.split(";"):
+            stmt = stmt.strip()
+            if stmt:
+                conn.execute(stmt)
+        conn.executemany(
+            "INSERT INTO gnomad_frequencies"
+            " (chrom, pos, ref, alt, rsid, af) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                ("1", 11796321, "G", "A", "rs1801133", 0.35),
+                ("22", 19963748, "G", "A", "rs4680", 0.50),
+                ("19", 44908684, "T", "C", "rs429358", 0.15),
+            ],
+        )
+        conn.execute(
+            "INSERT INTO database_versions"
+            " (name, source_url, version, downloaded_at, record_count)"
+            " VALUES (?, ?, ?, ?, ?)",
+            ("gnomad", "test://mock", "4.1", "2026-01-01T00:00:00Z", 3),
+        )
+        conn.commit()
+
+    with raw_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    raw_db.unlink()
+    print(f"Generated {gz_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate synthetic MyHappyGenes genotype files for Allelix testing."
@@ -328,6 +368,8 @@ def main() -> None:
     all_snps = known + filler
 
     write_mhg_file(output, all_snps, header_build=header_build)
+
+    generate_mock_gnomad(Path("tests/fixtures"))
 
 
 if __name__ == "__main__":

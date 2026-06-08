@@ -11,7 +11,8 @@ cd allelix
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-pre-commit install --hook-type pre-commit --hook-type pre-push
+git config core.hooksPath .githooks
+pre-commit install --hook-type pre-commit
 ```
 
 Run the test suite:
@@ -20,9 +21,26 @@ Run the test suite:
 pytest
 ```
 
-Tests marked `@slow` require `test_data/gwas_catalog.zip` (fetched by
-`scripts/fetch_testdata.sh`). CI runs the full suite including slow tests;
-locally they are skipped when the fixture is absent.
+Tests marked `@slow` require `test_data/gwas_catalog.zip` (~150 MB
+compressed, ~400 MB unzipped). Fetch it with:
+
+    scripts/fetch_testdata.sh
+
+Slow tests are skipped automatically when the fixture is absent. CI does
+not fetch this fixture and skips slow tests — the CI suite uses small
+synthetic fixtures only.
+
+### Run the full suite locally
+
+Before pushing, run the complete test suite with slow tests included:
+
+    scripts/fetch_testdata.sh   # one-time download
+    pytest                      # runs everything: fast + slow
+
+This is the only place slow tests run. CI uses small synthetic fixtures
+and skips slow tests to keep runs fast and disk-friendly. If you add or
+change anything that touches real-data parsing paths, verify it locally
+with the full suite before pushing.
 
 Lint and format:
 
@@ -359,10 +377,15 @@ ruff check allelix/annotators/mydb.py tests/annotators/test_mydb.py
 
 ## Hooks and CI
 
-Pre-commit hooks (ruff check, ruff format) run on every commit. The
-pre-push hook runs only the version-tag check (fast, no test suite).
-The full test suite runs in CI on every pull request — there is no
-pre-push pytest gate.
+Two hooks run locally:
+
+- **pre-commit** (managed by pre-commit framework): `ruff check` + `ruff format --check`
+- **pre-push** (raw hook in `.githooks/`): blocks tag pushes where the tag doesn't match `pyproject.toml`
+
+CI runs the fast test suite (synthetic fixtures only) on every push to
+main and on pull requests. Slow tests that require real-data fixtures run
+locally only. There is no pre-push pytest gate — run the full suite
+yourself before pushing.
 
 ## Pull Request Checklist
 
