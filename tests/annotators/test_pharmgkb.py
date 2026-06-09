@@ -53,7 +53,7 @@ class TestInterpreterVersionStamp:
     """Verify the cache self-heals on interpreter version bumps."""
 
     def test_stale_stamp_reingests_from_cached_zip(self, tmp_path: Path, mock_pharmgkb_dir: Path):
-        """Simulates PHARMGKB_INTERPRETER_VERSION bumping: stale |iv:0 → auto-reingest."""
+        """Simulates PHARMGKB_INTERPRETER_VERSION bumping: stale iv:0 → auto-reingest."""
         import sqlite3
 
         from allelix.databases.pharmgkb_loader import load_pharmgkb_tsv
@@ -61,7 +61,6 @@ class TestInterpreterVersionStamp:
         db_path = tmp_path / "pharmgkb.sqlite"
         load_pharmgkb_tsv(mock_pharmgkb_dir, db_path, remote_signal="test-signal")
 
-        # Place a ZIP for reingest (copy mock dir as a stand-in)
         zip_path = tmp_path / "clinicalAnnotations.zip"
         import zipfile
 
@@ -69,11 +68,9 @@ class TestInterpreterVersionStamp:
             for f in mock_pharmgkb_dir.iterdir():
                 zf.write(f, f.name)
 
-        # Tamper the stamp to a stale version
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = 'test-signal|iv:0' "
-                "WHERE name = 'pharmgkb'"
+                "UPDATE database_versions SET local_version_tag = 'iv:0' WHERE name = 'pharmgkb'"
             )
             conn.commit()
 
@@ -95,8 +92,7 @@ class TestInterpreterVersionStamp:
 
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = 'test-signal|iv:0' "
-                "WHERE name = 'pharmgkb'"
+                "UPDATE database_versions SET local_version_tag = 'iv:0' WHERE name = 'pharmgkb'"
             )
             conn.commit()
 
@@ -107,7 +103,7 @@ class TestInterpreterVersionStamp:
             ann.close()
 
     def test_legacy_no_stamp_self_heals(self, tmp_path: Path, mock_pharmgkb_dir: Path):
-        """Pre-mechanism cache (no |iv: at all) gets stamped without reingest."""
+        """Pre-mechanism cache (no local_version_tag) gets stamped without reingest."""
         import sqlite3
 
         from allelix.databases.pharmgkb_loader import load_pharmgkb_tsv
@@ -115,11 +111,9 @@ class TestInterpreterVersionStamp:
         db_path = tmp_path / "pharmgkb.sqlite"
         load_pharmgkb_tsv(mock_pharmgkb_dir, db_path, remote_signal="test-signal")
 
-        # Strip the |iv: stamp to simulate a legacy cache
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = 'test-signal'"
-                " WHERE name = 'pharmgkb'"
+                "UPDATE database_versions SET local_version_tag = NULL WHERE name = 'pharmgkb'"
             )
             conn.commit()
 

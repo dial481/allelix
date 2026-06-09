@@ -136,18 +136,18 @@ class PharmGKBAnnotator(Annotator):
         from the cached ZIP using the existing CPIC allele-function data —
         mirroring the GWAS auto-reingest pattern.
 
-        Pre-mechanism caches (no ``|iv:N`` stamp at all) are self-healed
-        with a one-shot stamp update.
+        Pre-mechanism caches (tag missing or baked into ``remote_signal``)
+        are self-healed with a one-shot stamp update.
         """
         info = get_database_info(self._db_path, "pharmgkb")
         if info is None:
             return False
         if not schema_is_current(self._db_path):
             return False
-        sig = info.get("remote_signal") or ""
-        if f"|iv:{PHARMGKB_INTERPRETER_VERSION}" in sig:
+        tag = info.get("local_version_tag") or ""
+        if tag == f"iv:{PHARMGKB_INTERPRETER_VERSION}":
             return True
-        if "|iv:" not in sig:
+        if not tag:
             return _stamp_existing_pharmgkb_cache(self._db_path)
         return _reingest_pharmgkb_from_cached_zip(self._db_path, self.data_dir)
 
@@ -200,16 +200,11 @@ class PharmGKBAnnotator(Annotator):
         return f"pgkb:{pgkb_signal}|cpic:{cpic_signal}"
 
     def cached_remote_signal(self) -> str | None:
-        """Return the remote signal stored at last successful download.
-
-        Strips the internal ``|iv:N`` interpreter stamp so the returned
-        value is comparable against ``fetch_remote_signal()``.
-        """
+        """Return the remote signal stored at last successful download."""
         info = get_database_info(self._db_path, "pharmgkb")
         if not info or not info["remote_signal"]:
             return None
-        sig = info["remote_signal"].split("|iv:")[0]
-        return sig or None
+        return info["remote_signal"] or None
 
     def annotate(self, variant: Variant) -> list[Annotation]:
         """Return PharmGKB annotations for variants the user actually carries.
@@ -308,27 +303,37 @@ def _user_diploid(variant: Variant) -> str:
 
 
 def _stamp_existing_pharmgkb_cache(db_path: Path) -> bool:
-    """One-shot migration: add ``|iv:N`` to a pre-mechanism PharmGKB cache.
+    """One-shot migration: stamp ``local_version_tag`` on a PharmGKB cache.
 
-    Returns True if the stamp was applied (cache is now current).
-    Returns False if the cache doesn't exist or already has a stamp.
+    Handles legacy caches with ``|iv:N`` baked into ``remote_signal``
+    by moving the tag and cleaning the signal. Returns True if the
+    current interpreter version is now stamped.
     """
     import contextlib
 
+    from allelix.databases.manager import _ensure_local_version_tag_column
+
     if not db_path.exists():
         return False
+    tag = f"iv:{PHARMGKB_INTERPRETER_VERSION}"
     try:
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            _ensure_local_version_tag_column(conn)
             row = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name='pharmgkb'"
+                "SELECT remote_signal, local_version_tag "
+                "FROM database_versions WHERE name='pharmgkb'"
             ).fetchone()
-            if not row or "|iv:" in (row[0] or ""):
+            if not row:
                 return False
+            sig, existing_tag = row
+            if existing_tag == tag:
+                return True
+            clean_signal = (sig or "").split("|iv:")[0]
             conn.execute(
                 "UPDATE database_versions "
-                "SET remote_signal = COALESCE(remote_signal, '') || ? "
+                "SET remote_signal = ?, local_version_tag = ? "
                 "WHERE name = 'pharmgkb'",
-                (f"|iv:{PHARMGKB_INTERPRETER_VERSION}",),
+                (clean_signal, tag),
             )
             conn.commit()
         return True
@@ -367,7 +372,6 @@ def _reingest_pharmgkb_from_cached_zip(db_path: Path, data_dir: Path) -> bool:
     if info is None:
         return False
     old_signal = info.get("remote_signal") or ""
-    base_signal = old_signal.split("|iv:")[0]
     old_version = info.get("version") or ""
     old_source_url = info.get("source_url") or ""
     cpic_lookup = _read_cached_cpic_lookup(db_path)
@@ -378,7 +382,7 @@ def _reingest_pharmgkb_from_cached_zip(db_path: Path, data_dir: Path) -> bool:
             db_path,
             source_url=old_source_url,
             version=old_version,
-            remote_signal=base_signal,
+            remote_signal=old_signal,
             allele_function_lookup=cpic_lookup,
         )
     except Exception:
@@ -387,5 +391,4 @@ def _reingest_pharmgkb_from_cached_zip(db_path: Path, data_dir: Path) -> bool:
     new_info = get_database_info(db_path, "pharmgkb")
     if new_info is None:
         return False
-    new_sig = new_info.get("remote_signal") or ""
-    return f"|iv:{PHARMGKB_INTERPRETER_VERSION}" in new_sig
+    return (new_info.get("local_version_tag") or "") == f"iv:{PHARMGKB_INTERPRETER_VERSION}"

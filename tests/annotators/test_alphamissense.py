@@ -7,6 +7,8 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+import pytest
+
 from allelix.annotators.alphamissense import AlphaMissenseAnnotator
 from allelix.databases.schema import ALPHAMISSENSE_SCHEMA
 from allelix.models import Variant
@@ -125,6 +127,222 @@ class TestAlphaMissenseAnnotator:
         assert result["rs1002"][1] == "likely_benign"
         assert result["rs2001"][1] == "ambiguous"
         am.close()
+
+
+class TestBulkLookupByAlt:
+    """Exact (rsid, alt) lookup for multi-allelic enrichment."""
+
+    def test_exact_match(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "alphamissense.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.executescript(ALPHAMISSENSE_SCHEMA)
+        conn.executemany(
+            "INSERT INTO alphamissense_scores "
+            "(chrom, pos, ref, alt, rsid, uniprot_id, transcript_id, "
+            "protein_variant, am_pathogenicity, am_class) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                ("1", 100, "A", "G", "rs5000", "P1", "E1", "A1G", 0.20, "likely_benign"),
+                ("1", 100, "A", "T", "rs5000", "P1", "E1", "A1T", 0.92, "likely_pathogenic"),
+            ],
+        )
+        conn.execute(
+            "INSERT INTO database_versions "
+            "(name, source_url, version, downloaded_at, record_count) "
+            "VALUES ('alphamissense', 'test', '1.0', '2026-01-01', 2)",
+        )
+        conn.commit()
+        conn.close()
+
+        am = AlphaMissenseAnnotator(tmp_path)
+        result = am.bulk_lookup_by_alt({("rs5000", "G"), ("rs5000", "T")})
+        assert result[("rs5000", "G")] == (0.20, "likely_benign")
+        assert result[("rs5000", "T")] == (0.92, "likely_pathogenic")
+        am.close()
+
+    def test_miss_returns_empty(self, tmp_path: Path) -> None:
+        _build_db(tmp_path)
+        am = AlphaMissenseAnnotator(tmp_path)
+        result = am.bulk_lookup_by_alt({("rs1001", "C")})
+        assert result == {}
+        am.close()
+
+    def test_empty_input(self, tmp_path: Path) -> None:
+        _build_db(tmp_path)
+        am = AlphaMissenseAnnotator(tmp_path)
+        assert am.bulk_lookup_by_alt(set()) == {}
+        am.close()
+
+    def test_mixed_hit_and_miss(self, tmp_path: Path) -> None:
+        _build_db(tmp_path)
+        am = AlphaMissenseAnnotator(tmp_path)
+        result = am.bulk_lookup_by_alt({("rs1001", "G"), ("rs1001", "X")})
+        assert ("rs1001", "G") in result
+        assert ("rs1001", "X") not in result
+        am.close()
+
+
+class TestInstallPrebuiltCache:
+    """install_prebuilt_cache decompresses and stamps signal."""
+
+    def test_decompress_and_stamp(self, tmp_path: Path) -> None:
+        import contextlib
+        import gzip
+
+        from allelix.databases.alphamissense_loader import (
+            ALPHAMISSENSE_DB_FILENAME,
+            install_prebuilt_cache,
+        )
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.executescript(ALPHAMISSENSE_SCHEMA)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("alphamissense", "test://prebuilt", "2023.1", "2026-01-01", 100),
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / "dest" / ALPHAMISSENSE_DB_FILENAME
+        dest_db.parent.mkdir()
+        install_prebuilt_cache(gz_path, dest_db, remote_signal="etag:am123")
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal, local_version_tag "
+                "FROM database_versions WHERE name = 'alphamissense'"
+            ).fetchone()
+        assert row[0] == "etag:am123"
+        assert row[1] == "sv:1"
+
+    def test_decompress_without_signal(self, tmp_path: Path) -> None:
+        import contextlib
+        import gzip
+
+        from allelix.databases.alphamissense_loader import (
+            ALPHAMISSENSE_DB_FILENAME,
+            install_prebuilt_cache,
+        )
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.executescript(ALPHAMISSENSE_SCHEMA)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("alphamissense", "test://prebuilt", "2023.1", "2026-01-01", 100),
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / ALPHAMISSENSE_DB_FILENAME
+        install_prebuilt_cache(gz_path, dest_db)
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal, local_version_tag "
+                "FROM database_versions WHERE name = 'alphamissense'"
+            ).fetchone()
+        assert row[0] is None
+        assert row[1] == "sv:1"
+
+    def test_disk_space_check(self, tmp_path: Path) -> None:
+        import gzip
+        from unittest.mock import patch
+
+        from allelix.databases.alphamissense_loader import install_prebuilt_cache
+
+        gz_path = tmp_path / "tiny.gz"
+        with gzip.open(gz_path, "wb") as f:
+            f.write(b"x" * 100)
+
+        dest_db = tmp_path / "out.sqlite"
+        fake_usage = type("Usage", (), {"free": 1})()
+        target = "allelix.databases.alphamissense_loader.shutil.disk_usage"
+        with (
+            patch(target, return_value=fake_usage),
+            pytest.raises(OSError, match="Not enough disk space"),
+        ):
+            install_prebuilt_cache(gz_path, dest_db)
+
+    def test_replaces_existing_tmp(self, tmp_path: Path) -> None:
+        import contextlib
+        import gzip
+
+        from allelix.databases.alphamissense_loader import (
+            ALPHAMISSENSE_DB_FILENAME,
+            install_prebuilt_cache,
+        )
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.executescript(ALPHAMISSENSE_SCHEMA)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("alphamissense", "test://prebuilt", "2023.1", "2026-01-01", 100),
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / ALPHAMISSENSE_DB_FILENAME
+        stale_tmp = tmp_path / f"{ALPHAMISSENSE_DB_FILENAME}.tmp"
+        stale_tmp.write_text("stale")
+
+        install_prebuilt_cache(gz_path, dest_db)
+        assert dest_db.exists()
+        assert not stale_tmp.exists()
+
+    def test_stamps_signal_when_versions_table_missing(self, tmp_path: Path) -> None:
+        """Pre-built cache without database_versions must not crash."""
+        import contextlib
+        import gzip
+
+        from allelix.databases.alphamissense_loader import (
+            ALPHAMISSENSE_DB_FILENAME,
+            install_prebuilt_cache,
+        )
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.execute(
+                "CREATE TABLE alphamissense_scores ("
+                "chrom TEXT, pos INTEGER, ref TEXT, alt TEXT, rsid TEXT,"
+                " uniprot_id TEXT, transcript_id TEXT, protein_variant TEXT,"
+                " am_pathogenicity REAL NOT NULL, am_class TEXT NOT NULL,"
+                " PRIMARY KEY (chrom, pos, ref, alt))"
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / ALPHAMISSENSE_DB_FILENAME
+        install_prebuilt_cache(gz_path, dest_db, remote_signal="etag:no-table")
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name = 'alphamissense'"
+            ).fetchone()
+        assert row[0] == "etag:no-table"
 
 
 class TestMultiAllelicMax:

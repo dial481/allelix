@@ -22,7 +22,7 @@ verification.
   canonical-header tightening, P-B GRCh36 position detection, MHG/Tempus
   build-mismatch warning, unsupported formats). Documented in
   `edge_cases/README.md`.
-- **`databases/`** — Pinned annotator databases. **Gitignored** (~1.5 GB).
+- **`databases/`** — Pinned annotator databases. **Gitignored** (~15 GB).
   Restore via `allelix db update --data-dir test_data/databases`.
 
 ## Directory layout
@@ -60,6 +60,8 @@ formats.
 | ClinVar (in databases/) | NCBI public domain | Restore via `allelix db update`. |
 | GWAS Catalog (in databases/) | NCBI/EBI public domain | Same. |
 | PharmGKB (in databases/) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Attribution required if reports are redistributed. |
+| gnomAD (in databases/) | [ODbL](https://opendatacommons.org/licenses/odbl/1-0/) | Attribution required. |
+| AlphaMissense (in databases/) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Attribution required. |
 | SNPedia (in databases/) | [CC BY-NC-SA 3.0 US](https://creativecommons.org/licenses/by-nc-sa/3.0/us/) | Non-commercial only. Baselines here are generated with `--exclude-snpedia` so no SNPedia content reaches `baselines/`. |
 
 ## Pinned database versions (for regression testing)
@@ -69,8 +71,9 @@ clinvar.GRCh37.sqlite   2026-05-30
 clinvar.GRCh38.sqlite   2026-05-30
 pharmgkb.sqlite         2026-06-05
 gwas.sqlite             2026-06-05
-snpedia.sqlite          parsed from snpedia_complete.sqlite (raw scrape 2026-05-20)
-snpedia_complete.sqlite raw 2026-05-20 scrape — canonical archive
+gnomad.sqlite           2026-06-05
+alphamissense.sqlite    2026-06-05
+snpedia.sqlite          pre-built cache from HuggingFace (source data scraped 2026-05-20)
 ```
 
 Pinned databases are the constant for regression testing. When a new release

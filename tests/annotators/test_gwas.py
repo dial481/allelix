@@ -153,7 +153,7 @@ class TestAutoReingest:
     def test_is_ready_auto_reingests_when_categorizer_bumped(
         self, tmp_path: Path, mock_gwas_tsv: Path
     ) -> None:
-        """Stale |cv: stamp + TSV present → auto-reingest succeeds."""
+        """Stale cv: tag + TSV present → auto-reingest succeeds."""
         db_path = tmp_path / GWAS_DB_FILENAME
         tsv_dest = tmp_path / "gwas_catalog_associations.tsv"
         load_gwas_tsv(mock_gwas_tsv, db_path, source_url="test://mock")
@@ -161,7 +161,7 @@ class TestAutoReingest:
         assert schema_is_current(db_path)
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = '|cv:0' WHERE name = 'gwas'"
+                "UPDATE database_versions SET local_version_tag = 'cv:0' WHERE name = 'gwas'"
             )
             conn.commit()
         assert not schema_is_current(db_path)
@@ -172,16 +172,92 @@ class TestAutoReingest:
     def test_is_ready_returns_false_when_tsv_missing(
         self, tmp_path: Path, mock_gwas_tsv: Path
     ) -> None:
-        """Stale stamp + no TSV → can't auto-reingest, returns False."""
+        """Stale tag + no TSV → can't auto-reingest, returns False."""
         db_path = tmp_path / GWAS_DB_FILENAME
         load_gwas_tsv(mock_gwas_tsv, db_path, source_url="test://mock")
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = '|cv:0' WHERE name = 'gwas'"
+                "UPDATE database_versions SET local_version_tag = 'cv:0' WHERE name = 'gwas'"
             )
             conn.commit()
         annotator = GWASCatalogAnnotator(tmp_path)
         assert annotator.is_ready() is False
+
+
+class TestLegacyMigration:
+    """One-shot migration from |cv: in remote_signal to local_version_tag."""
+
+    def test_legacy_cv_in_remote_signal_migrates(
+        self, tmp_path: Path, mock_gwas_tsv: Path
+    ) -> None:
+        """Pre-v1.5.0 cache with |cv:N in remote_signal self-heals."""
+        from allelix.databases.gwas_loader import _CATEGORIZER_VERSION
+
+        db_path = tmp_path / GWAS_DB_FILENAME
+        load_gwas_tsv(mock_gwas_tsv, db_path, source_url="test://mock", remote_signal="etag:abc")
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "UPDATE database_versions "
+                "SET remote_signal = ?, local_version_tag = NULL "
+                "WHERE name = 'gwas'",
+                (f"etag:abc|cv:{_CATEGORIZER_VERSION}",),
+            )
+            conn.commit()
+        annotator = GWASCatalogAnnotator(tmp_path)
+        assert annotator.is_ready() is True
+        from allelix.databases.manager import get_database_info
+
+        info = get_database_info(db_path, "gwas")
+        assert info is not None
+        assert info["remote_signal"] == "etag:abc"
+        assert info["local_version_tag"] == f"cv:{_CATEGORIZER_VERSION}"
+
+    def test_cached_remote_signal_returns_clean(self, tmp_path: Path, mock_gwas_tsv: Path) -> None:
+        """After migration, cached_remote_signal returns clean signal."""
+        db_path = tmp_path / GWAS_DB_FILENAME
+        load_gwas_tsv(mock_gwas_tsv, db_path, source_url="test://mock", remote_signal="etag:xyz")
+        annotator = GWASCatalogAnnotator(tmp_path)
+        assert annotator.cached_remote_signal() == "etag:xyz"
+
+    def test_stamp_missing_file_returns_false(self, tmp_path: Path) -> None:
+        from allelix.annotators.gwas import _stamp_existing_gwas_cache
+
+        assert _stamp_existing_gwas_cache(tmp_path / "nonexistent.sqlite") is False
+
+    def test_stamp_no_row_returns_false(self, tmp_path: Path) -> None:
+        from allelix.annotators.gwas import _stamp_existing_gwas_cache
+        from allelix.databases.schema import GWAS_SCHEMA
+
+        db = tmp_path / "empty.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(GWAS_SCHEMA)
+        assert _stamp_existing_gwas_cache(db) is False
+
+    def test_stamp_already_current_returns_true(self, tmp_path: Path, mock_gwas_tsv: Path) -> None:
+        from allelix.annotators.gwas import _stamp_existing_gwas_cache
+
+        db_path = tmp_path / GWAS_DB_FILENAME
+        load_gwas_tsv(mock_gwas_tsv, db_path, source_url="test://mock")
+        assert _stamp_existing_gwas_cache(db_path) is True
+
+    def test_stamp_stale_tag_returns_false(self, tmp_path: Path, mock_gwas_tsv: Path) -> None:
+        from allelix.annotators.gwas import _stamp_existing_gwas_cache
+
+        db_path = tmp_path / GWAS_DB_FILENAME
+        load_gwas_tsv(mock_gwas_tsv, db_path, source_url="test://mock")
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "UPDATE database_versions SET local_version_tag = 'cv:0' WHERE name = 'gwas'"
+            )
+            conn.commit()
+        assert _stamp_existing_gwas_cache(db_path) is False
+
+    def test_has_current_columns_on_bad_db(self, tmp_path: Path) -> None:
+        from allelix.annotators.gwas import _has_current_gwas_columns
+
+        bad = tmp_path / "bad.sqlite"
+        bad.write_text("not a database", encoding="utf-8")
+        assert _has_current_gwas_columns(bad) is False
 
 
 class TestGenotypeMatching:

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sqlite3
 import zipfile
@@ -11,12 +12,15 @@ from typing import TYPE_CHECKING, ClassVar
 
 from allelix.annotators.base import Annotator
 from allelix.databases.gwas_loader import (
+    _CATEGORIZER_VERSION,
+    _REQUIRED_GWAS_COLUMNS,
     GWAS_CATALOG_URL,
     GWAS_DB_FILENAME,
     load_gwas_tsv,
     schema_is_current,
 )
 from allelix.databases.manager import (
+    _ensure_local_version_tag_column,
     download,
     get_database_info,
     head_request_headers,
@@ -135,14 +139,22 @@ class GWASCatalogAnnotator(Annotator):
     def is_ready(self) -> bool:
         """Return True when the local GWAS cache exists and has current schema.
 
-        When the categorizer version has bumped and the raw TSV is still
-        on disk (retained since the last ``db update``), auto-reingests
-        from the cached TSV without re-downloading.
+        Handles three states:
+
+        1. Current tag in ``local_version_tag`` — ready.
+        2. No tag (legacy cache or ``|cv:`` still in ``remote_signal``) —
+           one-shot migration via ``_stamp_existing_gwas_cache``.
+        3. Stale tag (categorizer bumped) — auto-reingest from cached TSV
+           if still on disk.
         """
-        if get_database_info(self._db_path, "gwas") is None:
+        info = get_database_info(self._db_path, "gwas")
+        if info is None:
             return False
-        if schema_is_current(self._db_path):
-            return True
+        tag = info.get("local_version_tag") or ""
+        if tag == f"cv:{_CATEGORIZER_VERSION}":
+            return _has_current_gwas_columns(self._db_path)
+        if not tag and _stamp_existing_gwas_cache(self._db_path):
+            return _has_current_gwas_columns(self._db_path)
         tsv_path = self.data_dir / "gwas_catalog_associations.tsv"
         if tsv_path.exists():
             print(
@@ -196,8 +208,7 @@ class GWASCatalogAnnotator(Annotator):
         info = get_database_info(self._db_path, "gwas")
         if not info or not info["remote_signal"]:
             return None
-        sig = info["remote_signal"]
-        return sig.split("|cv:")[0] or None
+        return info["remote_signal"] or None
 
     def annotate(self, variant: Variant) -> list[Annotation]:
         """Return GWAS Catalog annotations for variants the user carries.
@@ -269,6 +280,7 @@ class GWASCatalogAnnotator(Annotator):
                     references=references,
                     condition=trait,
                     gene=gene or "",
+                    alt="",
                     is_must_include=variant.rsid in _MUST_INCLUDE_RSIDS,
                 )
             )
@@ -281,3 +293,49 @@ def _user_diploid(variant: Variant) -> str:
     if len(a1) == 1 and len(a2) == 1:
         return "".join(sorted((a1, a2)))
     return f"{a1}/{a2}"
+
+
+def _has_current_gwas_columns(db_path: Path) -> bool:
+    """True iff the gwas_associations table has the required columns."""
+    try:
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(gwas_associations)")}
+            return _REQUIRED_GWAS_COLUMNS.issubset(cols)
+    except sqlite3.DatabaseError:
+        return False
+
+
+def _stamp_existing_gwas_cache(db_path: Path) -> bool:
+    """One-shot migration: stamp ``local_version_tag`` on a GWAS cache.
+
+    Handles legacy caches with ``|cv:N`` baked into ``remote_signal``
+    by moving the tag and cleaning the signal. Returns True if the
+    current categorizer version is now stamped.
+    """
+    if not db_path.exists():
+        return False
+    tag = f"cv:{_CATEGORIZER_VERSION}"
+    try:
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            _ensure_local_version_tag_column(conn)
+            row = conn.execute(
+                "SELECT remote_signal, local_version_tag FROM database_versions WHERE name='gwas'"
+            ).fetchone()
+            if not row:
+                return False
+            sig, existing_tag = row
+            if existing_tag == tag:
+                return True
+            if existing_tag is not None:
+                return False
+            clean_signal = (sig or "").split("|cv:")[0]
+            conn.execute(
+                "UPDATE database_versions "
+                "SET remote_signal = ?, local_version_tag = ? "
+                "WHERE name = 'gwas'",
+                (clean_signal, tag),
+            )
+            conn.commit()
+        return True
+    except (sqlite3.OperationalError, sqlite3.DatabaseError):
+        return False

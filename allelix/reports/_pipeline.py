@@ -274,17 +274,25 @@ def run_analysis(
                 annotations.extend(annotator.annotate(v))
 
     if gnomad is not None and gnomad.is_ready():
-        rsids = {a.rsid for a in annotations}
-        freq_map = gnomad.bulk_lookup(rsids)
+        exact_keys = {(a.rsid, a.alt) for a in annotations if a.alt}
+        max_rsids = {a.rsid for a in annotations if not a.alt}
+        exact_freq = gnomad.bulk_lookup_by_alt(exact_keys)
+        max_freq = gnomad.bulk_lookup(max_rsids)
         for a in annotations:
-            a.allele_frequency = freq_map.get(a.rsid)
+            if a.alt:
+                a.allele_frequency = exact_freq.get((a.rsid, a.alt))
+            else:
+                a.allele_frequency = max_freq.get(a.rsid)
 
     if alphamissense is not None and alphamissense.is_ready():
-        rsids = {a.rsid for a in annotations}
-        am_map = alphamissense.bulk_lookup(rsids)
+        exact_keys = {(a.rsid, a.alt) for a in annotations if a.alt}
+        max_rsids = {a.rsid for a in annotations if not a.alt}
+        exact_am = alphamissense.bulk_lookup_by_alt(exact_keys)
+        max_am = alphamissense.bulk_lookup(max_rsids)
         for a in annotations:
-            if a.rsid in am_map:
-                a.am_pathogenicity, a.am_class = am_map[a.rsid]
+            hit = exact_am.get((a.rsid, a.alt)) if a.alt else max_am.get(a.rsid)
+            if hit is not None:
+                a.am_pathogenicity, a.am_class = hit
 
     annotators_used = [(a.name, a.version()) for a in annotators]
     if gnomad is not None and gnomad.is_ready():

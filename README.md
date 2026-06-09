@@ -76,7 +76,7 @@ Adding a new format means adding one file to `allelix/parsers/` and registering 
 | ClinVar (GRCh37 + GRCh38) | ✓ | Public domain (NCBI). SNVs + indels + multi-allelic sites. **Both builds cached**; `analyze` dispatches by detected build (ADR-0021). Carrier rule (ADR-0007) requires the user to carry the ALT allele. Indel-anchor protection (ADR-0011) prevents single-base array readouts from matching anchor-base indels. |
 | PharmGKB | ✓ | CC BY-SA 4.0. Clinical annotations only — single-rsid SNVs; star alleles and haplotypes deferred (ADR-0009). **Primary non-finding filter is the ClinVar REF carrier rule (ADR-0023):** if ClinVar publishes a single-base REF for the rsid and the user is homozygous for it, the row is suppressed. CPIC's `(rsid, base) → function_class` join (ADR-0020) survives as a secondary tier for rsids ClinVar doesn't catalog. Earlier prose tiers (ADR-0013, ADR-0017, ADR-0018) are superseded. |
 | CPIC (per-allele function table) | ✓ | Internal data source for the PharmGKB filter. Fetched from `api.cpicpgx.org` at `db update` time. Used to populate the `pharmgkb_allele_function` table — not surfaced to end users as its own annotator. |
-| SNPedia | ✓ | CC BY-NC-SA 3.0 US. **Optional — requires a one-time download** via `python scripts/scrape_snpedia.py`. Scrapes both `Category:Is_a_snp` (111,726 pages) and `Category:Is_a_genotype` (104,806 pages) from the MediaWiki API. Stores raw wiki markup; the annotator parses structured genotype templates at query time. If the SNPedia database is absent, analysis runs without it. For commercial use, pass `--exclude-snpedia` or skip the scrape step — either way, `analyze` runs using all other databases and omits SNPedia annotations. |
+| SNPedia | ✓ | CC BY-NC-SA 3.0 US. Pre-built cache downloaded via `db update` (~216K wiki pages, ~105K genotype rows). If the SNPedia database is absent, analysis runs without it. For commercial use, pass `--exclude-snpedia` — `analyze` runs using all other databases and omits SNPedia annotations. The cache can also be rebuilt from source via `scripts/scrape_snpedia.py` + `scripts/parse_snpedia.py`. |
 | GWAS Catalog | ✓ | Public domain (EBI/NHGRI). Trait–SNP associations with p-values and effect sizes. Carrier rule (ADR-0007) requires the user to carry the risk allele. P-value magnitude scoring (ADR-0024) maps continuous p-values to the 0–10 scale; unknown-risk-allele entries fire on rsID match alone but are capped at 3.0. |
 | gnomAD | ✓ | ODbL v1.0. **Enrichment annotator** — adds population allele frequency context to existing annotations. Shows how common each variant is in the general population (~16M exome variants from 730K individuals). A pathogenic variant that 35% of people carry reads very differently from one seen in 0.001%. Pre-built cache downloaded via `db update` (~6GB on disk). Use `--no-gnomad` to skip. |
 | AlphaMissense | ✓ | CC BY 4.0. **Enrichment annotator** — adds DeepMind's protein-structure-based pathogenicity predictions to existing annotations. Scores 71M missense variants on a 0–1 scale: <0.34 = likely benign, >0.564 = likely pathogenic. Complements ClinVar's expert classifications with computational predictions — especially valuable for variants ClinVar hasn't reviewed yet. Pre-built cache downloaded via `db update` (~8GB on disk). Use `--no-alphamissense` to skip. |
@@ -165,17 +165,14 @@ Allelix source code is licensed under the **GNU Affero General Public License v3
 
 ### SNPedia data download
 
-SNPedia data is not downloaded by `allelix db update` — it requires a separate one-time scrape:
+SNPedia data is downloaded automatically by `allelix db update` from a pre-built cache. If the SNPedia database is not present, `allelix analyze` runs normally using all other databases and prints a note that SNPedia data is not available.
+
+To rebuild the cache from source (not normally needed):
 
 ```bash
-python scripts/scrape_snpedia.py
+python scripts/scrape_snpedia.py   # scrape 216K pages from bots.snpedia.com (1-4 hours)
+python scripts/parse_snpedia.py    # parse raw wiki markup into structured genotype rows
 ```
-
-This downloads all 216,532 pages (111,726 SNP pages + 104,806 genotype pages) from bots.snpedia.com into `~/.local/share/allelix/snpedia.sqlite` (or `$ALLELIX_DATA_DIR`). The scrape takes 1–4 hours depending on server load. It is resumable — if interrupted, run again to continue. SNPedia is frozen (no new edits since mid-2023), so this is a one-time operation.
-
-If the SNPedia database is not present, `allelix analyze` runs normally using all other databases and prints a note that SNPedia data is not available.
-
-Credit: [jaykobdetar/SNPedia-Scraper](https://github.com/jaykobdetar/SNPedia-Scraper) demonstrated the correct MediaWiki `categorymembers` API approach and published a [Zenodo archive](https://zenodo.org/records/16053572) of the SNP pages. Our scraper extends this by also downloading the 104,806 genotype pages (`Category:Is_a_genotype`), which contain the per-genotype magnitude, repute, and summary data needed for annotation.
 
 ### Known SNPedia source data quality notes
 

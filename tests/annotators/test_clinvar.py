@@ -67,16 +67,16 @@ class TestSignalGuard:
 
 
 class TestInterpreterVersionStamp:
-    """CLINVAR_INTERPRETER_VERSION stamp in cache's remote_signal."""
+    """CLINVAR_INTERPRETER_VERSION stamp in cache's local_version_tag."""
 
     def test_is_ready_accepts_matching_iv_stamp(self, annotator: ClinVarAnnotator):
         """Freshly loaded cache has the current iv stamp — is_ready returns True."""
         assert annotator.is_ready() is True
 
-    def test_is_ready_rejects_cache_without_iv_stamp(
+    def test_is_ready_rejects_cache_without_tag(
         self, tmp_path: Path, mock_clinvar_grch37_vcf: Path
     ):
-        """Cache with no |iv: marker at all is rejected (before one-shot migration)."""
+        """Cache with no local_version_tag is self-healed by one-shot migration."""
         build = "GRCh37"
         db_path = tmp_path / clinvar_db_filename(build)
         load_clinvar_vcf(
@@ -87,20 +87,19 @@ class TestInterpreterVersionStamp:
         )
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = 'md5:abc' WHERE name = ?",
+                "UPDATE database_versions SET remote_signal = 'md5:abc', "
+                "local_version_tag = NULL WHERE name = ?",
                 (clinvar_record_name(build),),
             )
             conn.commit()
         ann = ClinVarAnnotator(tmp_path, builds=(build,))
-        # One-shot migration stamps it, so is_ready self-heals
         assert ann.is_ready() is True
-        # Verify the stamp was written
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
-            sig = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name = ?",
+            tag = conn.execute(
+                "SELECT local_version_tag FROM database_versions WHERE name = ?",
                 (clinvar_record_name(build),),
             ).fetchone()[0]
-            assert f"|iv:{CLINVAR_INTERPRETER_VERSION}" in sig
+            assert tag == f"iv:{CLINVAR_INTERPRETER_VERSION}"
 
     def test_is_ready_rejects_old_iv_stamp(self, tmp_path: Path, mock_clinvar_grch37_vcf: Path):
         """Cache stamped with an older iv version is rejected."""
@@ -114,7 +113,7 @@ class TestInterpreterVersionStamp:
         )
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = 'md5:abc|iv:0' WHERE name = ?",
+                "UPDATE database_versions SET local_version_tag = 'iv:0' WHERE name = ?",
                 (clinvar_record_name(build),),
             )
             conn.commit()

@@ -3,9 +3,10 @@
 # Copyright (C) 2026 dial481
 """Build the AlphaMissense pathogenicity SQLite cache.
 
-Reads the AlphaMissense hg38 TSV (from Zenodo) and joins against the
-local gnomAD SQLite cache to populate rsIDs. The gnomAD dependency is
-build-time only — the output cache is self-contained.
+Reads the AlphaMissense hg38 TSV (from Zenodo, 71M missense variant
+predictions) and joins against the local gnomAD SQLite cache to populate
+rsIDs. Output is ~8GB SQLite. The gnomAD dependency is build-time only —
+the output cache is self-contained.
 
 IMPORTANT: The gnomAD cache MUST be built first. AlphaMissense source
 data uses genomic coordinates (chrom/pos/ref/alt), not rsIDs. The gnomAD
@@ -85,6 +86,15 @@ _AMRow = tuple[
     float,  # am_pathogenicity
     str,  # am_class
 ]
+
+
+def _get_gnomad_version(gnomad_db: Path) -> str | None:
+    """Read the gnomAD version string from its database_versions table."""
+    with contextlib.closing(sqlite3.connect(gnomad_db)) as conn:
+        row = conn.execute(
+            "SELECT version FROM database_versions WHERE name = 'gnomad'"
+        ).fetchone()
+        return row[0] if row else None
 
 
 def _load_gnomad_rsid_map(gnomad_db: Path) -> dict[tuple[str, int, str, str], str]:
@@ -257,6 +267,22 @@ def build_cache(
                 "https://zenodo.org/records/10813168",
                 "2023.2",
                 total_records,
+            ),
+        )
+
+        if skip_gnomad:
+            gnomad_version = "no_gnomad"
+        else:
+            gnomad_version = _get_gnomad_version(gnomad_db) or "unknown"
+        conn.execute(
+            "INSERT OR REPLACE INTO database_versions "
+            "(name, source_url, version, downloaded_at, record_count) "
+            "VALUES (?, ?, ?, datetime('now'), ?)",
+            (
+                "alphamissense_gnomad_source",
+                str(gnomad_db),
+                gnomad_version,
+                matched_rsids,
             ),
         )
         conn.commit()

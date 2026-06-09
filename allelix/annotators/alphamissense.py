@@ -18,12 +18,14 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
+from allelix.annotators._versions import ALPHAMISSENSE_SCHEMA_VERSION
 from allelix.annotators.base import Annotator
 from allelix.databases.alphamissense_loader import (
     ALPHAMISSENSE_CACHE_URL,
     ALPHAMISSENSE_DB_FILENAME,
     install_prebuilt_cache,
 )
+from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME
 from allelix.databases.manager import download, get_database_info, head_request_headers
 
 if TYPE_CHECKING:
@@ -63,7 +65,36 @@ class AlphaMissenseAnnotator(Annotator):
                     "Run `allelix db update` first."
                 )
             self._conn = sqlite3.connect(self._db_path)
+            self._check_gnomad_version()
         return self._conn
+
+    def _check_gnomad_version(self) -> None:
+        """Warn if the gnomAD version used to build the AM cache differs from installed."""
+        assert self._conn is not None
+        row = self._conn.execute(
+            "SELECT version FROM database_versions WHERE name = 'alphamissense_gnomad_source'"
+        ).fetchone()
+        if row is None:
+            return
+        stamped = row[0]
+        if stamped == "no_gnomad":
+            logger.warning(
+                "AlphaMissense cache was built without gnomAD (--no-gnomad). "
+                "rsID lookups will return no results."
+            )
+            return
+        gnomad_info = get_database_info(self.data_dir / GNOMAD_DB_FILENAME, "gnomad")
+        if gnomad_info is None:
+            return
+        installed = gnomad_info["version"]
+        if installed and stamped != installed:
+            logger.warning(
+                "AlphaMissense cache was built against gnomAD %s but installed "
+                "gnomAD is %s. rsID mappings may be stale. Rebuild with: "
+                "python scripts/build_alphamissense_cache.py",
+                stamped,
+                installed,
+            )
 
     def setup(self) -> None:
         """Download the pre-built AlphaMissense cache from HuggingFace."""
@@ -82,8 +113,12 @@ class AlphaMissenseAnnotator(Annotator):
             logger.warning("Could not remove staged file at %s", gz_path)
 
     def is_ready(self) -> bool:
-        """True when the AlphaMissense SQLite cache exists and is queryable."""
-        return get_database_info(self._db_path, "alphamissense") is not None
+        """True when the AlphaMissense SQLite cache exists with current schema version."""
+        info = get_database_info(self._db_path, "alphamissense")
+        if info is None:
+            return False
+        tag = info.get("local_version_tag") or ""
+        return tag == f"sv:{ALPHAMISSENSE_SCHEMA_VERSION}" or not tag
 
     def version(self) -> str | None:
         """Return the cached database version, or None."""
@@ -139,9 +174,9 @@ class AlphaMissenseAnnotator(Annotator):
     def bulk_lookup(self, rsids: set[str]) -> dict[str, tuple[float, str]]:
         """Return ``{rsid: (am_pathogenicity, am_class)}`` for found rsIDs.
 
-        When an rsID maps to multiple rows (different ref/alt at the same
-        position), returns the highest pathogenicity score and its class —
-        consistent with gnomAD's ``MAX(af)`` approach.
+        Fallback for annotations without a known alt allele. Uses MAX to
+        resolve multi-allelic sites. Prefer ``bulk_lookup_by_alt`` when alt
+        is available.
 
         Batches into chunks of 900 to stay within SQLite's variable limit.
         """
@@ -162,4 +197,28 @@ class AlphaMissenseAnnotator(Annotator):
             for rsid, score, cls in rows:
                 if score is not None:
                     result[rsid] = (score, cls)
+        return result
+
+    def bulk_lookup_by_alt(
+        self, keys: set[tuple[str, str]]
+    ) -> dict[tuple[str, str], tuple[float, str]]:
+        """Return ``{(rsid, alt): (am_pathogenicity, am_class)}`` for exact matches."""
+        if not keys:
+            return {}
+        conn = self._connection()
+        result: dict[tuple[str, str], tuple[float, str]] = {}
+        key_list = list(keys)
+        batch_size = _BULK_BATCH_SIZE // 2
+        for i in range(0, len(key_list), batch_size):
+            batch = key_list[i : i + batch_size]
+            clauses = " OR ".join(["(rsid = ? AND alt = ?)"] * len(batch))
+            params = [v for rsid, alt in batch for v in (rsid, alt)]
+            rows = conn.execute(
+                f"SELECT rsid, alt, am_pathogenicity, am_class"
+                f" FROM alphamissense_scores WHERE {clauses}",
+                params,
+            ).fetchall()
+            for rsid, alt, score, cls in rows:
+                if score is not None:
+                    result[(rsid, alt)] = (score, cls)
         return result

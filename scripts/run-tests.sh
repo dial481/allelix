@@ -35,7 +35,7 @@ nohup setsid bash -c "
     echo '=== Allelix Test Run ===' > '$LOGFILE'
     echo \"Started: \$(date)\" >> '$LOGFILE'
     echo '' >> '$LOGFILE'
-    python -m pytest tests/ --ignore=tests/annotators/test_snpedia.py -x --tb=short --no-cov >> '$LOGFILE' 2>&1
+    python -m pytest tests/ -x --tb=short --no-cov >> '$LOGFILE' 2>&1
     EXIT_CODE=\$?
     echo '' >> '$LOGFILE'
     echo \"Finished: \$(date)\" >> '$LOGFILE'

@@ -18,6 +18,7 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
+from allelix.annotators._versions import GNOMAD_SCHEMA_VERSION
 from allelix.annotators.base import Annotator
 from allelix.databases.gnomad_loader import (
     GNOMAD_CACHE_URL,
@@ -81,8 +82,12 @@ class GnomadAnnotator(Annotator):
             logger.warning("Could not remove staged file at %s", gz_path)
 
     def is_ready(self) -> bool:
-        """True when the gnomAD SQLite cache exists and is queryable."""
-        return get_database_info(self._db_path, "gnomad") is not None
+        """True when the gnomAD SQLite cache exists with current schema version."""
+        info = get_database_info(self._db_path, "gnomad")
+        if info is None:
+            return False
+        tag = info.get("local_version_tag") or ""
+        return tag == f"sv:{GNOMAD_SCHEMA_VERSION}" or not tag
 
     def version(self) -> str | None:
         """Return the cached database version, or None."""
@@ -135,6 +140,10 @@ class GnomadAnnotator(Annotator):
     def bulk_lookup(self, rsids: set[str]) -> dict[str, float]:
         """Return ``{rsid: af}`` for all rsIDs found in the cache.
 
+        Fallback for annotations without a known alt allele. Uses MAX to
+        resolve multi-allelic sites. Prefer ``bulk_lookup_by_alt`` when alt
+        is available.
+
         Batches into chunks of 900 to stay within SQLite's variable limit.
         """
         if not rsids:
@@ -153,4 +162,25 @@ class GnomadAnnotator(Annotator):
             for rsid, af in rows:
                 if af is not None:
                     result[rsid] = af
+        return result
+
+    def bulk_lookup_by_alt(self, keys: set[tuple[str, str]]) -> dict[tuple[str, str], float]:
+        """Return ``{(rsid, alt): af}`` for exact allele matches."""
+        if not keys:
+            return {}
+        conn = self._connection()
+        result: dict[tuple[str, str], float] = {}
+        key_list = list(keys)
+        batch_size = _BULK_BATCH_SIZE // 2
+        for i in range(0, len(key_list), batch_size):
+            batch = key_list[i : i + batch_size]
+            clauses = " OR ".join(["(rsid = ? AND alt = ?)"] * len(batch))
+            params = [v for rsid, alt in batch for v in (rsid, alt)]
+            rows = conn.execute(
+                f"SELECT rsid, alt, af FROM gnomad_frequencies WHERE {clauses}",
+                params,
+            ).fetchall()
+            for rsid, alt, af in rows:
+                if af is not None:
+                    result[(rsid, alt)] = af
         return result

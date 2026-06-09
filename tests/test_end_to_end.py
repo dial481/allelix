@@ -16,9 +16,14 @@ through.
 from __future__ import annotations
 
 import contextlib
+import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 from allelix.annotators.clinvar import ClinVarAnnotator
 from allelix.annotators.gwas import GWASCatalogAnnotator
@@ -435,9 +440,9 @@ class TestRealDataGwasSanity:
           gwas-catalog-associations_ontology-annotated-full.zip"
     """
 
-    @pytest.fixture
-    def real_gwas_data_dir(self, tmp_path: Path) -> Path:
-        """Load the real GWAS Catalog ZIP into a temp SQLite."""
+    @pytest.fixture(scope="class")
+    def real_gwas_data_dir(self, tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
+        """Build the real GWAS Catalog once, in temp, and delete it when done."""
         if not _REAL_GWAS_ZIP.exists():
             pytest.skip("Real GWAS Catalog not downloaded (test_data/gwas_catalog.zip)")
 
@@ -445,15 +450,19 @@ class TestRealDataGwasSanity:
 
         from allelix.databases.gwas_loader import load_gwas_tsv
 
+        tmp_path = tmp_path_factory.mktemp("real_gwas")
         with zipfile.ZipFile(_REAL_GWAS_ZIP) as zf:
             tsv_names = [n for n in zf.namelist() if n.endswith(".tsv")]
             assert tsv_names, "No TSV found in GWAS ZIP"
-            tsv_path = tmp_path / tsv_names[0]
             zf.extract(tsv_names[0], tmp_path)
-
+        tsv_path = tmp_path / tsv_names[0]
         db_path = tmp_path / "gwas.sqlite"
-        load_gwas_tsv(tsv_path, db_path, source_url="test://real-gwas")
-        return tmp_path
+        try:
+            load_gwas_tsv(tsv_path, db_path, source_url="test://real-gwas")
+        finally:
+            tsv_path.unlink(missing_ok=True)
+        yield tmp_path
+        shutil.rmtree(tmp_path, ignore_errors=True)
 
     def test_default_gwas_floor_keeps_output_bounded(
         self, mock_mhg_path: Path, real_gwas_data_dir: Path

@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS database_versions (
     version TEXT,
     downloaded_at TEXT NOT NULL,
     record_count INTEGER NOT NULL,
-    remote_signal TEXT
+    remote_signal TEXT,
+    local_version_tag TEXT
 );
 """
 

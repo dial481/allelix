@@ -218,6 +218,54 @@ class TestBulkLookup:
         assert _BULK_BATCH_SIZE == 900
 
 
+class TestBulkLookupByAlt:
+    """Exact (rsid, alt) frequency lookup for multi-allelic enrichment."""
+
+    def test_exact_match(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            result = annotator.bulk_lookup_by_alt({("rs429358", "C"), ("rs429358", "G")})
+            assert result[("rs429358", "C")] == pytest.approx(0.15)
+            assert result[("rs429358", "G")] == pytest.approx(0.08)
+        finally:
+            annotator.close()
+
+    def test_miss_returns_empty(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            result = annotator.bulk_lookup_by_alt({("rs429358", "T")})
+            assert result == {}
+        finally:
+            annotator.close()
+
+    def test_empty_input(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            assert annotator.bulk_lookup_by_alt(set()) == {}
+        finally:
+            annotator.close()
+
+    def test_mixed_hit_and_miss(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            result = annotator.bulk_lookup_by_alt({("rs429358", "C"), ("rs429358", "X")})
+            assert ("rs429358", "C") in result
+            assert ("rs429358", "X") not in result
+        finally:
+            annotator.close()
+
+    def test_batching_halved_for_two_params(self, gnomad_db: Path) -> None:
+        """by_alt batches at _BULK_BATCH_SIZE // 2 to stay under SQLite's variable limit."""
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            keys = {(f"rs{i}", "A") for i in range(1, _BULK_BATCH_SIZE + 100)}
+            keys.add(("rs1801133", "A"))
+            result = annotator.bulk_lookup_by_alt(keys)
+            assert ("rs1801133", "A") in result
+        finally:
+            annotator.close()
+
+
 class TestCloseable:
     """Context manager and close semantics."""
 
@@ -345,9 +393,11 @@ class TestInstallPrebuiltCache:
         assert dest_db.exists()
         with contextlib.closing(sqlite3.connect(dest_db)) as conn:
             row = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name = 'gnomad'"
+                "SELECT remote_signal, local_version_tag "
+                "FROM database_versions WHERE name = 'gnomad'"
             ).fetchone()
         assert row[0] == "etag:test123"
+        assert row[1] == "sv:1"
 
     def test_decompress_without_signal(self, tmp_path: Path) -> None:
         import gzip
@@ -378,6 +428,38 @@ class TestInstallPrebuiltCache:
         assert dest_db.exists()
         with contextlib.closing(sqlite3.connect(dest_db)) as conn:
             row = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name = 'gnomad'"
+                "SELECT remote_signal, local_version_tag "
+                "FROM database_versions WHERE name = 'gnomad'"
             ).fetchone()
         assert row[0] is None
+        assert row[1] == "sv:1"
+
+    def test_stamps_signal_when_versions_table_missing(self, tmp_path: Path) -> None:
+        """Pre-built cache without database_versions must not crash."""
+        import gzip
+
+        from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME, install_prebuilt_cache
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.execute(
+                "CREATE TABLE gnomad_frequencies ("
+                "chrom TEXT NOT NULL, pos INTEGER NOT NULL, ref TEXT NOT NULL,"
+                " alt TEXT NOT NULL, rsid TEXT, af REAL,"
+                " PRIMARY KEY (chrom, pos, ref, alt))"
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / GNOMAD_DB_FILENAME
+        install_prebuilt_cache(gz_path, dest_db, remote_signal="etag:no-table")
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name = 'gnomad'"
+            ).fetchone()
+        assert row[0] == "etag:no-table"

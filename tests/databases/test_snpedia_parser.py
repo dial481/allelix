@@ -426,10 +426,10 @@ class TestParserVersionStamp:
         db_path = _make_db(tmp_path, genotype_pages=genotype_pages)
         parse_raw_pages(db_path)
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
-            sig = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name='snpedia'"
+            tag = conn.execute(
+                "SELECT local_version_tag FROM database_versions WHERE name='snpedia'"
             ).fetchone()[0]
-            assert f"|pv:{_PARSER_VERSION}" in sig
+            assert tag == f"pv:{_PARSER_VERSION}"
 
     def test_parser_is_current_true(self, tmp_path):
         genotype_pages = [
@@ -447,17 +447,44 @@ class TestParserVersionStamp:
         db_path = _make_db(tmp_path, genotype_pages=genotype_pages)
         parse_raw_pages(db_path)
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
-            conn.execute("UPDATE database_versions SET remote_signal='|pv:0' WHERE name='snpedia'")
+            conn.execute(
+                "UPDATE database_versions SET local_version_tag='pv:0' WHERE name='snpedia'"
+            )
             conn.commit()
             assert parser_is_current(conn) is False
 
-    def test_parser_is_current_false_no_signal(self, tmp_path):
+    def test_parser_is_current_false_no_tag(self, tmp_path):
         genotype_pages = [
             ("Rs100(A;G)", "{{Genotype|allele1=A|allele2=G|summary=test}}"),
         ]
         db_path = _make_db(tmp_path, genotype_pages=genotype_pages)
         parse_raw_pages(db_path)
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
-            conn.execute("UPDATE database_versions SET remote_signal=NULL WHERE name='snpedia'")
+            conn.execute(
+                "UPDATE database_versions SET local_version_tag=NULL WHERE name='snpedia'"
+            )
             conn.commit()
             assert parser_is_current(conn) is False
+
+    def test_parser_is_current_legacy_remote_signal_migrates(self, tmp_path):
+        """Legacy cache with |pv:N in remote_signal self-heals without re-parse."""
+        genotype_pages = [
+            ("Rs100(A;G)", "{{Genotype|allele1=A|allele2=G|summary=test}}"),
+        ]
+        db_path = _make_db(tmp_path, genotype_pages=genotype_pages)
+        parse_raw_pages(db_path)
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            conn.execute(
+                "UPDATE database_versions "
+                "SET remote_signal = ?, local_version_tag = NULL "
+                "WHERE name = 'snpedia'",
+                (f"etag:abc|pv:{_PARSER_VERSION}",),
+            )
+            conn.commit()
+            assert parser_is_current(conn) is True
+            row = conn.execute(
+                "SELECT remote_signal, local_version_tag "
+                "FROM database_versions WHERE name='snpedia'"
+            ).fetchone()
+            assert row[0] == "etag:abc"
+            assert row[1] == f"pv:{_PARSER_VERSION}"

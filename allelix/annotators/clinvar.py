@@ -181,20 +181,20 @@ class ClinVarAnnotator(Annotator):
     def is_ready(self) -> bool:
         """True iff EVERY managed build has a populated, version-stamped cache.
 
-        Checks for the ``|iv:N`` interpreter version stamp in each
-        per-build cache's ``remote_signal``. Pre-mechanism caches
-        (before the stamp existed) are self-healed once via
-        ``stamp_existing_clinvar_cache``.
+        Checks ``local_version_tag`` for the current interpreter version.
+        Pre-mechanism caches (tag missing or baked into ``remote_signal``)
+        are self-healed once via ``stamp_existing_clinvar_cache``.
         """
         for build in self._builds:
             info = get_database_info(self._db_paths[build], clinvar_record_name(build))
             if info is None:
                 return False
-            sig = info.get("remote_signal") or ""
-            if f"|iv:{CLINVAR_INTERPRETER_VERSION}" not in sig:
-                if stamp_existing_clinvar_cache(self._db_paths[build]):
-                    continue
-                return False
+            tag = info.get("local_version_tag") or ""
+            if tag == f"iv:{CLINVAR_INTERPRETER_VERSION}":
+                continue
+            if stamp_existing_clinvar_cache(self._db_paths[build]):
+                continue
+            return False
         return True
 
     def version(self) -> str | None:
@@ -302,7 +302,7 @@ class ClinVarAnnotator(Annotator):
             info = get_database_info(self._db_paths[build], clinvar_record_name(build))
             if info is None or info["remote_signal"] is None:
                 return None
-            sig = info["remote_signal"].split("|iv:")[0]
+            sig = info["remote_signal"]
             if not sig:
                 return None
             parts.append(f"{build}:{sig}")
@@ -376,6 +376,7 @@ class ClinVarAnnotator(Annotator):
                     condition=condition or "",
                     gene=gene or "",
                     review_status=review_status or "",
+                    alt=alt,
                 )
             )
         return annotations

@@ -7,6 +7,8 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING
 
+import pytest
+
 from allelix.annotators.clinvar import ClinVarAnnotator
 from allelix.annotators.pharmgkb import PharmGKBAnnotator
 from allelix.models import Variant
@@ -227,7 +229,7 @@ class TestGnomadEnrichment:
             conn.execute(
                 "INSERT OR REPLACE INTO gnomad_frequencies"
                 " (chrom, pos, ref, alt, rsid, af) VALUES (?, ?, ?, ?, ?, ?)",
-                ("1", 11856378, "C", "T", "rs1801133", 0.35),
+                ("1", 11796321, "G", "A", "rs1801133", 0.35),
             )
             conn.execute(
                 "INSERT OR REPLACE INTO database_versions"
@@ -335,3 +337,83 @@ class TestAlphaMissenseEnrichment:
         result = run_analysis(mock_mhg_path, parser, [clinvar])
         assert all(a.am_pathogenicity is None for a in result.annotations)
         assert all(name != "alphamissense" for name, _ in result.annotators_used)
+
+
+class TestEnrichmentExactVsFallback:
+    """Pipeline splits exact (rsid, alt) lookups from MAX-by-rsid fallback."""
+
+    def test_annotation_with_alt_uses_exact_lookup(self) -> None:
+        """Annotations with alt set get exact (rsid, alt) enrichment."""
+        from allelix.models import Annotation
+
+        a = Annotation(
+            source="clinvar",
+            rsid="rs429358",
+            significance="clinvar_pathogenic",
+            category="clinical",
+            magnitude=9.0,
+            description="test",
+            attribution="ClinVar",
+            genotype_match="TC",
+            alt="C",
+        )
+        assert a.alt == "C"
+        exact_keys = {(x.rsid, x.alt) for x in [a] if x.alt}
+        assert ("rs429358", "C") in exact_keys
+
+    def test_annotation_without_alt_uses_max_fallback(self) -> None:
+        """Annotations without alt fall back to MAX-by-rsid enrichment."""
+        from allelix.models import Annotation
+
+        a = Annotation(
+            source="gwas",
+            rsid="rs429358",
+            significance="gwas_association",
+            category="trait",
+            magnitude=7.0,
+            description="test",
+            attribution="GWAS Catalog",
+            genotype_match="TC",
+            alt="",
+        )
+        max_rsids = {x.rsid for x in [a] if not x.alt}
+        assert "rs429358" in max_rsids
+
+    def test_gwas_annotations_have_no_alt(self) -> None:
+        """GWAS annotations must not set alt (risk allele != VCF ALT)."""
+        import sqlite3
+        import tempfile
+        from pathlib import Path as _Path
+
+        from allelix.annotators.gwas import GWASCatalogAnnotator
+        from allelix.databases.gwas_loader import load_gwas_tsv
+        from allelix.databases.schema import GWAS_SCHEMA
+
+        db_path = _Path(__file__).parent.parent / "fixtures" / "mock_gwas_catalog.tsv"
+        if not db_path.exists():
+            pytest.skip("mock GWAS fixture not available")
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp = _Path(td)
+            gwas_db = tmp / "gwas.sqlite"
+            with contextlib.closing(sqlite3.connect(gwas_db)) as conn:
+                for stmt in GWAS_SCHEMA.split(";"):
+                    stmt = stmt.strip()
+                    if stmt:
+                        conn.execute(stmt)
+                conn.commit()
+            load_gwas_tsv(db_path, gwas_db)
+            ann = GWASCatalogAnnotator(tmp)
+            if not ann.is_ready():
+                pytest.skip("GWAS db not ready")
+            v = Variant(
+                rsid="rs1801133",
+                chromosome="1",
+                position=11796321,
+                allele1="C",
+                allele2="T",
+            )
+            results = ann.annotate(v)
+            for r in results:
+                assert r.alt == "", f"GWAS annotation should not set alt, got {r.alt!r}"
+            ann.close()

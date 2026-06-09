@@ -46,6 +46,7 @@ class DatabaseInfo(TypedDict):
     downloaded_at: str
     record_count: int
     remote_signal: str | None
+    local_version_tag: str | None
 
 
 def fetch_remote_text(url: str, timeout: float = SIGNAL_TIMEOUT_SECONDS) -> str | None:
@@ -306,18 +307,19 @@ def load_clinvar_vcf(
                 count += len(batch)
             from allelix.annotators._versions import CLINVAR_INTERPRETER_VERSION
 
-            stamped_signal = f"{remote_signal or ''}|iv:{CLINVAR_INTERPRETER_VERSION}"
             conn.execute(
                 "INSERT INTO database_versions "
-                "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "(name, source_url, version, downloaded_at, record_count, "
+                "remote_signal, local_version_tag) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     record_name,
                     source_url,
                     version,
                     datetime.now(UTC).isoformat(),
                     count,
-                    stamped_signal,
+                    remote_signal or "",
+                    f"iv:{CLINVAR_INTERPRETER_VERSION}",
                 ),
             )
             conn.commit()
@@ -335,57 +337,126 @@ def load_clinvar_vcf(
 def get_database_info(db_path: Path, name: str) -> DatabaseInfo | None:
     """Return version metadata for a cached database, or None if not present.
 
-    Tolerates pre-v0.4.2 caches that lack the `remote_signal` column: falls
-    back to a 4-column SELECT and reports remote_signal=None. The next
-    `db update` on such a cache will detect None ≠ remote and refresh,
-    capturing a signal in the new schema.
+    Tolerates older caches that lack ``remote_signal`` or
+    ``local_version_tag`` columns by falling back to progressively
+    simpler SELECTs.  Missing columns report as None; the next
+    ``db update`` self-heals via the annotator's migration path.
     """
     if not db_path.exists():
         return None
     try:
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             remote_signal: str | None = None
+            local_version_tag: str | None = None
             try:
                 row = conn.execute(
-                    "SELECT source_url, version, downloaded_at, record_count, remote_signal "
+                    "SELECT source_url, version, downloaded_at, record_count, "
+                    "remote_signal, local_version_tag "
                     "FROM database_versions WHERE name = ?",
                     (name,),
                 ).fetchone()
+                if row is None:
+                    return None
+                (
+                    source_url,
+                    version,
+                    downloaded_at,
+                    record_count,
+                    remote_signal,
+                    local_version_tag,
+                ) = row
             except sqlite3.OperationalError:
                 try:
                     row = conn.execute(
-                        "SELECT source_url, version, downloaded_at, record_count "
-                        "FROM database_versions WHERE name = ?",
+                        "SELECT source_url, version, downloaded_at, record_count, "
+                        "remote_signal FROM database_versions WHERE name = ?",
                         (name,),
                     ).fetchone()
+                except sqlite3.OperationalError:
+                    try:
+                        row = conn.execute(
+                            "SELECT source_url, version, downloaded_at, record_count "
+                            "FROM database_versions WHERE name = ?",
+                            (name,),
+                        ).fetchone()
+                    except sqlite3.DatabaseError:
+                        return None
+                    if row is None:
+                        return None
+                    source_url, version, downloaded_at, record_count = row
                 except sqlite3.DatabaseError:
                     return None
-                if row is None:
-                    return None
-                source_url, version, downloaded_at, record_count = row
+                else:
+                    if row is None:
+                        return None
+                    source_url, version, downloaded_at, record_count, remote_signal = row
+                _ensure_local_version_tag_column(conn)
             except sqlite3.DatabaseError:
                 return None
-            else:
-                if row is None:
-                    return None
-                source_url, version, downloaded_at, record_count, remote_signal = row
             return DatabaseInfo(
                 source_url=source_url,
                 version=version,
                 downloaded_at=downloaded_at,
                 record_count=record_count,
                 remote_signal=remote_signal,
+                local_version_tag=local_version_tag,
             )
     except sqlite3.DatabaseError:
         return None
 
 
-def stamp_existing_clinvar_cache(db_path: Path) -> bool:
-    """One-shot migration: add ``|iv:1`` to a pre-mechanism ClinVar cache.
+def _ensure_local_version_tag_column(conn: sqlite3.Connection) -> None:
+    """Add ``local_version_tag`` column if absent (idempotent soft migration)."""
+    with contextlib.suppress(sqlite3.OperationalError):
+        conn.execute("ALTER TABLE database_versions ADD COLUMN local_version_tag TEXT")
 
-    Returns True if the stamp was added, False if already present or the
-    cache doesn't exist. Called from ``ClinVarAnnotator.is_ready()`` so
-    existing caches self-heal on first run without re-downloading 400 MB.
+
+def stamp_remote_signal(
+    conn: sqlite3.Connection,
+    name: str,
+    remote_signal: str,
+    source_url: str = "",
+) -> None:
+    """Ensure ``database_versions`` exists and upsert the remote signal.
+
+    Existing rows keep their version / downloaded_at / record_count
+    metadata; only ``remote_signal`` is overwritten.  If the table or row
+    is missing (pre-built caches shipped without version metadata), both
+    are created with placeholder values that ``db status`` degrades
+    gracefully on.
+    """
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS database_versions ("
+        "name TEXT PRIMARY KEY, source_url TEXT NOT NULL, version TEXT, "
+        "downloaded_at TEXT NOT NULL, record_count INTEGER NOT NULL, "
+        "remote_signal TEXT, local_version_tag TEXT)"
+    )
+    _ensure_local_version_tag_column(conn)
+    conn.execute(
+        "INSERT INTO database_versions"
+        " (name, source_url, version, downloaded_at, record_count, remote_signal)"
+        " VALUES (?, ?, NULL, datetime('now'), 0, ?)"
+        " ON CONFLICT(name) DO UPDATE SET remote_signal = excluded.remote_signal",
+        (name, source_url, remote_signal),
+    )
+
+
+def stamp_existing_clinvar_cache(db_path: Path) -> bool:
+    """One-shot migration: stamp ``local_version_tag`` on a ClinVar cache.
+
+    Handles two legacy states:
+
+    1. Pre-mechanism caches (no interpreter stamp at all) — writes the tag.
+    2. Old-format caches with ``|iv:N`` baked into ``remote_signal`` —
+       moves the tag to ``local_version_tag`` and cleans ``remote_signal``.
+
+    Only stamps when the tag is absent (NULL).  A stale tag (wrong
+    version number) means the interpreter changed and the cache needs
+    re-downloading — that is NOT self-healable.
+
+    Returns True if the current interpreter version is now stamped.
+    Called from ``ClinVarAnnotator.is_ready()`` so existing caches
+    self-heal on first run without re-downloading 400 MB.
     """
     if not db_path.exists():
         return False
@@ -393,19 +464,31 @@ def stamp_existing_clinvar_cache(db_path: Path) -> bool:
 
     from allelix.annotators._versions import CLINVAR_INTERPRETER_VERSION
 
+    tag = f"iv:{CLINVAR_INTERPRETER_VERSION}"
     with contextlib.closing(sqlite3.connect(db_path)) as conn:
+        _ensure_local_version_tag_column(conn)
         try:
-            row = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name LIKE 'clinvar%'"
-            ).fetchone()
+            rows = conn.execute(
+                "SELECT name, remote_signal, local_version_tag "
+                "FROM database_versions WHERE name LIKE 'clinvar%'"
+            ).fetchall()
         except sqlite3.OperationalError:
             return False
-        if not row or "|iv:" in (row[0] or ""):
+        if not rows:
             return False
-        conn.execute(
-            "UPDATE database_versions SET remote_signal = COALESCE(remote_signal,'') || ?"
-            " WHERE name LIKE 'clinvar%'",
-            (f"|iv:{CLINVAR_INTERPRETER_VERSION}",),
-        )
-        conn.commit()
+        stamped = False
+        for name, sig, existing_tag in rows:
+            if existing_tag == tag:
+                continue
+            if existing_tag is not None:
+                return False
+            clean_signal = (sig or "").split("|iv:")[0]
+            conn.execute(
+                "UPDATE database_versions "
+                "SET remote_signal = ?, local_version_tag = ? WHERE name = ?",
+                (clean_signal, tag, name),
+            )
+            stamped = True
+        if stamped:
+            conn.commit()
         return True

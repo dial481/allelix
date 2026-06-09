@@ -355,10 +355,20 @@ def classify_gwas_trait(
 
 
 def schema_is_current(db_path: Path) -> bool:
-    """True iff the cache has the expected GWAS schema and categorizer version."""
+    """True iff the cache has the expected GWAS schema and categorizer version.
+
+    Checks ``local_version_tag`` for the ``cv:N`` stamp.  Legacy caches
+    that still carry the tag inside ``remote_signal`` are migrated by
+    ``_stamp_existing_gwas_cache`` before this runs.
+    """
     if not db_path.exists():
         return False
     try:
+        from allelix.databases.manager import get_database_info
+
+        info = get_database_info(db_path, "gwas")
+        if info is None:
+            return False
         with contextlib.closing(sqlite3.connect(db_path)) as conn:
             try:
                 cols = {row[1] for row in conn.execute("PRAGMA table_info(gwas_associations)")}
@@ -366,12 +376,8 @@ def schema_is_current(db_path: Path) -> bool:
                 return False
             if not _REQUIRED_GWAS_COLUMNS.issubset(cols):
                 return False
-            row = conn.execute(
-                "SELECT remote_signal FROM database_versions WHERE name='gwas'"
-            ).fetchone()
-            if not row or not row[0]:
-                return False
-            return f"|cv:{_CATEGORIZER_VERSION}" in row[0]
+        tag = info.get("local_version_tag") or ""
+        return tag == f"cv:{_CATEGORIZER_VERSION}"
     except sqlite3.DatabaseError:
         return False
 
@@ -513,18 +519,19 @@ def load_gwas_tsv(
             if batch:
                 conn.executemany(insert_sql, batch)
                 count += len(batch)
-            stamped_signal = f"{remote_signal or ''}|cv:{_CATEGORIZER_VERSION}"
             conn.execute(
                 "INSERT INTO database_versions "
-                "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "(name, source_url, version, downloaded_at, record_count, "
+                "remote_signal, local_version_tag) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     "gwas",
                     source_url,
                     version,
                     datetime.now(UTC).isoformat(),
                     count,
-                    stamped_signal,
+                    remote_signal or "",
+                    f"cv:{_CATEGORIZER_VERSION}",
                 ),
             )
             conn.commit()

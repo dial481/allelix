@@ -410,18 +410,19 @@ def load_pharmgkb_tsv(
                 count += len(batch)
             from allelix.annotators._versions import PHARMGKB_INTERPRETER_VERSION
 
-            stamped_signal = f"{remote_signal or ''}|iv:{PHARMGKB_INTERPRETER_VERSION}"
             conn.execute(
                 "INSERT INTO database_versions "
-                "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "(name, source_url, version, downloaded_at, record_count, "
+                "remote_signal, local_version_tag) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     "pharmgkb",
                     source_url,
                     resolved_version,
                     datetime.now(UTC).isoformat(),
                     count,
-                    stamped_signal,
+                    remote_signal or "",
+                    f"iv:{PHARMGKB_INTERPRETER_VERSION}",
                 ),
             )
             conn.commit()

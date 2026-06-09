@@ -3,9 +3,9 @@
 """SNPedia annotator. Structured SQL lookups against pre-parsed genotype data.
 
 Reads from the ``snpedia_genotypes`` table in the SNPedia SQLite archive.
-Raw wiki markup is scraped by ``scripts/scrape_snpedia.py`` into ``pages``.
-On first use, this annotator automatically parses raw markup into structured
-columns (one-time operation). After that, all queries are pure SQL.
+The pre-built cache is downloaded from HuggingFace during ``db update``.
+It can also be built locally via ``scripts/scrape_snpedia.py`` followed
+by ``scripts/parse_snpedia.py``.
 
 SNPedia content is CC-BY-NC-SA 3.0 US. Attribution is required in all
 reports.
@@ -19,6 +19,8 @@ import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
 from allelix.annotators.base import Annotator, is_clinvar_homref
+from allelix.databases.manager import download, get_database_info, head_request_headers
+from allelix.databases.snpedia_loader import SNPEDIA_CACHE_URL, install_prebuilt_cache
 from allelix.models import Annotation
 
 if TYPE_CHECKING:
@@ -53,7 +55,7 @@ class SNPediaAnnotator(Annotator):
     name: ClassVar[str] = "snpedia"
     display_name: ClassVar[str] = "SNPedia"
     attribution: ClassVar[str] = "SNPedia"
-    requires_download: ClassVar[bool] = False
+    requires_download: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -78,7 +80,27 @@ class SNPediaAnnotator(Annotator):
         return self._conn
 
     def setup(self) -> None:
-        """No-op. The SNPedia database is populated by scripts/scrape_snpedia.py."""
+        """Download the pre-built SNPedia cache from HuggingFace.
+
+        The HuggingFace asset contains raw wiki markup (third-party,
+        CC-BY-NC-SA). After download, ``is_ready()`` triggers the
+        client-side parse into structured genotype rows and stamps
+        ``database_versions`` with proper version metadata.
+        """
+        signal = self.fetch_remote_signal()
+        gz_path = self.data_dir / "snpedia.sqlite.gz"
+        download(SNPEDIA_CACHE_URL, gz_path)
+        install_prebuilt_cache(
+            gz_path,
+            self._db_path,
+            source_url=SNPEDIA_CACHE_URL,
+            remote_signal=signal,
+        )
+        try:
+            gz_path.unlink()
+        except OSError:
+            logger.warning("Could not remove staged file at %s", gz_path)
+        self.is_ready()
 
     def is_ready(self) -> bool:
         """Return True when the parsed SNPedia genotype table exists and has data.
@@ -163,12 +185,24 @@ class SNPediaAnnotator(Annotator):
             self._conn = None
 
     def fetch_remote_signal(self) -> str | None:
-        """SNPedia is frozen — no remote freshness signal."""
+        """Probe the HuggingFace asset URL for ETag or Last-Modified."""
+        headers = head_request_headers(SNPEDIA_CACHE_URL)
+        if headers is None:
+            return None
+        etag = headers.get("ETag") or headers.get("Etag")
+        last_modified = headers.get("Last-Modified") or headers.get("Last-modified")
+        if etag:
+            return f"etag:{etag.strip()}"
+        if last_modified:
+            return f"lm:{last_modified.strip()}"
         return None
 
     def cached_remote_signal(self) -> str | None:
-        """No remote signal for a locally-scraped archive."""
-        return None
+        """Return the remote signal stored at last successful download."""
+        info = get_database_info(self._db_path, SNPEDIA_RECORD_NAME)
+        if not info or not info["remote_signal"]:
+            return None
+        return info["remote_signal"] or None
 
     def annotate(self, variant: Variant) -> list[Annotation]:
         """Return SNPedia annotations matching the user's genotype."""

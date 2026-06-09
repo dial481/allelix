@@ -90,22 +90,47 @@ CREATE TABLE IF NOT EXISTS database_versions (
     version TEXT,
     downloaded_at TEXT NOT NULL,
     record_count INTEGER NOT NULL,
-    remote_signal TEXT
+    remote_signal TEXT,
+    local_version_tag TEXT
 );
 """
 
 
 def parser_is_current(conn: sqlite3.Connection) -> bool:
-    """Return True if the cache was built by the current parser version."""
+    """Return True if the cache was built by the current parser version.
+
+    Checks ``local_version_tag`` first.  If absent, falls back to the
+    legacy ``|pv:N`` suffix in ``remote_signal`` and migrates the tag
+    in-place — avoiding a full re-parse just to populate the column.
+    """
+    tag = f"pv:{_PARSER_VERSION}"
+    try:
+        row = conn.execute(
+            "SELECT local_version_tag FROM database_versions WHERE name='snpedia'"
+        ).fetchone()
+        if row and row[0] == tag:
+            return True
+    except sqlite3.OperationalError:
+        pass
     try:
         row = conn.execute(
             "SELECT remote_signal FROM database_versions WHERE name='snpedia'"
         ).fetchone()
-        if not row or not row[0]:
-            return False
-        return f"|pv:{_PARSER_VERSION}" in row[0]
+        if row and row[0] and f"|pv:{_PARSER_VERSION}" in row[0]:
+            from allelix.databases.manager import _ensure_local_version_tag_column
+
+            _ensure_local_version_tag_column(conn)
+            clean_signal = row[0].split("|pv:")[0]
+            conn.execute(
+                "UPDATE database_versions "
+                "SET remote_signal = ?, local_version_tag = ? WHERE name = 'snpedia'",
+                (clean_signal, tag),
+            )
+            conn.commit()
+            return True
     except sqlite3.OperationalError:
-        return False
+        pass
+    return False
 
 
 def _dedupe_existing(conn: sqlite3.Connection) -> int:
@@ -283,22 +308,33 @@ def _parse_raw_pages_inner(conn: sqlite3.Connection, *, verbose: bool = False) -
 
     row_count = conn.execute("SELECT COUNT(*) FROM snpedia_genotypes").fetchone()[0]
 
-    # Write database_versions row
     date_row = conn.execute(f"SELECT MIN(scraped_at) FROM {raw_table}").fetchone()
     scrape_date = date_row[0][:10] if date_row and date_row[0] else "unknown"
+
+    existing_signal = ""
+    try:
+        sig_row = conn.execute(
+            "SELECT remote_signal FROM database_versions WHERE name = 'snpedia'"
+        ).fetchone()
+        if sig_row and sig_row[0]:
+            existing_signal = sig_row[0].split("|pv:")[0]
+    except sqlite3.OperationalError:
+        pass
 
     conn.execute("DELETE FROM database_versions WHERE name = 'snpedia'")
     conn.execute(
         "INSERT INTO database_versions "
-        "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "(name, source_url, version, downloaded_at, record_count, "
+        "remote_signal, local_version_tag) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             "snpedia",
             "https://bots.snpedia.com/api.php",
             f"scraped {scrape_date} ({row_count} genotypes)",
             datetime.now(UTC).isoformat(),
             row_count,
-            f"|pv:{_PARSER_VERSION}",
+            existing_signal,
+            f"pv:{_PARSER_VERSION}",
         ),
     )
 

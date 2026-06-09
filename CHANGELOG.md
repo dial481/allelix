@@ -2,6 +2,88 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0]
+
+### Changed
+- **Version tag consolidation across all six annotators.** Local
+  processing stamps are now stored in a dedicated `local_version_tag`
+  column in `database_versions` instead of being appended to
+  `remote_signal` as `|iv:N` / `|pv:N` suffixes. This eliminates the
+  fragile suffix-parsing pattern that caused the SNPedia signal-loop
+  bug: `remote_signal` now holds only the remote ETag/Last-Modified,
+  `local_version_tag` holds the local processing state. All six
+  annotators use the same dual-version mechanism:
+  - ClinVar: `iv:N` (interpreter version)
+  - PharmGKB: `iv:N` (interpreter version)
+  - SNPedia: `pv:N` (parser version)
+  - GWAS Catalog: `cv:N` (categorizer version)
+  - gnomAD: `sv:N` (schema version)
+  - AlphaMissense: `sv:N` (schema version)
+
+  The `sv:` tag is new for gnomAD and AlphaMissense — pre-built caches
+  now stamp their schema version so a future schema change forces
+  re-download, matching the cache-invalidation behavior the other four
+  annotators already had. Existing caches self-heal on first run — no
+  re-download required. `get_database_info()` lazily adds the
+  `local_version_tag` column when reading pre-v1.5.0 caches.
+
+### Fixed
+- **Multi-allelic enrichment accuracy (#25).** gnomAD and AlphaMissense
+  enrichment now uses exact alt-allele matching instead of `MAX()`
+  aggregation at multi-allelic sites. Added `alt` field to the
+  Annotation model; `bulk_lookup_by_alt()` on both enrichment
+  annotators; pipeline splits exact-match and MAX-fallback paths.
+- **Disk preflight multiplier (#27).** Bumped from 5x to 6x for both
+  gnomAD and AlphaMissense loaders. AlphaMissense compresses at 4.4x,
+  so peak disk (gz + decompressed) is 5.4x gz — the old 5x check
+  would greenlight a disk that ENOSPC'd at ~90% decompression.
+- **Test suite disk usage.** db update tests were downloading real
+  databases (7.8 GB AlphaMissense, 678 MB GWAS TSV) into pytest
+  tmp_path because they lacked monkeypatches for all annotators. All
+  db update tests now stub every annotator. Real-data GWAS tests
+  delete the extracted TSV after SQLite load. Total pytest tmp_path
+  reduced from ~3.4 GB to ~376 MB.
+- **SQLite variable limit portability (#33).** `bulk_lookup_by_alt()`
+  batched at 900 keys (1800 bound variables) — over the 999 limit on
+  SQLite < 3.32. Now batches at 450 keys (900 variables).
+- **GWAS enrichment regression.** GWAS annotations set `alt` to the
+  risk allele, but GWAS risk alleles are not VCF-normalized ALT. This
+  caused exact-match lookups to miss, skipping the MAX fallback and
+  losing gnomAD/AM enrichment on GWAS rows. Fixed by not setting `alt`
+  on GWAS annotations (risk alleles are conceptually different from
+  VCF ALT alleles).
+- **SNPedia `db update` crash and re-download loop.** Three related
+  bugs in the SNPedia download flow: (1) `install_prebuilt_cache`
+  crashed with `no such table: database_versions` because the
+  third-party HuggingFace cache doesn't include that table — fixed by
+  creating the table on demand before stamping, consistently across all
+  three pre-built cache loaders and the CLI signal-stamp fallback path.
+  (2) `parse_raw_pages` overwrote the ETag remote signal with only the
+  parser version tag, causing every subsequent `db update` to see a
+  signal mismatch and re-download — fixed by preserving the existing
+  ETag when appending the parser version. (3) `cached_remote_signal`
+  returned the raw signal including the parser version suffix, which
+  never matched the remote ETag — root cause eliminated by the version
+  tag consolidation above.
+
+### Added
+- **ADR-0028: Local version tag convention.** Documents the
+  `local_version_tag` mechanism, the tag prefix vocabulary per
+  annotator, the new-annotator checklist, and the lazy migration
+  strategy.
+- **AlphaMissense gnomAD version stamping (#28).** Build script stamps
+  which gnomAD version provided the rsID mapping. Runtime warning on
+  version mismatch: "AlphaMissense cache was built against gnomAD X
+  but installed gnomAD is Y."
+- **SNPedia HuggingFace download (#30).** `db update` now downloads
+  the SNPedia cache from HuggingFace automatically — same pattern as
+  gnomAD and AlphaMissense. The manual scraper scripts remain as a
+  rebuild-from-source option.
+- `allelix/databases/snpedia_loader.py` — pre-built cache download
+  and decompression.
+- `test_data/FULL_TEST_PROTOCOL.md` — external reviewer checklist for
+  full real-data verification.
+
 ## [1.4.0]
 
 ### Added

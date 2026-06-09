@@ -332,3 +332,41 @@ class TestGetDatabaseInfo:
         assert info["version"] == "20240101"
         assert info["record_count"] == 100
         assert info["remote_signal"] is None
+        assert info["local_version_tag"] is None
+
+    def test_pre_v150_schema_lazily_adds_local_version_tag(self, tmp_path: Path):
+        """A pre-v1.5.0 cache has remote_signal but no local_version_tag.
+
+        get_database_info lazily adds the column so that all caches
+        (including gnomAD/AlphaMissense which don't use version tags)
+        have a consistent schema after any db status or is_ready() call.
+        """
+        db = tmp_path / "pre150.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(
+                """
+                CREATE TABLE database_versions (
+                    name TEXT PRIMARY KEY,
+                    source_url TEXT NOT NULL,
+                    version TEXT,
+                    downloaded_at TEXT NOT NULL,
+                    record_count INTEGER NOT NULL,
+                    remote_signal TEXT
+                );
+                """
+            )
+            conn.execute(
+                "INSERT INTO database_versions VALUES (?, ?, ?, ?, ?, ?)",
+                ("gnomad", "hf://url", "4.1", "2026-01-01T00:00:00", 16000000, "etag:abc"),
+            )
+            conn.commit()
+
+        info = get_database_info(db, "gnomad")
+        assert info is not None
+        assert info["remote_signal"] == "etag:abc"
+        assert info["local_version_tag"] is None
+
+        # Column was lazily added — second read uses the 7-col path.
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(database_versions)")}
+            assert "local_version_tag" in cols

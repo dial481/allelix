@@ -43,7 +43,8 @@ def snpedia_data_dir(tmp_path: Path) -> Path:
                 version TEXT,
                 downloaded_at TEXT NOT NULL,
                 record_count INTEGER NOT NULL,
-                remote_signal TEXT
+                remote_signal TEXT,
+                local_version_tag TEXT
             );
         """)
         genotypes = [
@@ -118,15 +119,17 @@ def snpedia_data_dir(tmp_path: Path) -> Path:
         )
         conn.execute(
             "INSERT INTO database_versions "
-            "(name, source_url, version, downloaded_at, record_count, remote_signal) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "(name, source_url, version, downloaded_at, record_count, "
+            "remote_signal, local_version_tag) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 "snpedia",
                 "https://bots.snpedia.com/api.php",
                 "scraped 2026-05-20 (8 genotypes)",
                 "2026-05-20T00:00:00",
                 8,
-                f"|pv:{_PARSER_VERSION}",
+                "",
+                f"pv:{_PARSER_VERSION}",
             ),
         )
         conn.commit()
@@ -172,19 +175,8 @@ class TestAnnotatorLifecycle:
         assert count == 8
         ann.close()
 
-    def test_setup_is_noop(self, snpedia_data_dir: Path) -> None:
-        ann = SNPediaAnnotator(snpedia_data_dir)
-        ann.setup()
-        ann.close()
-
-    def test_requires_download_false(self) -> None:
-        assert SNPediaAnnotator.requires_download is False
-
-    def test_remote_signals_none(self, snpedia_data_dir: Path) -> None:
-        ann = SNPediaAnnotator(snpedia_data_dir)
-        assert ann.fetch_remote_signal() is None
-        assert ann.cached_remote_signal() is None
-        ann.close()
+    def test_requires_download(self) -> None:
+        assert SNPediaAnnotator.requires_download is True
 
 
 class TestAnnotateGenotype:
@@ -483,6 +475,179 @@ class TestSummarySuppressionFilter:
         results = ann.annotate(v)
         assert len(results) == 1
         ann.close()
+
+
+class TestInstallPrebuiltCache:
+    """install_prebuilt_cache decompresses and stamps signal."""
+
+    def test_decompress_and_stamp(self, tmp_path: Path) -> None:
+        import gzip
+
+        from allelix.databases.snpedia_loader import install_prebuilt_cache
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.executescript("""
+                CREATE TABLE snpedia_genotypes (
+                    rsid TEXT, allele1 TEXT, allele2 TEXT,
+                    magnitude REAL, repute TEXT, summary TEXT,
+                    gene TEXT, scraped_at TEXT
+                );
+                CREATE TABLE database_versions (
+                    name TEXT PRIMARY KEY, source_url TEXT NOT NULL,
+                    version TEXT, downloaded_at TEXT NOT NULL,
+                    record_count INTEGER NOT NULL, remote_signal TEXT
+                );
+            """)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("snpedia", "test://prebuilt", "scraped 2026-05-20", "2026-05-20", 100),
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / "dest" / "snpedia.sqlite"
+        dest_db.parent.mkdir()
+        install_prebuilt_cache(gz_path, dest_db, remote_signal="etag:snp123")
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name = 'snpedia'"
+            ).fetchone()
+        assert row[0] == "etag:snp123"
+
+    def test_decompress_without_signal(self, tmp_path: Path) -> None:
+        import gzip
+
+        from allelix.databases.snpedia_loader import install_prebuilt_cache
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.executescript("""
+                CREATE TABLE snpedia_genotypes (
+                    rsid TEXT, allele1 TEXT, allele2 TEXT,
+                    magnitude REAL, repute TEXT, summary TEXT,
+                    gene TEXT, scraped_at TEXT
+                );
+                CREATE TABLE database_versions (
+                    name TEXT PRIMARY KEY, source_url TEXT NOT NULL,
+                    version TEXT, downloaded_at TEXT NOT NULL,
+                    record_count INTEGER NOT NULL, remote_signal TEXT
+                );
+            """)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("snpedia", "test://prebuilt", "scraped 2026-05-20", "2026-05-20", 100),
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / "snpedia.sqlite"
+        install_prebuilt_cache(gz_path, dest_db)
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name = 'snpedia'"
+            ).fetchone()
+        assert row[0] is None
+
+    def test_disk_space_check(self, tmp_path: Path) -> None:
+        import gzip
+        from unittest.mock import patch
+
+        from allelix.databases.snpedia_loader import install_prebuilt_cache
+
+        gz_path = tmp_path / "tiny.gz"
+        with gzip.open(gz_path, "wb") as f:
+            f.write(b"x" * 100)
+
+        dest_db = tmp_path / "out.sqlite"
+        fake_usage = type("Usage", (), {"free": 1})()
+        with (
+            patch("allelix.databases.snpedia_loader.shutil.disk_usage", return_value=fake_usage),
+            pytest.raises(OSError, match="Not enough disk space"),
+        ):
+            install_prebuilt_cache(gz_path, dest_db)
+
+    def test_replaces_existing_tmp(self, tmp_path: Path) -> None:
+        import gzip
+
+        from allelix.databases.snpedia_loader import install_prebuilt_cache
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.executescript("""
+                CREATE TABLE snpedia_genotypes (
+                    rsid TEXT, allele1 TEXT, allele2 TEXT,
+                    magnitude REAL, repute TEXT, summary TEXT,
+                    gene TEXT, scraped_at TEXT
+                );
+                CREATE TABLE database_versions (
+                    name TEXT PRIMARY KEY, source_url TEXT NOT NULL,
+                    version TEXT, downloaded_at TEXT NOT NULL,
+                    record_count INTEGER NOT NULL, remote_signal TEXT
+                );
+            """)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("snpedia", "test://prebuilt", "scraped 2026-05-20", "2026-05-20", 100),
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / "snpedia.sqlite"
+        stale_tmp = tmp_path / "snpedia.sqlite.tmp"
+        stale_tmp.write_text("stale")
+
+        install_prebuilt_cache(gz_path, dest_db)
+        assert dest_db.exists()
+        assert not stale_tmp.exists()
+
+    def test_stamps_signal_when_versions_table_missing(self, tmp_path: Path) -> None:
+        """Pre-built cache without database_versions must not crash."""
+        import gzip
+
+        from allelix.databases.snpedia_loader import install_prebuilt_cache
+
+        src_db = tmp_path / "source.sqlite"
+        with contextlib.closing(sqlite3.connect(src_db)) as conn:
+            conn.execute(
+                "CREATE TABLE snpedia_genotypes ("
+                "rsid TEXT, allele1 TEXT, allele2 TEXT, magnitude REAL,"
+                " repute TEXT, summary TEXT, gene TEXT, scraped_at TEXT)"
+            )
+            conn.commit()
+
+        gz_path = tmp_path / "test.sqlite.gz"
+        with src_db.open("rb") as f_in, gzip.open(gz_path, "wb") as f_out:
+            f_out.write(f_in.read())
+
+        dest_db = tmp_path / "snpedia.sqlite"
+        install_prebuilt_cache(gz_path, dest_db, remote_signal="etag:no-table")
+
+        assert dest_db.exists()
+        with contextlib.closing(sqlite3.connect(dest_db)) as conn:
+            row = conn.execute(
+                "SELECT remote_signal FROM database_versions WHERE name = 'snpedia'"
+            ).fetchone()
+        assert row[0] == "etag:no-table"
 
 
 class TestAnnotatorGracefulAbsence:

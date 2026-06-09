@@ -466,6 +466,7 @@ class TestDbCommands:
             lambda self: "etag:mock",
         )
 
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
         from allelix.annotators.clinvar import ClinVarAnnotator
         from allelix.annotators.gwas import GWASCatalogAnnotator
         from allelix.annotators.pharmgkb import PharmGKBAnnotator
@@ -485,6 +486,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda _self: "etag:test_signal",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         # The download() helper writes to data_dir/clinvar.vcf.gz and
         # data_dir/clinicalAnnotations.zip. Use a separate cache subdir so the
@@ -562,6 +572,12 @@ class TestDbCommands:
         from urllib.request import pathname2url
 
         from allelix.annotators import gnomad as gnomad_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
+
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
@@ -570,6 +586,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -645,6 +670,7 @@ class TestDbCommands:
         from urllib.request import pathname2url
 
         from allelix.annotators import gnomad as gnomad_module
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
 
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
@@ -653,6 +679,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -705,6 +740,7 @@ class TestDbCommands:
         from urllib.request import pathname2url
 
         from allelix.annotators import gnomad as gnomad_module
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
 
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
@@ -713,6 +749,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -746,6 +791,7 @@ class TestDbCommands:
         from urllib.request import pathname2url
 
         from allelix.annotators import gnomad as gnomad_module
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
 
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
@@ -754,6 +800,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(main, ["db", "update", "--data-dir", str(clinvar_data_dir)])
@@ -823,6 +878,7 @@ class TestDbCommands:
         from urllib.request import pathname2url
 
         from allelix.annotators import gnomad as gnomad_module
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
 
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
@@ -831,6 +887,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -860,6 +925,8 @@ class TestDbCommands:
         monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
         monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
+
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
         monkeypatch.setattr(
@@ -867,6 +934,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -889,6 +965,9 @@ class TestDbCommands:
         from urllib.request import pathname2url
 
         from allelix.annotators import gnomad as gnomad_module
+        from allelix.annotators import gwas as gwas_module
+        from allelix.annotators import pharmgkb as pharmgkb_module
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
         from allelix.databases import manager as manager_module
 
         monkeypatch.setattr(
@@ -896,6 +975,8 @@ class TestDbCommands:
             "CLINVAR_URL_BY_BUILD",
             {"GRCh37": "http://127.0.0.1:1/missing.vcf.gz"},
         )
+        monkeypatch.setattr(pharmgkb_module.PharmGKBAnnotator, "requires_download", False)
+        monkeypatch.setattr(gwas_module.GWASCatalogAnnotator, "requires_download", False)
 
         gnomad_gz_url = f"file:{pathname2url(str(mock_gnomad_gz.resolve()))}"
         monkeypatch.setattr(gnomad_module, "GNOMAD_CACHE_URL", gnomad_gz_url)
@@ -904,6 +985,15 @@ class TestDbCommands:
             "fetch_remote_signal",
             lambda self: "etag:mock",
         )
+        monkeypatch.setattr(AlphaMissenseAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(AlphaMissenseAnnotator, "cached_remote_signal", lambda self: None)
+
+        from allelix.annotators.snpedia import SNPediaAnnotator
+
+        monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "fetch_remote_signal", lambda self: None)
+        monkeypatch.setattr(SNPediaAnnotator, "cached_remote_signal", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(

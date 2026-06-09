@@ -43,7 +43,7 @@ def install_prebuilt_cache(
     """Decompress a gzipped pre-built SQLite cache into place."""
     gz_size = gz_path.stat().st_size
     free = shutil.disk_usage(db_path.parent).free
-    needed = gz_size * 5
+    needed = gz_size * 6
     if free < needed:
         raise OSError(
             f"Not enough disk space to decompress {gz_path.name}: "
@@ -58,12 +58,20 @@ def install_prebuilt_cache(
     with gzip.open(gz_path, "rb") as f_in, tmp_path.open("wb") as f_out:
         shutil.copyfileobj(f_in, f_out)
 
-    if remote_signal:
-        with contextlib.closing(sqlite3.connect(tmp_path)) as conn:
-            conn.execute(
-                "UPDATE database_versions SET remote_signal = ? WHERE name = 'alphamissense'",
-                (remote_signal,),
-            )
-            conn.commit()
+    from allelix.databases.manager import _ensure_local_version_tag_column
+
+    with contextlib.closing(sqlite3.connect(tmp_path)) as conn:
+        if remote_signal:
+            from allelix.databases.manager import stamp_remote_signal
+
+            stamp_remote_signal(conn, "alphamissense", remote_signal, source_url)
+        from allelix.annotators._versions import ALPHAMISSENSE_SCHEMA_VERSION
+
+        _ensure_local_version_tag_column(conn)
+        conn.execute(
+            "UPDATE database_versions SET local_version_tag = ? WHERE name = 'alphamissense'",
+            (f"sv:{ALPHAMISSENSE_SCHEMA_VERSION}",),
+        )
+        conn.commit()
 
     os.replace(tmp_path, db_path)

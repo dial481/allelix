@@ -99,6 +99,7 @@ class Annotation:
     condition: str = ""
     gene: str = ""
     review_status: str = ""
+    alt: str = ""
     is_must_include: bool = False
     allele_frequency: float | None = None
     am_pathogenicity: float | None = None

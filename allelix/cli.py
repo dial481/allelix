@@ -244,19 +244,11 @@ def _run_analysis_command(
     ready = [a for a in ready if a.name != "alphamissense"]
 
     if not_ready:
-        downloadable = [a.name for a in not_ready if a.requires_download]
-        manual = [a for a in not_ready if not a.requires_download]
-        if downloadable:
-            console.print(
-                f"[yellow]Skipping unready annotators: {', '.join(downloadable)}[/yellow] "
-                "(run `allelix db update` to populate)"
-            )
-        for a in manual:
-            console.print(
-                f"[yellow]Skipping {a.display_name}: not available. "
-                "Run `python scripts/scrape_snpedia.py` then "
-                "`python scripts/parse_snpedia.py` to populate.[/yellow]"
-            )
+        names = [a.name for a in not_ready]
+        console.print(
+            f"[yellow]Skipping unready annotators: {', '.join(names)}[/yellow] "
+            "(run `allelix db update` to populate)"
+        )
 
     all_active: list[Annotator] = list(ready)
     if gnomad_annotator is not None and gnomad_annotator.is_ready():
@@ -974,14 +966,13 @@ def _stamp_remote_signal(annotator: Annotator, signal: str) -> None:
     import contextlib
     import sqlite3
 
+    from allelix.databases.manager import stamp_remote_signal
+
     db_path = getattr(annotator, "_db_path", None)
     if db_path is None:
         return
     with contextlib.closing(sqlite3.connect(db_path)) as conn:
-        conn.execute(
-            "UPDATE database_versions SET remote_signal = ? WHERE name = ?",
-            (signal, annotator.name),
-        )
+        stamp_remote_signal(conn, annotator.name, signal)
         conn.commit()
 
 
@@ -1068,12 +1059,6 @@ def db_update(
                     console.print(
                         f"  [dim]{annotator.name}: ready "
                         f"({annotator.version() or 'unknown'})[/dim]"
-                    )
-                else:
-                    console.print(
-                        f"  [yellow]{annotator.name}: not available. "
-                        "Run `python scripts/scrape_snpedia.py` then "
-                        "`python scripts/parse_snpedia.py` to populate.[/yellow]"
                     )
                 continue
 
