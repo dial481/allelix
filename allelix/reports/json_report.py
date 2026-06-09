@@ -47,11 +47,21 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
+    from allelix.models import Annotation
     from allelix.reports._pipeline import AnalysisResult
     from allelix.reports.diff import DiffResult
 
 
 SCHEMA_VERSION = "2"
+
+
+def _annotation_dict(a: Annotation) -> dict:
+    """Serialize an annotation, adding AM caveat for non-protein sources."""
+    d = {k: v for k, v in asdict(a).items() if k != "is_must_include"}
+    if a.am_pathogenicity is not None and a.source == "pharmgkb":
+        d["am_caveat"] = "protein structure impact only"
+    return d
+
 
 _LICENSE_ATTRIBUTIONS: dict[str, dict[str, str]] = {
     "pharmgkb": {
@@ -71,6 +81,13 @@ _LICENSE_ATTRIBUTIONS: dict[str, dict[str, str]] = {
         "url": "https://gnomad.broadinstitute.org",
         "license": "ODbL v1.0",
         "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+    },
+    "alphamissense": {
+        "source": "AlphaMissense",
+        "url": "https://zenodo.org/records/10813168",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "citation": "Cheng et al., Science 2023 (doi:10.1126/science.adg7492)",
     },
 }
 
@@ -125,9 +142,7 @@ def render_json(
             "category": category,
             "genes": sorted(genes) if genes else None,
         },
-        "annotations": [
-            {k: v for k, v in asdict(a).items() if k != "is_must_include"} for a in filtered
-        ],
+        "annotations": [_annotation_dict(a) for a in filtered],
     }
 
     license_attrs = _license_attributions(result.annotators_used)

@@ -150,6 +150,10 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
         return
 
     has_freq = any(a.allele_frequency is not None for a in filtered)
+    has_am = any(a.am_pathogenicity is not None for a in filtered)
+    has_am_caveat = any(
+        a.am_pathogenicity is not None and a.source == "pharmgkb" for a in filtered
+    )
 
     table = Table(title=f"Annotations ({len(filtered)})")
     table.add_column("rsID", style="cyan", no_wrap=True)
@@ -161,6 +165,8 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
     table.add_column("Genotype", no_wrap=True)
     if has_freq:
         table.add_column("Freq", justify="right", no_wrap=True)
+    if has_am:
+        table.add_column("AM", justify="right", no_wrap=True)
     table.add_column("Condition", overflow="fold")
 
     for a in filtered:
@@ -175,6 +181,16 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
         ]
         if has_freq:
             row.append(_format_freq(a.allele_frequency))
+        if has_am:
+            if a.am_pathogenicity is not None:
+                am_str = f"{a.am_pathogenicity:.3f}"
+                if a.source == "pharmgkb":
+                    am_str = f"[dim]{am_str}*[/dim]"
+                row.append(am_str)
+            else:
+                row.append("—")
         row.append(a.condition or "—")
         table.add_row(*row)
     console.print(table)
+    if has_am_caveat:
+        console.print("[dim]* AM score on drug-response row — protein structure impact only[/dim]")

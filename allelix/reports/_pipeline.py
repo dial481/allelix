@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from pathlib import Path
 
+    from allelix.annotators.alphamissense import AlphaMissenseAnnotator
     from allelix.annotators.base import Annotator
     from allelix.annotators.gnomad import GnomadAnnotator
     from allelix.models import Annotation, Variant
@@ -236,6 +237,7 @@ def run_analysis(
     *,
     build_override: str | None = None,
     gnomad: GnomadAnnotator | None = None,
+    alphamissense: AlphaMissenseAnnotator | None = None,
 ) -> AnalysisResult:
     """Stream the file once, query every ready annotator per variant, return results.
 
@@ -277,9 +279,18 @@ def run_analysis(
         for a in annotations:
             a.allele_frequency = freq_map.get(a.rsid)
 
+    if alphamissense is not None and alphamissense.is_ready():
+        rsids = {a.rsid for a in annotations}
+        am_map = alphamissense.bulk_lookup(rsids)
+        for a in annotations:
+            if a.rsid in am_map:
+                a.am_pathogenicity, a.am_class = am_map[a.rsid]
+
     annotators_used = [(a.name, a.version()) for a in annotators]
     if gnomad is not None and gnomad.is_ready():
         annotators_used.append((gnomad.name, gnomad.version()))
+    if alphamissense is not None and alphamissense.is_ready():
+        annotators_used.append((alphamissense.name, alphamissense.version()))
 
     return AnalysisResult(
         file_path=file_path,

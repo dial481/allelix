@@ -3,9 +3,11 @@
 Open-source command-line toolkit for analyzing raw genotype files from consumer DNA testing services. Format-agnostic ingestion, database-agnostic annotation, offline-first.
 
 > **Status:** Production — six parser formats, four annotators (ClinVar +
-> PharmGKB + GWAS Catalog + SNPedia), dual-build ClinVar caches
-> (GRCh37 + GRCh38), HTML/JSON/terminal reports, methylation +
-> pharmacogenomics focused commands, report diffing. Build
+> PharmGKB + GWAS Catalog + SNPedia), two enrichment sources (gnomAD
+> population frequencies + AlphaMissense pathogenicity), dual-build
+> ClinVar caches (GRCh37 + GRCh38), HTML/JSON/terminal reports,
+> methylation + pharmacogenomics focused commands, report diffing,
+> persistent config with commercial-mode safety switch. Build
 > auto-detection from position data (ADR-0021). No regex on prose
 > anywhere in production. Release notes: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -26,9 +28,9 @@ python tests/generate_mock_data.py
 # Show summary statistics for a genotype file
 allelix stats tests/fixtures/mock_myhappygenes.txt
 
-# Download reference databases (ClinVar VCF ~100MB compressed; PharmGKB clinical
-# annotations ~1MB). Re-runs skip downloads when local + remote signals match;
-# use --force to refresh unconditionally.
+# Download reference databases. First run downloads all sources (~15GB
+# on disk with gnomAD + AlphaMissense). Use --no-gnomad / --no-alphamissense
+# to skip the large enrichment databases. Re-runs skip unchanged sources.
 allelix db update
 allelix db status   # see what's cached
 
@@ -76,6 +78,8 @@ Adding a new format means adding one file to `allelix/parsers/` and registering 
 | CPIC (per-allele function table) | ✓ | Internal data source for the PharmGKB filter. Fetched from `api.cpicpgx.org` at `db update` time. Used to populate the `pharmgkb_allele_function` table — not surfaced to end users as its own annotator. |
 | SNPedia | ✓ | CC BY-NC-SA 3.0 US. **Optional — requires a one-time download** via `python scripts/scrape_snpedia.py`. Scrapes both `Category:Is_a_snp` (111,726 pages) and `Category:Is_a_genotype` (104,806 pages) from the MediaWiki API. Stores raw wiki markup; the annotator parses structured genotype templates at query time. If the SNPedia database is absent, analysis runs without it. For commercial use, pass `--exclude-snpedia` or skip the scrape step — either way, `analyze` runs using all other databases and omits SNPedia annotations. |
 | GWAS Catalog | ✓ | Public domain (EBI/NHGRI). Trait–SNP associations with p-values and effect sizes. Carrier rule (ADR-0007) requires the user to carry the risk allele. P-value magnitude scoring (ADR-0024) maps continuous p-values to the 0–10 scale; unknown-risk-allele entries fire on rsID match alone but are capped at 3.0. |
+| gnomAD | ✓ | ODbL v1.0. **Enrichment annotator** — adds population allele frequency context to existing annotations. Shows how common each variant is in the general population (~16M exome variants from 730K individuals). A pathogenic variant that 35% of people carry reads very differently from one seen in 0.001%. Pre-built cache downloaded via `db update` (~6GB on disk). Use `--no-gnomad` to skip. |
+| AlphaMissense | ✓ | CC BY 4.0. **Enrichment annotator** — adds DeepMind's protein-structure-based pathogenicity predictions to existing annotations. Scores 71M missense variants on a 0–1 scale: <0.34 = likely benign, >0.564 = likely pathogenic. Complements ClinVar's expert classifications with computational predictions — especially valuable for variants ClinVar hasn't reviewed yet. Pre-built cache downloaded via `db update` (~8GB on disk). Use `--no-alphamissense` to skip. |
 
 ### Known PharmGKB limitation: reference-genotype rows where ClinVar and CPIC both lack data
 
@@ -110,6 +114,39 @@ This is not a disclaimer afterthought. It is a design constraint that affects mo
 - Reference databases are downloaded via `allelix db update` and cached locally.
 - Analysis runs offline against local database caches. A brief freshness check runs before analysis by default (skipped with `--no-update`).
 
+## Configuration
+
+Allelix stores persistent configuration in `config.toml` (in the data directory, default `~/.local/share/allelix/`). A default config is created on first run.
+
+```bash
+# View current config
+allelix config show
+
+# Disable a source permanently
+allelix config set sources.gnomad false
+
+# Enable commercial mode (auto-disables non-commercial sources like SNPedia)
+allelix config set license.commercial true
+```
+
+CLI flags (`--no-gnomad`, `--no-alphamissense`, `--exclude-snpedia`) override the config for a single run. The config sets the baseline; flags override per-invocation.
+
+### Database sizes and download times
+
+Not all databases are equal in size. `allelix db update` downloads them all by default, but you can skip the large ones if disk space or bandwidth is a concern:
+
+| Database | On disk | Download time | What it adds |
+|---|---|---|---|
+| ClinVar (GRCh37 + GRCh38) | ~900MB | 1–2 min | Core clinical variant classifications. Required. |
+| PharmGKB + CPIC | ~6MB | seconds | Drug-gene interactions. |
+| GWAS Catalog | ~200MB | 1–2 min | Trait-SNP associations from genome-wide studies. |
+| gnomAD | ~6GB | 5–15 min | Population allele frequencies (how common is this variant?). |
+| AlphaMissense | ~8GB | 5–15 min | Missense pathogenicity predictions (how likely to break protein function?). |
+
+gnomAD and AlphaMissense are the largest but add the most interpretive context. gnomAD answers "is this variant rare or common?" — a pathogenic variant carried by 35% of the population reads very differently from one seen in 3 people. AlphaMissense answers "does this missense change likely damage the protein?" — especially valuable for the thousands of variants ClinVar hasn't reviewed yet.
+
+To skip either during download: `allelix db update --no-gnomad --no-alphamissense`. To disable permanently: `allelix config set sources.gnomad false`.
+
 ## Data Sources & Licensing
 
 Allelix source code is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later). Allelix ships with **zero third-party data**. All reference databases are downloaded by the user at runtime via `allelix db update`. Each database retains its original license on the user's machine:
@@ -122,8 +159,9 @@ Allelix source code is licensed under the **GNU Affero General Public License v3
 | CPIC | cpicpgx.org | CC BY-SA 4.0 | Attribution required. Per-allele function data fetched from `api.cpicpgx.org` at `db update` time; used internally for the PharmGKB non-finding filter (ADR-0020), not surfaced as its own annotator. |
 | SNPedia | snpedia.com | CC BY-NC-SA 3.0 US | Attribution required, **non-commercial only**. Use `--exclude-snpedia` to omit. |
 | gnomAD | gnomad.broadinstitute.org | ODbL v1.0 | Attribution required. Population allele frequencies for context; not a clinical annotator. Use `--no-gnomad` to omit. |
+| AlphaMissense | zenodo.org/records/10813168 | CC BY 4.0 | Attribution required. Cheng et al., Science 2023. Missense variant pathogenicity predictions. Use `--no-alphamissense` to omit. |
 
-**Commercial users:** SNPedia content is non-commercial. Pass `--exclude-snpedia` to any analysis command, or skip the `scripts/scrape_snpedia.py` step entirely — either way, `analyze` runs using all other databases and omits SNPedia annotations automatically.
+**Commercial users:** SNPedia content is non-commercial. Set `allelix config set license.commercial true` to permanently disable non-commercial sources, or pass `--exclude-snpedia` per-invocation. Either way, `analyze` runs using all other databases and omits SNPedia annotations automatically. All other databases (ClinVar, PharmGKB, GWAS Catalog, gnomAD, AlphaMissense) are compatible with commercial use.
 
 ### SNPedia data download
 

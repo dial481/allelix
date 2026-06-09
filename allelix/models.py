@@ -101,3 +101,5 @@ class Annotation:
     review_status: str = ""
     is_must_include: bool = False
     allele_frequency: float | None = None
+    am_pathogenicity: float | None = None
+    am_class: str = ""

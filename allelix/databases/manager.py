@@ -102,6 +102,7 @@ def download(url: str, dest: Path) -> None:
             urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response,
             part_path.open("wb") as out,
         ):
+            expected_size = response.headers.get("Content-Length")
             while chunk := response.read(DOWNLOAD_CHUNK_SIZE):
                 out.write(chunk)
             out.flush()
@@ -109,6 +110,16 @@ def download(url: str, dest: Path) -> None:
                 os.fsync(out.fileno())
             except OSError:
                 logger.debug("fsync unsupported on this filesystem; continuing")
+
+        actual_size = part_path.stat().st_size
+        if expected_size is not None:
+            expected = int(expected_size)
+            if actual_size != expected:
+                part_path.unlink(missing_ok=True)
+                raise OSError(
+                    f"Download truncated: expected {expected:,} bytes, "
+                    f"got {actual_size:,} bytes from {url}"
+                )
         os.replace(part_path, dest)
     except Exception as exc:
         if hasattr(exc, "close"):

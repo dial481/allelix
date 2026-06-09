@@ -40,7 +40,8 @@ local file modes for reproducibility.
 
 **Future:**
 
-- AlphaMissense pathogenicity scores (coordinate-keyed) — planned
-- CADD scores (coordinate-keyed) — planned
+- AlphaMissense pathogenicity scores (coordinate-keyed) — shipped in v1.4.0
+  (ADR-0027)
+- CADD scores (coordinate-keyed) — planned for v1.5.0
 - gnomAD whole-genome frequencies (non-coding regions) — distant future, no
   timeline

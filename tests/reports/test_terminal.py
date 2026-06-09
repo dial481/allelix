@@ -133,6 +133,42 @@ class TestRenderTerminal:
         assert "35.00%" in out
 
 
+class TestAlphaMissenseColumn:
+    def test_am_column_present_when_data_exists(self):
+        out, _ = _render([_ann(am_pathogenicity=0.95, am_class="likely_pathogenic")])
+        assert "AM" in out
+        assert "0.950" in out
+
+    def test_am_column_absent_when_no_data(self):
+        out, _ = _render([_ann()])
+        assert "AM" not in out
+
+    def test_am_none_shows_dash(self):
+        annotations = [
+            _ann(rsid="rs1", am_pathogenicity=0.80, am_class="likely_pathogenic"),
+            _ann(rsid="rs2"),
+        ]
+        out, _ = _render(annotations)
+        assert "AM" in out
+        assert "0.800" in out
+
+    def test_am_pharmgkb_footnote(self):
+        annotations = [
+            _ann(
+                source="pharmgkb",
+                attribution="PharmGKB",
+                am_pathogenicity=0.95,
+                am_class="likely_pathogenic",
+            ),
+        ]
+        out, _ = _render(annotations)
+        assert "protein structure impact only" in out
+
+    def test_am_no_footnote_without_pharmgkb(self):
+        out, _ = _render([_ann(am_pathogenicity=0.95, am_class="likely_pathogenic")])
+        assert "protein structure impact only" not in out
+
+
 def _ann_dict(**overrides) -> dict:
     defaults = {
         "source": "clinvar",

@@ -2,6 +2,68 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0]
+
+### Added
+- **AlphaMissense variant pathogenicity enrichment.** New
+  `AlphaMissenseAnnotator` enriches annotations with missense variant
+  pathogenicity scores from DeepMind's AlphaMissense (71M variants,
+  CC BY 4.0). Pre-built SQLite cache downloaded from HuggingFace via
+  `db update`. AM Score column in terminal, HTML, and JSON reports.
+  PharmGKB rows show AM scores as neutral with caveat (protein
+  structure impact only — tooltip in HTML, dimmed `*` footnote in
+  terminal, `am_caveat` field in JSON). `--no-alphamissense` flag to
+  skip.
+- **Config file system.** `config.toml` with per-source on/off toggles
+  and `license.commercial = true` safety switch that auto-disables
+  non-commercial sources (SNPedia). `allelix config show/set/reset`
+  CLI commands. CLI flags override config per-invocation.
+- `scripts/build_alphamissense_cache.py` — AlphaMissense cache build
+  script with Zenodo HTTPS streaming (default) and local TSV modes.
+  Joins against gnomAD cache for coordinate-to-rsID mapping.
+- AlphaMissense CC BY 4.0 attribution in HTML and JSON reports.
+- Magnitude scoring legend in HTML report (collapsible, per-source
+  scoring tables for ClinVar, PharmGKB, GWAS, SNPedia).
+- Source floor note in HTML report when per-source magnitude minimums
+  are active.
+- Repute row background tints in HTML report (red for pathogenic/risk,
+  green for protective/benign) derived from existing significance
+  field.
+- Sortable columns in HTML report (magnitude, gene, source, AM score)
+  via inline JavaScript.
+- ADR-0027 documenting the AlphaMissense enrichment cache architecture.
+- `scripts/run-tests.sh` — detached background test runner with log
+  rotation.
+
+### Fixed
+- HTML report table overflows viewport, columns clipped on left (#20).
+  Added `overflow-x: auto` container, sticky rsID column,
+  `max-width` on description cells, refs collapsed into `<details>`
+  toggle, conditional Review Status column (hidden when all empty),
+  stat card `flex-wrap`.
+- AlphaMissense build script has zero unit-test coverage (#24). Added
+  25 tests covering TSV parsing, gnomAD rsID join, chr prefix
+  normalization, `--no-gnomad` NULL-rsid path, multi-allelic composite
+  PK, batched insert, and end-to-end integration.
+- Download integrity: Content-Length check after downloads catches
+  truncated files.
+- Disk space preflight before decompressing `.sqlite.gz` caches uses
+  5x gz size (accounts for gz + decompressed tmp on disk
+  simultaneously).
+- `_connection()` guards on gnomAD and AlphaMissense annotators raise
+  `FileNotFoundError` with actionable message when cache is missing.
+- Dead `cache_exists()` removed from gnomAD and AlphaMissense loaders.
+- Legacy caches stamp remote signal instead of re-downloading on
+  `db update`.
+- README database sizes updated to match actual on-disk measurements.
+
+### Changed
+- `db update` display includes gnomAD and AlphaMissense in "Analyzing
+  against" annotator list.
+- Both build scripts (`build_gnomad_cache.py`,
+  `build_alphamissense_cache.py`) run `VACUUM` for smaller output
+  files.
+
 ## [1.3.1]
 
 ### Fixed
@@ -41,8 +103,8 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
   non-finding filter degrades gracefully. Signal carries
   `cpic:unavailable` so recovery auto-triggers a refresh.
 - `scripts/build_gnomad_cache.py` — streaming VCF build script for
-  the gnomAD frequency cache. Downloads ~120GB over HTTPS, never saves
-  VCFs to disk, outputs ~1GB SQLite.
+  the gnomAD frequency cache. Downloads ~185GB over HTTPS, never saves
+  VCFs to disk, outputs ~6GB SQLite.
 - `scripts/extract_array_manifest.py` — extracts rsID superset from
   genotype files for filtered gnomAD cache builds.
 - gnomAD ODbL v1.0 attribution in HTML and JSON reports.
@@ -1294,6 +1356,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.4.0]: https://github.com/dial481/allelix/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/dial481/allelix/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/dial481/allelix/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/dial481/allelix/compare/v1.1.1...v1.2.0

@@ -92,8 +92,8 @@ class TestRenderHtml:
         assert count == 1
         body = out.read_text()
         assert "rs_hi" not in body  # we use "hi"
-        assert '<td class="rsid">hi</td>' in body
-        assert '<td class="rsid">lo</td>' not in body
+        assert '<td class="col-rsid">hi</td>' in body
+        assert '<td class="col-rsid">lo</td>' not in body
 
     def test_genes_filter(self, tmp_path: Path):
         anns = [_ann(rsid="m", gene="MTHFR"), _ann(rsid="b", gene="BRCA1")]
@@ -105,19 +105,20 @@ class TestRenderHtml:
 
 
 class TestReviewStatus:
-    def test_review_status_column_header(self, tmp_path: Path):
+    def test_review_status_column_hidden_when_all_empty(self, tmp_path: Path):
         out = tmp_path / "report.html"
-        render_html(_result([_ann()]), output_path=out)
+        render_html(_result([_ann(review_status="")]), output_path=out)
         body = out.read_text()
-        assert "<th>Review Status</th>" in body
+        assert "Review Status" not in body
 
-    def test_review_status_value_rendered(self, tmp_path: Path):
+    def test_review_status_column_shown_when_present(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(
             _result([_ann(review_status="criteria_provided,_single_submitter")]),
             output_path=out,
         )
         body = out.read_text()
+        assert "Review Status" in body
         assert "criteria_provided" in body
 
 
@@ -291,3 +292,203 @@ class TestFrequencyColumn:
         render_html(_result(annotations), output_path=out)
         body = out.read_text()
         assert "Pop. Freq" in body
+
+
+class TestTableLayout:
+    """Table overflow, sticky column, and description truncation fixes (issue #20)."""
+
+    def test_table_wrapped_in_overflow_div(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert 'class="table-wrap"' in body
+
+    def test_rsid_column_sticky(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "col-rsid" in body
+        assert "position: sticky" in body
+
+    def test_description_cell_has_max_width(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "desc-cell" in body
+        assert "max-width: 400px" in body
+
+    def test_stat_cards_flex_wrap(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "flex-wrap: wrap" in body
+
+
+class TestRefsToggle:
+    """Raw reference IDs should be in a collapsible details element."""
+
+    def test_refs_in_details_element(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        ann = _ann(references=["pubmed:36750564", "gwas:GCST90270940"])
+        render_html(_result([ann]), output_path=out)
+        body = out.read_text()
+        assert "<details" in body
+        assert "pubmed:36750564" in body
+        assert "gwas:GCST90270940" in body
+
+    def test_no_refs_no_details(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(references=[])]), output_path=out)
+        body = out.read_text()
+        assert '<details class="refs-toggle">' not in body
+
+
+class TestReputeBorders:
+    """Color-coded left border based on significance field."""
+
+    def test_pathogenic_gets_bad_border(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(significance="clinvar_pathogenic")]), output_path=out)
+        body = out.read_text()
+        assert "repute-bad" in body
+
+    def test_benign_gets_good_border(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(significance="clinvar_benign")]), output_path=out)
+        body = out.read_text()
+        assert "repute-good" in body
+
+    def test_vus_gets_neutral_border(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(
+            _result([_ann(significance="clinvar_uncertain_significance")]),
+            output_path=out,
+        )
+        body = out.read_text()
+        assert "repute-neutral" in body
+
+    def test_gwas_gets_neutral_border(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(
+            _result([_ann(significance="gwas_association")]),
+            output_path=out,
+        )
+        body = out.read_text()
+        assert "repute-neutral" in body
+
+    def test_snpedia_bad_gets_bad_border(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(significance="snpedia_bad")]), output_path=out)
+        body = out.read_text()
+        assert "repute-bad" in body
+
+    def test_snpedia_good_gets_good_border(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(significance="snpedia_good")]), output_path=out)
+        body = out.read_text()
+        assert "repute-good" in body
+
+
+class TestSortableColumns:
+    """Inline JS for sortable table columns."""
+
+    def test_sort_script_present(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "<script>" in body
+        assert "sort-arrow" in body
+
+    def test_sort_arrows_in_headers(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert 'class="sort-arrow"' in body
+
+    def test_magnitude_has_sort_value(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(magnitude=7.5)]), output_path=out)
+        body = out.read_text()
+        assert 'data-sort-value="7.5"' in body
+
+    def test_no_script_when_empty(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([]), output_path=out)
+        body = out.read_text()
+        assert "No annotations" in body
+
+
+class TestAlphaMissenseColumn:
+    """Tests for AlphaMissense pathogenicity column rendering."""
+
+    def test_am_column_present_when_data_exists(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(am_pathogenicity=0.95, am_class="likely_pathogenic")
+        render_html(_result([a]), output_path=out)
+        body = out.read_text()
+        assert "AM" in body
+        assert "0.950" in body
+
+    def test_am_column_absent_when_no_data(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "<th>AM<" not in body
+
+    def test_am_pathogenic_colored_red(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(am_pathogenicity=0.95, am_class="likely_pathogenic")
+        render_html(_result([a]), output_path=out)
+        body = out.read_text()
+        assert "am-pathogenic" in body
+
+    def test_am_benign_colored_green(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(am_pathogenicity=0.10, am_class="likely_benign")
+        render_html(_result([a]), output_path=out)
+        body = out.read_text()
+        assert "am-benign" in body
+
+    def test_am_ambiguous_colored_yellow(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(am_pathogenicity=0.50, am_class="ambiguous")
+        render_html(_result([a]), output_path=out)
+        body = out.read_text()
+        assert "am-ambiguous" in body
+
+    def test_am_attribution_present(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(am_pathogenicity=0.80, am_class="likely_pathogenic")
+        r = _result([a])
+        r.annotators_used.append(("alphamissense", "2023.1"))
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "AlphaMissense" in body
+        assert "CC BY 4.0" in body
+
+    def test_am_neutral_on_pharmgkb_rows(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(
+            source="pharmgkb",
+            attribution="PharmGKB",
+            am_pathogenicity=0.95,
+            am_class="likely_pathogenic",
+        )
+        render_html(_result([a]), output_path=out)
+        body = out.read_text()
+        tbody = body.split("<tbody>", 1)[1]
+        assert "am-pathogenic" not in tbody
+        assert "am-score" in tbody
+        assert "protein structure impact only" in body
+
+    def test_am_colored_on_non_pharmgkb_rows(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        a = _ann(
+            source="clinvar",
+            am_pathogenicity=0.95,
+            am_class="likely_pathogenic",
+        )
+        render_html(_result([a]), output_path=out)
+        body = out.read_text()
+        assert "am-pathogenic" in body
+        assert "protein structure impact only" not in body

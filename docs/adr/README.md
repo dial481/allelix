@@ -32,6 +32,7 @@ Each ADR captures one decision: the context that forced it, what we chose, and t
 - [ADR-0024: GWAS Catalog magnitude scoring from p-value + effect size](0024-gwas-magnitude-scoring.md)
 - [ADR-0025: GRCh36 graceful degradation (no full build support)](0025-grch36-graceful-degradation.md)
 - [ADR-0026: gnomAD exome frequency cache](0026-gnomad-exome-frequency-cache.md)
+- [ADR-0027: AlphaMissense pathogenicity cache](0027-alphamissense-pathogenicity-cache.md)
 
 ## Writing a new ADR
 

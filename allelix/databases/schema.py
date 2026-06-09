@@ -127,3 +127,24 @@ CREATE INDEX IF NOT EXISTS idx_gnomad_rsid ON gnomad_frequencies(rsid);
 """
     + _DATABASE_VERSIONS_TABLE
 )
+
+ALPHAMISSENSE_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS alphamissense_scores (
+    chrom TEXT NOT NULL,
+    pos INTEGER NOT NULL,
+    ref TEXT NOT NULL,
+    alt TEXT NOT NULL,
+    rsid TEXT,
+    uniprot_id TEXT,
+    transcript_id TEXT,
+    protein_variant TEXT,
+    am_pathogenicity REAL NOT NULL,
+    am_class TEXT NOT NULL,
+    PRIMARY KEY (chrom, pos, ref, alt)
+);
+
+CREATE INDEX IF NOT EXISTS idx_am_rsid ON alphamissense_scores(rsid);
+"""
+    + _DATABASE_VERSIONS_TABLE
+)

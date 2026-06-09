@@ -261,3 +261,77 @@ class TestGnomadEnrichment:
         result = run_analysis(mock_mhg_path, parser, [clinvar])
         assert all(a.allele_frequency is None for a in result.annotations)
         assert all(name != "gnomad" for name, _ in result.annotators_used)
+
+
+class TestAlphaMissenseEnrichment:
+    """AlphaMissense enrichment stamps am_pathogenicity/am_class on annotations."""
+
+    def test_enrichment_stamps_pathogenicity(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """run_analysis with AlphaMissense stamps am_pathogenicity and am_class."""
+        import sqlite3
+
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
+        from allelix.databases.alphamissense_loader import ALPHAMISSENSE_DB_FILENAME
+        from allelix.databases.schema import ALPHAMISSENSE_SCHEMA
+
+        db_path = clinvar_data_dir / ALPHAMISSENSE_DB_FILENAME
+        with contextlib.closing(sqlite3.connect(db_path)) as conn:
+            for stmt in ALPHAMISSENSE_SCHEMA.split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    conn.execute(stmt)
+            conn.execute(
+                "INSERT OR REPLACE INTO alphamissense_scores"
+                " (chrom, pos, ref, alt, rsid, uniprot_id, transcript_id,"
+                " protein_variant, am_pathogenicity, am_class)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    "1",
+                    11856378,
+                    "G",
+                    "A",
+                    "rs1801133",
+                    "P42898",
+                    "ENST001",
+                    "A222V",
+                    0.72,
+                    "ambiguous",
+                ),
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("alphamissense", "test://mock", "2023.2", "2026-01-01", 1),
+            )
+            conn.commit()
+
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        am = AlphaMissenseAnnotator(clinvar_data_dir)
+        result = run_analysis(
+            mock_mhg_path,
+            parser,
+            [clinvar],
+            alphamissense=am,
+        )
+        mthfr = [a for a in result.annotations if a.rsid == "rs1801133"]
+        assert any(a.am_pathogenicity is not None for a in mthfr)
+        assert any(a.am_class == "ambiguous" for a in mthfr)
+        assert ("alphamissense", "2023.2") in result.annotators_used
+
+    def test_no_alphamissense_no_pathogenicity(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """run_analysis without AlphaMissense leaves am_pathogenicity as None."""
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        result = run_analysis(mock_mhg_path, parser, [clinvar])
+        assert all(a.am_pathogenicity is None for a in result.annotations)
+        assert all(name != "alphamissense" for name, _ in result.annotators_used)

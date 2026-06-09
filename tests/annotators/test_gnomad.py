@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from allelix.annotators.gnomad import _BULK_BATCH_SIZE, GnomadAnnotator
-from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME, cache_exists
+from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME
 from allelix.databases.schema import GNOMAD_SCHEMA
 from allelix.models import Annotation, Variant
 
@@ -216,19 +216,6 @@ class TestBulkLookup:
     def test_bulk_batch_size_constant(self) -> None:
         """Pin: batch size stays within SQLite's variable limit."""
         assert _BULK_BATCH_SIZE == 900
-
-
-class TestCacheExists:
-    """Cache existence detection."""
-
-    def test_exists_when_populated(self, gnomad_db: Path) -> None:
-        assert cache_exists(gnomad_db / GNOMAD_DB_FILENAME) is True
-
-    def test_exists_when_empty_schema(self, gnomad_full_db: Path) -> None:
-        assert cache_exists(gnomad_full_db / GNOMAD_DB_FILENAME) is True
-
-    def test_missing_db(self, tmp_path: Path) -> None:
-        assert cache_exists(tmp_path / "nonexistent.sqlite") is False
 
 
 class TestCloseable:

@@ -205,6 +205,7 @@ def _run_analysis_command(
     diff_path: Path | None = None,
     no_update: bool = False,
     no_gnomad: bool = False,
+    no_alphamissense: bool = False,
 ) -> None:
     resolved = resolve_data_dir(data_dir)
     if not no_update:
@@ -213,6 +214,12 @@ def _run_analysis_command(
     _, ready, not_ready = _ready_annotators(
         data_dir, include_benign=include_benign, gwas_filter_traits=not gwas_all
     )
+
+    from allelix.config import load_config
+
+    cfg = load_config(resolved)
+    ready = [a for a in ready if cfg.is_enabled(a.name)]
+
     if exclude_sources:
         ready = [a for a in ready if a.name not in exclude_sources]
 
@@ -225,6 +232,16 @@ def _run_analysis_command(
                 gnomad_annotator = a
                 break
     ready = [a for a in ready if a.name != "gnomad"]
+
+    am_annotator = None
+    if not no_alphamissense:
+        from allelix.annotators.alphamissense import AlphaMissenseAnnotator
+
+        for a in ready:
+            if isinstance(a, AlphaMissenseAnnotator):
+                am_annotator = a
+                break
+    ready = [a for a in ready if a.name != "alphamissense"]
 
     if not_ready:
         downloadable = [a.name for a in not_ready if a.requires_download]
@@ -241,7 +258,12 @@ def _run_analysis_command(
                 "`python scripts/parse_snpedia.py` to populate.[/yellow]"
             )
 
-    versions = ", ".join(f"{a.display_name} ({a.version() or 'unknown'})" for a in ready)
+    all_active: list[Annotator] = list(ready)
+    if gnomad_annotator is not None and gnomad_annotator.is_ready():
+        all_active.append(gnomad_annotator)
+    if am_annotator is not None and am_annotator.is_ready():
+        all_active.append(am_annotator)
+    versions = ", ".join(f"{a.display_name} ({a.version() or 'unknown'})" for a in all_active)
     console.print(f"[dim]Analyzing against: {versions}[/dim]")
 
     counter, stderr_handler, snapshot = _wire_parser_logging()
@@ -253,6 +275,7 @@ def _run_analysis_command(
             skipped_count_provider=lambda: counter.count,
             build_override=build,
             gnomad=gnomad_annotator,
+            alphamissense=am_annotator,
         )
     finally:
         _unwire_parser_logging(counter, stderr_handler, snapshot)
@@ -531,6 +554,12 @@ _NO_GNOMAD_OPT = click.option(
     default=False,
     help="Skip gnomAD population frequency enrichment.",
 )
+_NO_ALPHAMISSENSE_OPT = click.option(
+    "--no-alphamissense",
+    is_flag=True,
+    default=False,
+    help="Skip AlphaMissense variant pathogenicity enrichment.",
+)
 _BUILD_OPT = click.option(
     "--build",
     type=click.Choice(["grch37", "grch38", "auto"], case_sensitive=False),
@@ -626,6 +655,7 @@ def _emit_build_diagnostics(result: object) -> None:
 @_DIFF_OPT
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
+@_NO_ALPHAMISSENSE_OPT
 def analyze(
     file_path: Path,
     fmt: str | None,
@@ -643,6 +673,7 @@ def analyze(
     diff_path: Path | None,
     no_update: bool,
     no_gnomad: bool,
+    no_alphamissense: bool,
 ) -> None:
     """Annotate a genotype file against all ready reference databases."""
     _run_analysis_command(
@@ -663,6 +694,7 @@ def analyze(
         diff_path=diff_path,
         no_update=no_update,
         no_gnomad=no_gnomad,
+        no_alphamissense=no_alphamissense,
     )
 
 
@@ -819,6 +851,7 @@ def compare(file1: Path, file2: Path, fmt1: str | None, fmt2: str | None) -> Non
 @_DIFF_OPT
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
+@_NO_ALPHAMISSENSE_OPT
 def methylation(
     file_path: Path,
     fmt: str | None,
@@ -836,6 +869,7 @@ def methylation(
     diff_path: Path | None,
     no_update: bool,
     no_gnomad: bool,
+    no_alphamissense: bool,
 ) -> None:
     """Methylation-pathway-focused report (MTHFR, MTR, MTRR, COMT, CBS, …)."""
     excluded: set[str] = set()
@@ -861,6 +895,7 @@ def methylation(
         diff_path=diff_path,
         no_update=no_update,
         no_gnomad=no_gnomad,
+        no_alphamissense=no_alphamissense,
     )
 
 
@@ -881,6 +916,7 @@ def methylation(
 @_DIFF_OPT
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
+@_NO_ALPHAMISSENSE_OPT
 def pharmacogenomics(
     file_path: Path,
     fmt: str | None,
@@ -898,6 +934,7 @@ def pharmacogenomics(
     diff_path: Path | None,
     no_update: bool,
     no_gnomad: bool,
+    no_alphamissense: bool,
 ) -> None:
     """Pharmacogenomics-focused report (annotations from PharmGKB-style sources)."""
     excluded: set[str] = set()
@@ -923,12 +960,29 @@ def pharmacogenomics(
         diff_path=diff_path,
         no_update=no_update,
         no_gnomad=no_gnomad,
+        no_alphamissense=no_alphamissense,
     )
 
 
 @main.group()
 def db() -> None:
     """Manage local reference database cache."""
+
+
+def _stamp_remote_signal(annotator: Annotator, signal: str) -> None:
+    """Write a remote signal to an existing cache without re-downloading."""
+    import contextlib
+    import sqlite3
+
+    db_path = getattr(annotator, "_db_path", None)
+    if db_path is None:
+        return
+    with contextlib.closing(sqlite3.connect(db_path)) as conn:
+        conn.execute(
+            "UPDATE database_versions SET remote_signal = ? WHERE name = ?",
+            (signal, annotator.name),
+        )
+        conn.commit()
 
 
 def _run_setup(annotator: Annotator) -> bool:
@@ -964,6 +1018,12 @@ def _run_setup(annotator: Annotator) -> bool:
     help="Skip gnomAD population frequency database.",
 )
 @click.option(
+    "--no-alphamissense",
+    is_flag=True,
+    default=False,
+    help="Skip AlphaMissense pathogenicity database.",
+)
+@click.option(
     "--build",
     type=click.Choice(["grch37", "grch38", "both"], case_sensitive=False),
     default="both",
@@ -974,7 +1034,9 @@ def _run_setup(annotator: Annotator) -> bool:
         "save bandwidth."
     ),
 )
-def db_update(data_dir: Path | None, force: bool, no_gnomad: bool, build: str) -> None:
+def db_update(
+    data_dir: Path | None, force: bool, no_gnomad: bool, no_alphamissense: bool, build: str
+) -> None:
     """Download or refresh reference databases.
 
     For each annotator:
@@ -996,6 +1058,9 @@ def db_update(data_dir: Path | None, force: bool, no_gnomad: bool, build: str) -
         with annotator:
             if no_gnomad and annotator.name == "gnomad":
                 console.print(f"  [dim]{annotator.name}: skipped (--no-gnomad)[/dim]")
+                continue
+            if no_alphamissense and annotator.name == "alphamissense":
+                console.print(f"  [dim]{annotator.name}: skipped (--no-alphamissense)[/dim]")
                 continue
 
             if not annotator.requires_download:
@@ -1047,10 +1112,15 @@ def db_update(data_dir: Path | None, force: bool, no_gnomad: bool, build: str) -
                 )
                 continue
 
-            reason = (
-                "legacy cache (no stored signal)" if cached is None else "remote signal changed"
-            )
-            console.print(f"  [bold]{annotator.name}[/bold]: {reason}; refreshing…")
+            if cached is None:
+                _stamp_remote_signal(annotator, remote)
+                console.print(
+                    f"  [dim]{annotator.name}: stamped remote signal "
+                    f"(version {annotator.version() or '(unknown)'})[/dim]"
+                )
+                continue
+
+            console.print(f"  [bold]{annotator.name}[/bold]: remote signal changed; refreshing…")
             if _run_setup(annotator):
                 console.print(
                     f"  [green]✓ {annotator.name} refreshed[/green] "
@@ -1084,6 +1154,81 @@ def db_status(data_dir: Path | None) -> None:
                     records = f"{count:,}"
             table.add_row(annotator.display_name, ready_marker, version, records)
     console.print(table)
+
+
+@main.group()
+def config() -> None:
+    """Manage persistent configuration (source toggles, license mode)."""
+
+
+@config.command("show")
+@_DATA_DIR_OPT
+def config_show(data_dir: Path | None) -> None:
+    """Display current configuration."""
+    from allelix.config import NON_COMMERCIAL_SOURCES, load_config
+
+    resolved = resolve_data_dir(data_dir)
+    cfg = load_config(resolved)
+
+    table = Table(title=f"Configuration ({resolved / 'config.toml'})")
+    table.add_column("Source", style="cyan", no_wrap=True)
+    table.add_column("Enabled", justify="center")
+    table.add_column("Note", style="dim")
+    for name, enabled in sorted(cfg.sources.items()):
+        if cfg.commercial and name in NON_COMMERCIAL_SOURCES:
+            marker = "[red]no[/red]"
+            note = "disabled by commercial mode"
+        elif enabled:
+            marker = "[green]yes[/green]"
+            note = ""
+        else:
+            marker = "[red]no[/red]"
+            note = ""
+        table.add_row(name, marker, note)
+    console.print(table)
+    mode = "[yellow]commercial[/yellow]" if cfg.commercial else "[green]personal[/green]"
+    console.print(f"License mode: {mode}")
+
+
+@config.command("set")
+@_DATA_DIR_OPT
+@click.argument("key")
+@click.argument("value")
+def config_set(data_dir: Path | None, key: str, value: str) -> None:
+    r"""Set a configuration value.
+
+    \b
+    Keys:
+      sources.<name>     Enable/disable a source (true/false)
+      license.commercial Set commercial mode (true/false)
+
+    \b
+    Examples:
+      allelix config set sources.snpedia false
+      allelix config set license.commercial true
+    """
+    from allelix.config import load_config, save_config
+
+    resolved = resolve_data_dir(data_dir)
+    cfg = load_config(resolved)
+
+    val_lower = value.strip().lower()
+    if val_lower not in ("true", "false"):
+        raise click.ClickException(f"Value must be 'true' or 'false', got {value!r}")
+    bool_val = val_lower == "true"
+
+    if key.startswith("sources."):
+        source_name = key[len("sources.") :]
+        cfg.sources[source_name] = bool_val
+    elif key == "license.commercial":
+        cfg.commercial = bool_val
+    else:
+        raise click.ClickException(
+            f"Unknown key {key!r}. Use 'sources.<name>' or 'license.commercial'."
+        )
+
+    save_config(resolved, cfg)
+    console.print(f"[green]Set {key} = {val_lower}[/green]")
 
 
 if __name__ == "__main__":

@@ -760,10 +760,10 @@ class TestDbCommands:
         assert result.exit_code == 0, result.output
         assert "can't be verified" in result.output
 
-    def test_db_update_legacy_cache_refreshes_once(
+    def test_db_update_legacy_cache_stamps_signal(
         self, tmp_path: Path, mock_clinvar_vcf: Path, mock_gnomad_gz: Path, monkeypatch
     ):
-        """v0.4.1 caches (no stored signal) refresh on first v0.4.2 db update."""
+        """Legacy caches (no stored signal) get signal stamped without re-download."""
         import sqlite3
 
         from allelix.annotators import clinvar as clinvar_module
@@ -771,7 +771,7 @@ class TestDbCommands:
         from allelix.annotators import pharmgkb as pharmgkb_module
         from allelix.annotators.clinvar import clinvar_db_filename
 
-        # Hand-build a v0.4.1-shaped database (no remote_signal column).
+        # Hand-build a legacy database (no remote_signal column).
         legacy_db = tmp_path / clinvar_db_filename("GRCh37")
         with contextlib.closing(sqlite3.connect(legacy_db)) as conn:
             conn.executescript(
@@ -837,8 +837,8 @@ class TestDbCommands:
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
         )
         assert result.exit_code == 0, result.output
-        assert "legacy cache" in result.output
-        assert called  # setup() ran
+        assert "stamped remote signal" in result.output
+        assert not called  # setup() should NOT run — just stamp the signal
 
     def test_db_update_force_refreshes(
         self, clinvar_data_dir: Path, mock_gnomad_gz: Path, monkeypatch
@@ -1513,3 +1513,63 @@ class TestVersion:
         # this test. The pyproject<->__version__ sync is pinned separately by
         # tests/test_version.py::test_pyproject_version_matches_metadata.
         assert __version__ in result.output
+
+
+class TestConfigCommands:
+    def test_config_show(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["config", "show", "--data-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "clinvar" in result.output
+        assert "personal" in result.output
+
+    def test_config_show_commercial_mode(self, tmp_path: Path):
+        from allelix.config import AllelixConfig, save_config
+
+        save_config(tmp_path, AllelixConfig(commercial=True))
+        runner = CliRunner()
+        result = runner.invoke(main, ["config", "show", "--data-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "commercial" in result.output
+
+    def test_config_set_source(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "sources.gnomad", "false"],
+        )
+        assert result.exit_code == 0
+        from allelix.config import load_config
+
+        cfg = load_config(tmp_path)
+        assert not cfg.sources["gnomad"]
+
+    def test_config_set_commercial(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "license.commercial", "true"],
+        )
+        assert result.exit_code == 0
+        from allelix.config import load_config
+
+        cfg = load_config(tmp_path)
+        assert cfg.commercial
+
+    def test_config_set_invalid_key(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "bad.key", "true"],
+        )
+        assert result.exit_code != 0
+        assert "Unknown key" in result.output
+
+    def test_config_set_invalid_value(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "sources.clinvar", "yes"],
+        )
+        assert result.exit_code != 0
+        assert "true" in result.output or "false" in result.output

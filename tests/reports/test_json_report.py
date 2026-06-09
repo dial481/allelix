@@ -151,3 +151,30 @@ class TestLicenseAttributions:
         attrs = payload["license_attributions"]
         sources = {a["source"] for a in attrs}
         assert sources == {"PharmGKB", "SNPedia"}
+
+    def test_alphamissense_attribution_in_json(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("alphamissense", "2023.2")])
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        attrs = payload["license_attributions"]
+        am_attr = [a for a in attrs if a["source"] == "AlphaMissense"]
+        assert len(am_attr) == 1
+        assert am_attr[0]["license"] == "CC BY 4.0"
+
+    def test_am_fields_in_annotation_output(self, tmp_path: Path):
+        out = tmp_path / "r.json"
+        a = _ann(am_pathogenicity=0.95, am_class="likely_pathogenic")
+        render_json(_result([a]), output_path=out)
+        payload = json.loads(out.read_text())
+        ann = payload["annotations"][0]
+        assert ann["am_pathogenicity"] == 0.95
+        assert ann["am_class"] == "likely_pathogenic"
+
+    def test_am_fields_default_when_absent(self, tmp_path: Path):
+        out = tmp_path / "r.json"
+        render_json(_result([_ann()]), output_path=out)
+        payload = json.loads(out.read_text())
+        ann = payload["annotations"][0]
+        assert ann["am_pathogenicity"] is None
+        assert ann["am_class"] == ""

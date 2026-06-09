@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 dial481
-"""gnomAD population frequency enrichment.
+"""AlphaMissense variant pathogenicity enrichment.
 
-gnomAD is not a clinical annotator — it does not produce Annotation
-objects. It enriches existing annotations with population allele
-frequency context. The pipeline calls ``bulk_lookup()`` after all
-annotators have run, and stamps each annotation's ``allele_frequency``
-field.
+AlphaMissense is not a clinical annotator — it does not produce
+Annotation objects. It enriches existing annotations with missense
+variant pathogenicity predictions. The pipeline calls
+``bulk_lookup()`` after all annotators have run, and stamps each
+annotation's ``am_pathogenicity`` and ``am_class`` fields.
 
-License: ODbL v1.0 (Open Database License). We extract only rsID +
-allele frequencies (no SpliceAI or other restrictively licensed fields).
+License: CC BY 4.0. Attribution: Cheng et al., Science 2023
+(doi:10.1126/science.adg7492).
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
 from allelix.annotators.base import Annotator
-from allelix.databases.gnomad_loader import (
-    GNOMAD_CACHE_URL,
-    GNOMAD_DB_FILENAME,
+from allelix.databases.alphamissense_loader import (
+    ALPHAMISSENSE_CACHE_URL,
+    ALPHAMISSENSE_DB_FILENAME,
     install_prebuilt_cache,
 )
 from allelix.databases.manager import download, get_database_info, head_request_headers
@@ -36,43 +36,44 @@ logger = logging.getLogger(__name__)
 _BULK_BATCH_SIZE = 900
 
 
-class GnomadAnnotator(Annotator):
-    """Population frequency enrichment from gnomAD.
+class AlphaMissenseAnnotator(Annotator):
+    """Missense variant pathogenicity enrichment from AlphaMissense.
 
     Subclasses Annotator for ``db update`` / ``db status`` / ``is_ready()``
-    integration. ``annotate()`` always returns ``[]`` — gnomAD does not
-    participate in the per-variant annotation loop.
+    integration. ``annotate()`` always returns ``[]`` — AlphaMissense does
+    not participate in the per-variant annotation loop.
     """
 
-    name: ClassVar[str] = "gnomad"
-    display_name: ClassVar[str] = "gnomAD"
-    attribution: ClassVar[str] = "gnomAD"
+    name: ClassVar[str] = "alphamissense"
+    display_name: ClassVar[str] = "AlphaMissense"
+    attribution: ClassVar[str] = "AlphaMissense"
     requires_download: ClassVar[bool] = True
 
     def __init__(self, data_dir: Path) -> None:
         """Bind to the data directory."""
         super().__init__(data_dir)
-        self._db_path = data_dir / GNOMAD_DB_FILENAME
+        self._db_path = data_dir / ALPHAMISSENSE_DB_FILENAME
         self._conn: sqlite3.Connection | None = None
 
     def _connection(self) -> sqlite3.Connection:
         if self._conn is None:
             if not self._db_path.exists():
                 raise FileNotFoundError(
-                    f"gnomAD cache not found at {self._db_path}. Run `allelix db update` first."
+                    f"AlphaMissense cache not found at {self._db_path}. "
+                    "Run `allelix db update` first."
                 )
             self._conn = sqlite3.connect(self._db_path)
         return self._conn
 
     def setup(self) -> None:
-        """Download the pre-built gnomAD exome frequency cache from HuggingFace."""
+        """Download the pre-built AlphaMissense cache from HuggingFace."""
         signal = self.fetch_remote_signal()
-        gz_path = self.data_dir / "gnomad.sqlite.gz"
-        download(GNOMAD_CACHE_URL, gz_path)
+        gz_path = self.data_dir / "alphamissense.sqlite.gz"
+        download(ALPHAMISSENSE_CACHE_URL, gz_path)
         install_prebuilt_cache(
             gz_path,
             self._db_path,
-            source_url=GNOMAD_CACHE_URL,
+            source_url=ALPHAMISSENSE_CACHE_URL,
             remote_signal=signal,
         )
         try:
@@ -81,17 +82,17 @@ class GnomadAnnotator(Annotator):
             logger.warning("Could not remove staged file at %s", gz_path)
 
     def is_ready(self) -> bool:
-        """True when the gnomAD SQLite cache exists and is queryable."""
-        return get_database_info(self._db_path, "gnomad") is not None
+        """True when the AlphaMissense SQLite cache exists and is queryable."""
+        return get_database_info(self._db_path, "alphamissense") is not None
 
     def version(self) -> str | None:
         """Return the cached database version, or None."""
-        info = get_database_info(self._db_path, "gnomad")
+        info = get_database_info(self._db_path, "alphamissense")
         return info["version"] if info else None
 
     def record_count(self) -> int | None:
-        """Return the number of rsIDs in the cache, or None."""
-        info = get_database_info(self._db_path, "gnomad")
+        """Return the number of variants in the cache, or None."""
+        info = get_database_info(self._db_path, "alphamissense")
         return info["record_count"] if info else None
 
     def close(self) -> None:
@@ -102,7 +103,7 @@ class GnomadAnnotator(Annotator):
 
     def fetch_remote_signal(self) -> str | None:
         """Probe the HuggingFace asset URL for ETag or Last-Modified."""
-        headers = head_request_headers(GNOMAD_CACHE_URL)
+        headers = head_request_headers(ALPHAMISSENSE_CACHE_URL)
         if headers is None:
             return None
         etag = headers.get("ETag") or headers.get("Etag")
@@ -115,42 +116,50 @@ class GnomadAnnotator(Annotator):
 
     def cached_remote_signal(self) -> str | None:
         """Return the remote signal stored at last successful download."""
-        info = get_database_info(self._db_path, "gnomad")
+        info = get_database_info(self._db_path, "alphamissense")
         if not info or not info["remote_signal"]:
             return None
         return info["remote_signal"]
 
     def annotate(self, variant: Variant) -> list[Annotation]:
-        """Not used — gnomAD enriches, does not annotate. Always returns []."""
+        """Not used — AlphaMissense enriches, does not annotate. Always returns []."""
         return []
 
-    def lookup(self, rsid: str) -> float | None:
-        """Return global allele frequency for a single rsID, or None."""
+    def lookup(self, rsid: str) -> tuple[float, str] | None:
+        """Return (am_pathogenicity, am_class) for a single rsID, or None."""
         conn = self._connection()
         row = conn.execute(
-            "SELECT MAX(af) FROM gnomad_frequencies WHERE rsid = ?", (rsid,)
+            "SELECT MAX(am_pathogenicity), am_class FROM alphamissense_scores WHERE rsid = ?",
+            (rsid,),
         ).fetchone()
-        return row[0] if row else None
+        if row is None or row[0] is None:
+            return None
+        return (row[0], row[1])
 
-    def bulk_lookup(self, rsids: set[str]) -> dict[str, float]:
-        """Return ``{rsid: af}`` for all rsIDs found in the cache.
+    def bulk_lookup(self, rsids: set[str]) -> dict[str, tuple[float, str]]:
+        """Return ``{rsid: (am_pathogenicity, am_class)}`` for found rsIDs.
+
+        When an rsID maps to multiple rows (different ref/alt at the same
+        position), returns the highest pathogenicity score and its class —
+        consistent with gnomAD's ``MAX(af)`` approach.
 
         Batches into chunks of 900 to stay within SQLite's variable limit.
         """
         if not rsids:
             return {}
         conn = self._connection()
-        result: dict[str, float] = {}
+        result: dict[str, tuple[float, str]] = {}
         rsid_list = list(rsids)
         for i in range(0, len(rsid_list), _BULK_BATCH_SIZE):
             batch = rsid_list[i : i + _BULK_BATCH_SIZE]
             placeholders = ",".join("?" * len(batch))
             rows = conn.execute(
-                f"SELECT rsid, MAX(af) FROM gnomad_frequencies"
+                f"SELECT rsid, MAX(am_pathogenicity), am_class"
+                f" FROM alphamissense_scores"
                 f" WHERE rsid IN ({placeholders}) GROUP BY rsid",
                 batch,
             ).fetchall()
-            for rsid, af in rows:
-                if af is not None:
-                    result[rsid] = af
+            for rsid, score, cls in rows:
+                if score is not None:
+                    result[rsid] = (score, cls)
         return result

@@ -15,7 +15,7 @@ inserts into SQLite. Two data sources:
 Two filtering modes:
 
   --full        Process all records from all 24 chromosomes.
-                ~16M rsIDs, ~1GB output.
+                ~16M rsIDs, ~6GB output.
 
   (default)     Array-only: filter to rsIDs listed in a manifest file
                 (--manifest). ~1M rsIDs covering common genotyping
@@ -297,6 +297,9 @@ def build_cache(
         )
         conn.commit()
 
+        print("Compacting database...")
+        conn.execute("VACUUM")
+
     os.replace(tmp_path, output_path)
 
     elapsed_total = time.monotonic() - t0
@@ -317,7 +320,7 @@ def main() -> None:
     parser.add_argument(
         "--full",
         action="store_true",
-        help="Build full cache from all gnomAD exome VCFs (~120GB download).",
+        help="Build full cache from all gnomAD exome VCFs (~185GB download).",
     )
     parser.add_argument(
         "--manifest",

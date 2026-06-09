@@ -1,14 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 dial481
-"""gnomAD exome frequency cache loader.
+"""AlphaMissense pathogenicity cache loader.
 
 The pre-built SQLite cache is downloaded from HuggingFace during
-``db update``. Contains all ~16M exome rsIDs from gnomAD v4.1 with
-genomic coordinates (chrom/pos/ref/alt) for future AlphaMissense/CADD
-integration.
+``db update``. Contains 71M missense variant scores from AlphaMissense
+with genomic coordinates and rsIDs (joined from gnomAD at build time).
 
-The cache can also be built locally from gnomAD exome VCFs via
-``scripts/build_gnomad_cache.py`` (streaming or local file mode).
+The cache can also be built locally from the Zenodo TSV via
+``scripts/build_alphamissense_cache.py``.
 """
 
 from __future__ import annotations
@@ -26,10 +25,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-GNOMAD_DB_FILENAME = "gnomad.sqlite"
+ALPHAMISSENSE_DB_FILENAME = "alphamissense.sqlite"
 
-GNOMAD_CACHE_URL = (
-    "https://huggingface.co/datasets/dial481/allelix-gnomad/resolve/main/gnomad.sqlite.gz"
+ALPHAMISSENSE_CACHE_URL = (
+    "https://huggingface.co/datasets/dial481/allelix-alphamissense/resolve/main/"
+    "alphamissense.sqlite.gz"
 )
 
 
@@ -40,12 +40,7 @@ def install_prebuilt_cache(
     source_url: str = "",
     remote_signal: str | None = None,
 ) -> None:
-    """Decompress a gzipped pre-built SQLite cache into place.
-
-    The pre-built cache already contains the ``gnomad_frequencies`` table
-    and the ``database_versions`` row. This function decompresses and
-    stamps the remote signal for freshness tracking.
-    """
+    """Decompress a gzipped pre-built SQLite cache into place."""
     gz_size = gz_path.stat().st_size
     free = shutil.disk_usage(db_path.parent).free
     needed = gz_size * 5
@@ -66,7 +61,7 @@ def install_prebuilt_cache(
     if remote_signal:
         with contextlib.closing(sqlite3.connect(tmp_path)) as conn:
             conn.execute(
-                "UPDATE database_versions SET remote_signal = ? WHERE name = 'gnomad'",
+                "UPDATE database_versions SET remote_signal = ? WHERE name = 'alphamissense'",
                 (remote_signal,),
             )
             conn.commit()

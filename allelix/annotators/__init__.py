@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from allelix.annotators.alphamissense import AlphaMissenseAnnotator
 from allelix.annotators.base import Annotator
 from allelix.annotators.clinvar import CLINVAR_SUPPORTED_BUILDS, ClinVarAnnotator
 from allelix.annotators.gnomad import GnomadAnnotator
@@ -46,10 +47,12 @@ def get_annotators(
     gwas = GWASCatalogAnnotator(data_dir, filter_traits=gwas_filter_traits)
     snpedia = SNPediaAnnotator(data_dir, clinvar_ref_provider=clinvar.reference_for)
     gnomad = GnomadAnnotator(data_dir)
-    return [clinvar, pharmgkb, gwas, snpedia, gnomad]
+    alphamissense = AlphaMissenseAnnotator(data_dir)
+    return [clinvar, pharmgkb, gwas, snpedia, gnomad, alphamissense]
 
 
 __all__ = [
+    "AlphaMissenseAnnotator",
     "Annotator",
     "ClinVarAnnotator",
     "GWASCatalogAnnotator",
