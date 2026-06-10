@@ -10,7 +10,7 @@ import sqlite3
 import zipfile
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator
+from allelix.annotators.base import Annotator, LicenseDescriptor
 from allelix.databases.gwas_loader import (
     _CATEGORIZER_VERSION,
     _REQUIRED_GWAS_COLUMNS,
@@ -89,6 +89,15 @@ class GWASCatalogAnnotator(Annotator):
     display_name: ClassVar[str] = "GWAS Catalog"
     attribution: ClassVar[str] = "GWAS Catalog"
     requires_download: ClassVar[bool] = True
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="custom-embl-ebi",
+        license_url="https://www.ebi.ac.uk/gwas/docs/about",
+        attribution_text=(
+            "GWAS Catalog data sourced from NHGRI-EBI GWAS Catalog,"
+            " available under EMBL-EBI Terms of Use."
+        ),
+        source_url="https://www.ebi.ac.uk/gwas/",
+    )
 
     def __init__(self, data_dir: Path, *, filter_traits: bool = True) -> None:
         """Initialize with path to the data directory."""

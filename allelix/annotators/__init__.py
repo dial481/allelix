@@ -51,6 +51,24 @@ def get_annotators(
     return [clinvar, pharmgkb, gwas, snpedia, gnomad, alphamissense]
 
 
+_ANNOTATOR_CLASSES: dict[str, type[Annotator]] = {
+    cls.name: cls
+    for cls in [
+        ClinVarAnnotator,
+        PharmGKBAnnotator,
+        GWASCatalogAnnotator,
+        SNPediaAnnotator,
+        GnomadAnnotator,
+        AlphaMissenseAnnotator,
+    ]
+}
+
+
+def get_annotator_class(name: str) -> type[Annotator] | None:
+    """Return the annotator class for a given source name, or None."""
+    return _ANNOTATOR_CLASSES.get(name)
+
+
 __all__ = [
     "AlphaMissenseAnnotator",
     "Annotator",
@@ -59,5 +77,6 @@ __all__ = [
     "GnomadAnnotator",
     "PharmGKBAnnotator",
     "SNPediaAnnotator",
+    "get_annotator_class",
     "get_annotators",
 ]

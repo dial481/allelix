@@ -30,7 +30,7 @@ required — all mock data is committed.
 python -m pytest tests/ -x --tb=short
 ```
 
-**Expected:** 1081 tests pass, 0 failures.
+**Expected:** 1090 tests pass, 0 failures.
 
 Check lint:
 
@@ -225,7 +225,7 @@ print(f\"With AM score: {has_am}\")
 "
 ```
 
-**Expected:** Schema version 2. Multiple sources present. gnomAD and
+**Expected:** Schema version 3. Multiple sources present. gnomAD and
 AM enrichment counts > 0.
 
 ## 9. Stats, extract, and focused reports
@@ -369,14 +369,14 @@ rm -rf ~/.local/share/allelix/
 
 All of the following must be true:
 
-- [ ] Unit test suite: 1081 passed, 0 failed
+- [ ] Unit test suite: 1090 passed, 0 failed
 - [ ] Ruff lint + format: zero warnings
 - [ ] `db update` downloads all 6 annotators without errors
 - [ ] `db status` shows all annotators ready with version and record count
 - [ ] All 6 parser formats produce successful analysis
 - [ ] Cross-parser identity: same annotation count across all user1190 representations
 - [ ] HTML report renders correctly in a browser
-- [ ] JSON report has schema version 2 with gnomAD + AM enrichment
+- [ ] JSON report has schema version 3 with gnomAD + AM enrichment
 - [ ] Config system correctly gates SNPedia on `license.commercial`
 - [ ] Edge case files produce expected behavior
 - [ ] `db update` (second run) skips already-current databases

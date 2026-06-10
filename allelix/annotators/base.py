@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
@@ -14,6 +15,31 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from allelix.models import Annotation, Variant
+
+
+@dataclass(frozen=True)
+class LicenseDescriptor:
+    """Single source of truth for a data source's license terms."""
+
+    spdx: str
+    license_url: str
+    attribution_text: str
+    source_url: str | None = None
+    citation: str | None = None
+
+
+_NON_COMMERCIAL_SPDX: frozenset[str] = frozenset(
+    {
+        "CC-BY-NC-SA-3.0-US",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-4.0",
+    }
+)
+
+
+def is_non_commercial(spdx: str) -> bool:
+    """Return True if the SPDX identifier prohibits commercial use."""
+    return spdx in _NON_COMMERCIAL_SPDX
 
 
 def is_clinvar_homref(
@@ -53,6 +79,15 @@ class Annotator(ABC):
     attribution: ClassVar[str]
     requires_download: ClassVar[bool] = True
     server_driven_freshness: ClassVar[bool] = True
+    license: ClassVar[LicenseDescriptor]
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        """Enforce required ClassVars at subclass definition time."""
+        super().__init_subclass__(**kwargs)
+        is_abstract = any(getattr(v, "__isabstractmethod__", False) for v in cls.__dict__.values())
+        if not is_abstract and not hasattr(cls, "license"):
+            msg = f"{cls.__name__} must declare a 'license' ClassVar of type LicenseDescriptor"
+            raise TypeError(msg)
 
     def __init__(self, data_dir: Path) -> None:
         """Bind the annotator to a data directory (created elsewhere)."""

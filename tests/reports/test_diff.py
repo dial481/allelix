@@ -257,6 +257,34 @@ class TestLoadPreviousReport:
         with pytest.raises(ValueError, match="annotations"):
             load_previous_report(path)
 
+    def test_v3_report_loads(self, tmp_path: Path) -> None:
+        """Schema version 3 reports must load through diff without error."""
+        report = {
+            "schema_version": "3",
+            "generated_at": "2026-06-10T00:00:00",
+            "annotations": [_ann_dict()],
+        }
+        path = tmp_path / "report.json"
+        path.write_text(json.dumps(report))
+        data = load_previous_report(path)
+        assert data["schema_version"] == "3"
+        assert len(data["annotations"]) == 1
+
+    def test_v2_vs_v3_cross_version_diff(self, tmp_path: Path) -> None:
+        """Diffing a v2 report against v3 annotations works (diff ignores license_attributions)."""
+        previous = {
+            "schema_version": "2",
+            "generated_at": "2026-05-01T00:00:00",
+            "annotations": [_ann_dict()],
+        }
+        path = tmp_path / "prev.json"
+        path.write_text(json.dumps(previous))
+        data = load_previous_report(path)
+        current = [_ann(), _ann(rsid="rs4680", condition="COMT", gene="COMT")]
+        diff = compute_diff(current, data["annotations"], data["generated_at"])
+        assert len(diff.new) == 1
+        assert diff.new[0].rsid == "rs4680"
+
 
 class TestSummarizeDiff:
     """Tests for the human-readable summary."""

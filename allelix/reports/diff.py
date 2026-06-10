@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from allelix.models import Annotation
 
-_SUPPORTED_SCHEMA_VERSIONS = {"1", "2"}
+_SUPPORTED_SCHEMA_VERSIONS = {"1", "2", "3"}
 
 
 @dataclass

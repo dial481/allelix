@@ -260,6 +260,24 @@ class TestLicenseAttributions:
         assert "ODbL" in body
         assert "gnomAD" in body
 
+    def test_gwas_attribution_present(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101"), ("gwas", "2026-01")])
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert "NHGRI-EBI GWAS Catalog" in body
+        assert "EMBL-EBI Terms of Use" in body
+
+    def test_attribution_derived_from_license_descriptor(self, tmp_path: Path):
+        """Attribution text comes from the annotator's LicenseDescriptor."""
+        from allelix.annotators.pharmgkb import PharmGKBAnnotator
+
+        r = self._result_with_annotators([("pharmgkb", "2026-01")])
+        out = tmp_path / "report.html"
+        render_html(r, output_path=out)
+        body = out.read_text()
+        assert PharmGKBAnnotator.license.attribution_text in body
+
 
 class TestFrequencyColumn:
     """Pop. Freq column appears only when annotations have frequency data."""

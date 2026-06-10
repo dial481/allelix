@@ -2,6 +2,30 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3]
+
+### Fixed
+- **Added missing GWAS Catalog attribution to HTML and JSON reports.**
+  GWAS Catalog was registered as an annotator but absent from the license
+  attribution maps in both renderers.
+
+### Added
+- **SECURITY.md.** Vulnerability reporting policy (GitHub private
+  vulnerability reporting), supported versions, and scope definition.
+
+### Changed
+- **License metadata centralized on annotator base class via
+  LicenseDescriptor (ADR-0031).** Each annotator now declares its
+  license as a required `license` ClassVar. Non-commercial gating
+  derived from SPDX identifier instead of a hand-maintained set.
+  Report attribution text generated from the descriptor at render
+  time. The `NON_COMMERCIAL_SOURCES` frozenset in `config.py` is
+  deleted.
+- **JSON schema version bumped to 3.** The `license_attributions`
+  block now carries `source_url` (source website) and `license_url`
+  (license deed) as separate keys. `license` field uses SPDX
+  identifiers. Diff between v2 and v3 reports still works.
+
 ## [1.5.2]
 
 ### Fixed
@@ -1478,6 +1502,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.5.3]: https://github.com/dial481/allelix/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/dial481/allelix/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/dial481/allelix/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/dial481/allelix/compare/v1.4.1...v1.5.0

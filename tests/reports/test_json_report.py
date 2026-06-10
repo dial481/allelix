@@ -121,16 +121,40 @@ class TestLicenseAttributions:
         render_json(r, output_path=out)
         payload = json.loads(out.read_text())
         attrs = payload["license_attributions"]
-        assert len(attrs) == 1
-        assert attrs[0]["source"] == "PharmGKB"
-        assert attrs[0]["license"] == "CC BY-SA 4.0"
+        pharmgkb = [a for a in attrs if a["source"] == "PharmGKB"]
+        assert len(pharmgkb) == 1
+        assert pharmgkb[0]["license"] == "CC-BY-SA-4.0"
 
-    def test_no_attributions_for_public_domain_only(self, tmp_path: Path):
+    def test_v3_attribution_shape_pinned(self, tmp_path: Path):
+        """Pin the v3 license_attributions shape: source_url + license_url as separate keys."""
+        r = self._result_with_annotators([("clinvar", "20260101"), ("pharmgkb", "2026-01")])
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        attrs = payload["license_attributions"]
+        pharmgkb = next(a for a in attrs if a["source"] == "PharmGKB")
+        assert pharmgkb["source_url"] == "https://www.pharmgkb.org"
+        assert pharmgkb["license_url"] == "https://creativecommons.org/licenses/by-sa/4.0/"
+        assert pharmgkb["license"] == "CC-BY-SA-4.0"
+
+    def test_clinvar_only_still_has_attribution(self, tmp_path: Path):
+        r = self._result_with_annotators([("clinvar", "20260101")])
+        out = tmp_path / "r.json"
+        render_json(r, output_path=out)
+        payload = json.loads(out.read_text())
+        attrs = payload["license_attributions"]
+        assert len(attrs) == 1
+        assert attrs[0]["source"] == "ClinVar"
+
+    def test_gwas_attribution_in_json(self, tmp_path: Path):
         r = self._result_with_annotators([("clinvar", "20260101"), ("gwas", "2026-01")])
         out = tmp_path / "r.json"
         render_json(r, output_path=out)
         payload = json.loads(out.read_text())
-        assert "license_attributions" not in payload
+        attrs = payload["license_attributions"]
+        gwas_attr = [a for a in attrs if a["source"] == "GWAS Catalog"]
+        assert len(gwas_attr) == 1
+        assert gwas_attr[0]["license"] == "custom-embl-ebi"
 
     def test_snpedia_attribution_in_json(self, tmp_path: Path):
         r = self._result_with_annotators([("clinvar", "20260101"), ("snpedia", None)])
@@ -138,8 +162,9 @@ class TestLicenseAttributions:
         render_json(r, output_path=out)
         payload = json.loads(out.read_text())
         attrs = payload["license_attributions"]
-        assert attrs[0]["source"] == "SNPedia"
-        assert attrs[0]["license"] == "CC BY-NC-SA 3.0 US"
+        snpedia = [a for a in attrs if a["source"] == "SNPedia"]
+        assert len(snpedia) == 1
+        assert snpedia[0]["license"] == "CC-BY-NC-SA-3.0-US"
 
     def test_both_attributions_in_json(self, tmp_path: Path):
         r = self._result_with_annotators(
@@ -150,7 +175,8 @@ class TestLicenseAttributions:
         payload = json.loads(out.read_text())
         attrs = payload["license_attributions"]
         sources = {a["source"] for a in attrs}
-        assert sources == {"PharmGKB", "SNPedia"}
+        assert "PharmGKB" in sources
+        assert "SNPedia" in sources
 
     def test_alphamissense_attribution_in_json(self, tmp_path: Path):
         r = self._result_with_annotators([("clinvar", "20260101"), ("alphamissense", "2023.2")])
@@ -160,7 +186,8 @@ class TestLicenseAttributions:
         attrs = payload["license_attributions"]
         am_attr = [a for a in attrs if a["source"] == "AlphaMissense"]
         assert len(am_attr) == 1
-        assert am_attr[0]["license"] == "CC BY 4.0"
+        assert am_attr[0]["license"] == "CC-BY-4.0"
+        assert "citation" in am_attr[0]
 
     def test_am_fields_in_annotation_output(self, tmp_path: Path):
         out = tmp_path / "r.json"

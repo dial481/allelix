@@ -17,7 +17,7 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator
+from allelix.annotators.base import Annotator, LicenseDescriptor
 from allelix.databases import manager as _manager_module
 from allelix.databases._versions import CLINVAR_INTERPRETER_VERSION
 from allelix.databases.manager import (
@@ -98,6 +98,12 @@ class ClinVarAnnotator(Annotator):
     display_name: ClassVar[str] = "ClinVar"
     attribution: ClassVar[str] = "ClinVar"
     requires_download: ClassVar[bool] = True
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="custom-clinvar",
+        license_url="https://www.ncbi.nlm.nih.gov/clinvar/docs/maintenance_use/",
+        attribution_text="ClinVar variant classifications from NCBI.",
+        source_url="https://www.ncbi.nlm.nih.gov/clinvar/",
+    )
 
     def __init__(
         self,

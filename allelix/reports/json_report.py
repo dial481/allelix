@@ -5,7 +5,7 @@
 Output schema (versioned via `schema_version`):
 
     {
-      "schema_version": "2",
+      "schema_version": "3",
       "allelix_version": "1.1.0",
       "generated_at": "2026-05-11T12:34:56+00:00",
       "regulatory_notice": "...",
@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     from allelix.reports.diff import DiffResult
 
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
 
 def _annotation_dict(a: Annotation) -> dict:
@@ -63,43 +63,36 @@ def _annotation_dict(a: Annotation) -> dict:
     return d
 
 
-_LICENSE_ATTRIBUTIONS: dict[str, dict[str, str]] = {
-    "pharmgkb": {
-        "source": "PharmGKB",
-        "url": "https://www.pharmgkb.org",
-        "license": "CC BY-SA 4.0",
-        "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-    },
-    "snpedia": {
-        "source": "SNPedia",
-        "url": "https://www.snpedia.com",
-        "license": "CC BY-NC-SA 3.0 US",
-        "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/us/",
-    },
-    "gnomad": {
-        "source": "gnomAD",
-        "url": "https://gnomad.broadinstitute.org",
-        "license": "ODbL v1.0",
-        "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
-    },
-    "alphamissense": {
-        "source": "AlphaMissense",
-        "url": "https://zenodo.org/records/10813168",
-        "license": "CC BY 4.0",
-        "license_url": "https://creativecommons.org/licenses/by/4.0/",
-        "citation": "Cheng et al., Science 2023 (doi:10.1126/science.adg7492)",
-    },
-}
-
 __all__ = ["REGULATORY_NOTICE", "SCHEMA_VERSION", "render_json"]
 
 
 def _license_attributions(
     annotators_used: list[tuple[str, str | None]],
 ) -> list[dict[str, str]]:
-    """Return license attribution dicts for annotators that require it."""
-    names = {name for name, _version in annotators_used}
-    return [attr for key, attr in _LICENSE_ATTRIBUTIONS.items() if key in names]
+    """Return license attribution dicts from annotator LicenseDescriptors."""
+    import logging
+
+    from allelix.annotators import get_annotator_class
+
+    logger = logging.getLogger(__name__)
+    result: list[dict[str, str]] = []
+    for name, _version in annotators_used:
+        cls = get_annotator_class(name)
+        if cls is None:
+            logger.warning("No annotator class found for '%s' — attribution omitted", name)
+            continue
+        desc = cls.license
+        entry: dict[str, str] = {
+            "source": cls.display_name,
+            "source_url": desc.source_url or desc.license_url,
+            "license": desc.spdx,
+            "license_url": desc.license_url,
+            "attribution": desc.attribution_text,
+        }
+        if desc.citation:
+            entry["citation"] = desc.citation
+        result.append(entry)
+    return result
 
 
 def render_json(

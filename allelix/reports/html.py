@@ -367,35 +367,27 @@ def _removed_row_html(d: dict, *, show_review: bool = True) -> str:
     )
 
 
-_LICENSE_ATTRIBUTIONS: dict[str, str] = {
-    "pharmgkb": (
-        " Pharmacogenomic annotations sourced from"
-        " <a href='https://www.pharmgkb.org'>PharmGKB</a>,"
-        " used under <a href='https://creativecommons.org/licenses/by-sa/4.0/'>CC BY-SA 4.0</a>."
-    ),
-    "snpedia": (
-        " SNPedia annotations sourced from"
-        " <a href='https://www.snpedia.com'>SNPedia</a>,"
-        " used under"
-        " <a href='https://creativecommons.org/licenses/by-nc-sa/3.0/us/'>CC BY-NC-SA 3.0 US</a>."
-    ),
-    "gnomad": (
-        " Population frequencies sourced from"
-        " <a href='https://gnomad.broadinstitute.org'>gnomAD</a>,"
-        " used under <a href='https://opendatacommons.org/licenses/odbl/1-0/'>ODbL v1.0</a>."
-    ),
-    "alphamissense": (
-        " AlphaMissense predictions from Cheng et al., Science 2023"
-        " (doi:10.1126/science.adg7492)."
-        " Licensed under <a href='https://creativecommons.org/licenses/by/4.0/'>CC BY 4.0</a>."
-    ),
-}
-
-
 def _license_attributions(annotators_used: list[tuple[str, str | None]]) -> str:
-    """Build license attribution HTML for annotators that require it."""
-    names = {name for name, _version in annotators_used}
-    parts = [text for key, text in _LICENSE_ATTRIBUTIONS.items() if key in names]
+    """Build license attribution HTML from annotator LicenseDescriptors."""
+    import logging
+
+    from allelix.annotators import get_annotator_class
+
+    logger = logging.getLogger(__name__)
+    parts: list[str] = []
+    for name, _version in annotators_used:
+        cls = get_annotator_class(name)
+        if cls is None:
+            logger.warning("No annotator class found for '%s' — attribution omitted", name)
+            continue
+        desc = cls.license
+        source_link = desc.source_url or desc.license_url
+        parts.append(
+            f" <a href='{html.escape(source_link)}'>"
+            f"{html.escape(cls.display_name)}</a>: "
+            f"{html.escape(desc.attribution_text)}"
+            f" (<a href='{html.escape(desc.license_url)}'>license</a>)"
+        )
     return "".join(parts)
 
 

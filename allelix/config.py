@@ -9,14 +9,14 @@ import tomllib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from allelix.annotators.base import is_non_commercial
+
 if TYPE_CHECKING:
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 CONFIG_FILENAME = "config.toml"
-
-NON_COMMERCIAL_SOURCES: frozenset[str] = frozenset({"snpedia"})
 
 _DEFAULT_SOURCES: dict[str, bool] = {
     "clinvar": True,
@@ -35,10 +35,30 @@ class AllelixConfig:
     sources: dict[str, bool] = field(default_factory=lambda: dict(_DEFAULT_SOURCES))
     commercial: bool = False
 
-    def is_enabled(self, source_name: str) -> bool:
-        """Check if a source is enabled, respecting commercial mode."""
-        if self.commercial and source_name in NON_COMMERCIAL_SOURCES:
-            return False
+    def is_enabled(
+        self,
+        source_name: str,
+        annotator_classes: dict[str, type] | None = None,
+    ) -> bool:
+        """Check if a source is enabled, respecting commercial mode.
+
+        When ``commercial`` is True, sources whose annotator declares a
+        non-commercial SPDX license are disabled regardless of the
+        ``sources`` toggle. The annotator registry is consulted
+        automatically when ``annotator_classes`` is not provided.
+        """
+        if self.commercial:
+            resolved = annotator_classes
+            if resolved is None:
+                from allelix.annotators import get_annotator_class
+
+                cls = get_annotator_class(source_name)
+                if cls is not None:
+                    resolved = {source_name: cls}
+            if resolved:
+                cls = resolved.get(source_name)
+                if cls and is_non_commercial(cls.license.spdx):
+                    return False
         return self.sources.get(source_name, True)
 
 

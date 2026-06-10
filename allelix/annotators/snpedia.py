@@ -18,7 +18,7 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator, is_clinvar_homref
+from allelix.annotators.base import Annotator, LicenseDescriptor, is_clinvar_homref
 from allelix.databases.manager import (
     download,
     verify_file_hash,
@@ -64,6 +64,14 @@ class SNPediaAnnotator(Annotator):
     attribution: ClassVar[str] = "SNPedia"
     requires_download: ClassVar[bool] = True
     server_driven_freshness: ClassVar[bool] = False
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="CC-BY-NC-SA-3.0-US",
+        license_url="https://creativecommons.org/licenses/by-nc-sa/3.0/us/",
+        attribution_text=(
+            "SNPedia annotations sourced from SNPedia, used under CC BY-NC-SA 3.0 US."
+        ),
+        source_url="https://www.snpedia.com",
+    )
 
     def __init__(
         self,

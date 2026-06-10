@@ -18,7 +18,7 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator
+from allelix.annotators.base import Annotator, LicenseDescriptor
 from allelix.databases._versions import ALPHAMISSENSE_SCHEMA_VERSION
 from allelix.databases.alphamissense_loader import (
     ALPHAMISSENSE_CACHE_URL,
@@ -56,6 +56,16 @@ class AlphaMissenseAnnotator(Annotator):
     attribution: ClassVar[str] = "AlphaMissense"
     requires_download: ClassVar[bool] = True
     server_driven_freshness: ClassVar[bool] = False
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="CC-BY-4.0",
+        license_url="https://creativecommons.org/licenses/by/4.0/",
+        attribution_text=(
+            "AlphaMissense predictions from Cheng et al., Science 2023"
+            " (doi:10.1126/science.adg7492). Licensed under CC BY 4.0."
+        ),
+        source_url="https://zenodo.org/records/10813168",
+        citation="Cheng et al., Science 2023 (doi:10.1126/science.adg7492)",
+    )
 
     def __init__(self, data_dir: Path) -> None:
         """Bind to the data directory."""

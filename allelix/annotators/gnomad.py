@@ -18,7 +18,7 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator
+from allelix.annotators.base import Annotator, LicenseDescriptor
 from allelix.databases._versions import GNOMAD_SCHEMA_VERSION
 from allelix.databases.gnomad_loader import (
     GNOMAD_CACHE_URL,
@@ -55,6 +55,12 @@ class GnomadAnnotator(Annotator):
     attribution: ClassVar[str] = "gnomAD"
     requires_download: ClassVar[bool] = True
     server_driven_freshness: ClassVar[bool] = False
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="ODbL-1.0",
+        license_url="https://opendatacommons.org/licenses/odbl/1-0/",
+        attribution_text=("Population frequencies sourced from gnomAD, used under ODbL v1.0."),
+        source_url="https://gnomad.broadinstitute.org",
+    )
 
     def __init__(self, data_dir: Path) -> None:
         """Bind to the data directory."""

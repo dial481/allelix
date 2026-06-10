@@ -10,7 +10,7 @@ import sqlite3
 import urllib.error
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator, is_clinvar_homref
+from allelix.annotators.base import Annotator, LicenseDescriptor, is_clinvar_homref
 from allelix.databases._versions import PHARMGKB_INTERPRETER_VERSION
 from allelix.databases.cpic_loader import (
     fetch_cpic_allele_functions,
@@ -61,6 +61,14 @@ class PharmGKBAnnotator(Annotator):
     display_name: ClassVar[str] = "PharmGKB"
     attribution: ClassVar[str] = "PharmGKB"
     requires_download: ClassVar[bool] = True
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="CC-BY-SA-4.0",
+        license_url="https://creativecommons.org/licenses/by-sa/4.0/",
+        attribution_text=(
+            "Pharmacogenomic annotations sourced from PharmGKB, used under CC BY-SA 4.0."
+        ),
+        source_url="https://www.pharmgkb.org",
+    )
 
     def __init__(
         self,

@@ -222,7 +222,8 @@ def _run_analysis_command(
     from allelix.config import load_config
 
     cfg = load_config(resolved)
-    ready = [a for a in ready if cfg.is_enabled(a.name)]
+    annotator_classes = {type(a).name: type(a) for a in ready}
+    ready = [a for a in ready if cfg.is_enabled(a.name, annotator_classes)]
 
     if exclude_sources:
         ready = [a for a in ready if a.name not in exclude_sources]
@@ -1163,7 +1164,9 @@ def config() -> None:
 @_DATA_DIR_OPT
 def config_show(data_dir: Path | None) -> None:
     """Display current configuration."""
-    from allelix.config import NON_COMMERCIAL_SOURCES, load_config
+    from allelix.annotators import _ANNOTATOR_CLASSES
+    from allelix.annotators.base import is_non_commercial
+    from allelix.config import load_config
 
     resolved = resolve_data_dir(data_dir)
     cfg = load_config(resolved)
@@ -1173,7 +1176,8 @@ def config_show(data_dir: Path | None) -> None:
     table.add_column("Enabled", justify="center")
     table.add_column("Note", style="dim")
     for name, enabled in sorted(cfg.sources.items()):
-        if cfg.commercial and name in NON_COMMERCIAL_SOURCES:
+        cls = _ANNOTATOR_CLASSES.get(name)
+        if cfg.commercial and cls and is_non_commercial(cls.license.spdx):
             marker = "[red]no[/red]"
             note = "disabled by commercial mode"
         elif enabled:
