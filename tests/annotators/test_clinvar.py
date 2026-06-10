@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from allelix.annotators._versions import CLINVAR_INTERPRETER_VERSION
 from allelix.annotators.clinvar import ClinVarAnnotator, clinvar_db_filename, clinvar_record_name
+from allelix.databases._versions import CLINVAR_INTERPRETER_VERSION
 from allelix.databases.manager import load_clinvar_vcf
 from allelix.models import Variant
 
@@ -343,6 +343,12 @@ class TestRemoteSignal:
             assert ann.cached_remote_signal() == "GRCh37:md5:deadbeef"
         finally:
             ann.close()
+
+
+class TestConstructorValidation:
+    def test_unsupported_build_raises(self, tmp_path: Path):
+        with pytest.raises(ValueError, match="Unsupported"):
+            ClinVarAnnotator(tmp_path, builds=("GRCh99",))
 
 
 class TestCloseable:

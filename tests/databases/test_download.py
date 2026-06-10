@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, ClassVar
 import pytest
 
 from allelix.databases import manager
-from allelix.databases.manager import USER_AGENT, download
+from allelix.databases.manager import USER_AGENT, download, verify_file_hash
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -81,6 +81,50 @@ class TestDownload:
             download(f"http://127.0.0.1:{_free_port()}/", dest)
         assert not (tmp_path / "out.bin.part").exists()
         assert not dest.exists()
+
+
+class TestVerifyFileHash:
+    """Integrity verification for downloaded database files."""
+
+    def test_correct_hash_passes(self, tmp_path: Path):
+        payload = b"allelix-integrity-test-payload"
+        f = tmp_path / "good.bin"
+        f.write_bytes(payload)
+        import hashlib
+
+        expected = hashlib.sha256(payload).hexdigest()
+        verify_file_hash(f, "sha256", expected)
+        assert f.exists()
+
+    def test_flipped_byte_fails(self, tmp_path: Path):
+        payload = bytearray(b"allelix-integrity-test-payload")
+        f = tmp_path / "corrupt.bin"
+        f.write_bytes(bytes(payload))
+        import hashlib
+
+        expected = hashlib.sha256(bytes(payload)).hexdigest()
+        payload[0] ^= 0xFF
+        f.write_bytes(bytes(payload))
+        with pytest.raises(OSError, match="Integrity check failed"):
+            verify_file_hash(f, "sha256", expected)
+        assert not f.exists()
+
+    def test_md5_verification(self, tmp_path: Path):
+        payload = b"clinvar-vcf-test-data"
+        f = tmp_path / "clinvar.vcf.gz"
+        f.write_bytes(payload)
+        import hashlib
+
+        expected = hashlib.md5(payload).hexdigest()
+        verify_file_hash(f, "md5", expected)
+        assert f.exists()
+
+    def test_md5_mismatch_deletes_file(self, tmp_path: Path):
+        f = tmp_path / "clinvar.vcf.gz"
+        f.write_bytes(b"real data")
+        with pytest.raises(OSError, match="Integrity check failed"):
+            verify_file_hash(f, "md5", "0" * 32)
+        assert not f.exists()
 
 
 class _SlowHandler(http.server.BaseHTTPRequestHandler):

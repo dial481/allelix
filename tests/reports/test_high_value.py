@@ -73,6 +73,14 @@ class TestLoadHighValueSnps:
         assert snps["rs9999999"].gene == "NEWGENE"
 
 
+class TestScanNoCallsDefaultLoad:
+    def test_default_loads_builtin_high_value(self) -> None:
+        variants = [_v("rs429358", no_call=True)]
+        warnings = scan_no_calls(variants)
+        assert len(warnings) == 1
+        assert warnings[0].snp.rsid == "rs429358"
+
+
 class TestScanNoCalls:
     @pytest.fixture()
     def high_value(self) -> dict[str, HighValueSNP]:

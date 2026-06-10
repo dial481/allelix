@@ -576,7 +576,7 @@ class TestInstallPrebuiltCache:
         dest_db = tmp_path / "out.sqlite"
         fake_usage = type("Usage", (), {"free": 1})()
         with (
-            patch("allelix.databases.snpedia_loader.shutil.disk_usage", return_value=fake_usage),
+            patch("allelix.databases.loader_utils.shutil.disk_usage", return_value=fake_usage),
             pytest.raises(OSError, match="Not enough disk space"),
         ):
             install_prebuilt_cache(gz_path, dest_db)

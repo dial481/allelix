@@ -18,6 +18,7 @@ from allelix.databases.manager import (
     iter_clinvar_records,
     load_clinvar_vcf,
     parse_clinvar_version,
+    stamp_existing_clinvar_cache,
 )
 
 if TYPE_CHECKING:
@@ -370,3 +371,78 @@ class TestGetDatabaseInfo:
         with contextlib.closing(sqlite3.connect(db)) as conn:
             cols = {row[1] for row in conn.execute("PRAGMA table_info(database_versions)")}
             assert "local_version_tag" in cols
+
+    def test_v041_schema_unknown_name_returns_none(self, tmp_path: Path):
+        """4-column fallback returns None when the row doesn't match."""
+        db = tmp_path / "legacy.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(
+                "CREATE TABLE database_versions ("
+                "name TEXT PRIMARY KEY, source_url TEXT NOT NULL, "
+                "version TEXT, downloaded_at TEXT NOT NULL, "
+                "record_count INTEGER NOT NULL);"
+            )
+            conn.execute(
+                "INSERT INTO database_versions VALUES (?, ?, ?, ?, ?)",
+                ("clinvar", "url", "20240101", "2024-01-01", 100),
+            )
+            conn.commit()
+        assert get_database_info(db, "missing_name") is None
+
+    def test_pre_v150_unknown_name_returns_none(self, tmp_path: Path):
+        """5-column fallback returns None when the row doesn't match."""
+        db = tmp_path / "pre150.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(
+                "CREATE TABLE database_versions ("
+                "name TEXT PRIMARY KEY, source_url TEXT NOT NULL, "
+                "version TEXT, downloaded_at TEXT NOT NULL, "
+                "record_count INTEGER NOT NULL, remote_signal TEXT);"
+            )
+            conn.execute(
+                "INSERT INTO database_versions VALUES (?, ?, ?, ?, ?, ?)",
+                ("clinvar", "url", "20240101", "2024-01-01", 100, "etag:x"),
+            )
+            conn.commit()
+        assert get_database_info(db, "missing_name") is None
+
+
+class TestStampExistingClinvarCache:
+    def test_nonexistent_db_returns_false(self, tmp_path: Path):
+        assert stamp_existing_clinvar_cache(tmp_path / "nope.sqlite") is False
+
+    def test_no_clinvar_rows_returns_false(self, tmp_path: Path):
+        db = tmp_path / "empty.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(
+                "CREATE TABLE database_versions ("
+                "name TEXT PRIMARY KEY, source_url TEXT NOT NULL, "
+                "version TEXT, downloaded_at TEXT NOT NULL, "
+                "record_count INTEGER NOT NULL, remote_signal TEXT, "
+                "local_version_tag TEXT);"
+            )
+        assert stamp_existing_clinvar_cache(db) is False
+
+    def test_no_database_versions_table_returns_false(self, tmp_path: Path):
+        db = tmp_path / "bare.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.execute("CREATE TABLE other (x TEXT)")
+            conn.commit()
+        assert stamp_existing_clinvar_cache(db) is False
+
+    def test_stale_tag_returns_false(self, tmp_path: Path):
+        db = tmp_path / "stale.sqlite"
+        with contextlib.closing(sqlite3.connect(db)) as conn:
+            conn.executescript(
+                "CREATE TABLE database_versions ("
+                "name TEXT PRIMARY KEY, source_url TEXT NOT NULL, "
+                "version TEXT, downloaded_at TEXT NOT NULL, "
+                "record_count INTEGER NOT NULL, remote_signal TEXT, "
+                "local_version_tag TEXT);"
+            )
+            conn.execute(
+                "INSERT INTO database_versions VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ("clinvar.GRCh37", "url", "20240101", "2024-01-01", 100, "md5:x", "iv:999"),
+            )
+            conn.commit()
+        assert stamp_existing_clinvar_cache(db) is False

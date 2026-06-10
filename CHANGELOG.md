@@ -2,6 +2,35 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1]
+
+### Fixed
+- **Download integrity verification.** ClinVar downloads now verify
+  their md5 checksum against the NCBI sidecar file. HuggingFace
+  downloads (gnomAD, AlphaMissense, SNPedia) pin to specific commit
+  SHAs and verify SHA256 after download. Mismatches delete the corrupt
+  file and raise. GWAS Catalog and PharmGKB are documented gaps — no
+  upstream checksum exists. See ADR-0029.
+- **Coverage gate rounding.** pytest-cov with default `precision=0`
+  rounded 91.91% to 92%, silently passing `--cov-fail-under=92`. Set
+  `precision=2` and `fail_under=92.00` in `[tool.coverage.report]`.
+- **Circular import (#36).** `_versions.py` moved from
+  `allelix/annotators/` to `allelix/databases/` to break the
+  `gnomad_loader → annotators → alphamissense → gnomad_loader` cycle.
+
+### Changed
+- **Extracted shared loader utilities.** `install_prebuilt_cache()` was
+  duplicated across gnomad_loader, alphamissense_loader, and
+  snpedia_loader. Extracted to `install_prebuilt_gz_cache()` in
+  `databases/loader_utils.py`.
+- **Two-tier data source model (ADR-0030).** Server-driven sources
+  (ClinVar, GWAS Catalog, PharmGKB) probe for freshness at runtime.
+  Code-driven sources (gnomAD, AlphaMissense, SNPedia) use
+  commit-pinned HuggingFace URLs — no HEAD requests, no signal
+  stamping, refresh only via `--force` or code bump of the pinned
+  commit SHA. Vestigial `probe_http_signal()` and all redundant test
+  monkeypatches removed.
+
 ## [1.5.0]
 
 ### Changed

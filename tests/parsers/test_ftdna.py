@@ -270,6 +270,19 @@ class TestEdgeCases:
         assert len(variants) == 1
         assert variants[0].rsid == "rs1"
 
+    def test_no_header_in_file_rejects(self, parser: FTDNAParser, tmp_path: Path) -> None:
+        f = _write(tmp_path, "# just a comment\n# no header line\n")
+        assert parser.can_parse(f) is False
+
+    def test_data_before_header_warns_and_skips(self, parser: FTDNAParser, tmp_path: Path) -> None:
+        f = _write(
+            tmp_path,
+            '"rs1","1","100","AG"\nRSID,CHROMOSOME,POSITION,RESULT\n"rs2","1","200","CT"\n',
+        )
+        variants = list(parser.parse(f))
+        assert len(variants) == 1
+        assert variants[0].rsid == "rs2"
+
 
 class TestAutoDetection:
     def test_registry_detects_ftdna(self, mock_ftdna_path: Path) -> None:

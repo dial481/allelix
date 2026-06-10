@@ -408,7 +408,7 @@ def load_pharmgkb_tsv(
             if batch:
                 conn.executemany(insert_sql, batch)
                 count += len(batch)
-            from allelix.annotators._versions import PHARMGKB_INTERPRETER_VERSION
+            from allelix.databases._versions import PHARMGKB_INTERPRETER_VERSION
 
             conn.execute(
                 "INSERT INTO database_versions "

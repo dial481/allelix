@@ -18,15 +18,20 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators._versions import ALPHAMISSENSE_SCHEMA_VERSION
 from allelix.annotators.base import Annotator
+from allelix.databases._versions import ALPHAMISSENSE_SCHEMA_VERSION
 from allelix.databases.alphamissense_loader import (
     ALPHAMISSENSE_CACHE_URL,
     ALPHAMISSENSE_DB_FILENAME,
+    ALPHAMISSENSE_EXPECTED_SHA256,
     install_prebuilt_cache,
 )
 from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME
-from allelix.databases.manager import download, get_database_info, head_request_headers
+from allelix.databases.manager import (
+    download,
+    get_database_info,
+    verify_file_hash,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -50,6 +55,7 @@ class AlphaMissenseAnnotator(Annotator):
     display_name: ClassVar[str] = "AlphaMissense"
     attribution: ClassVar[str] = "AlphaMissense"
     requires_download: ClassVar[bool] = True
+    server_driven_freshness: ClassVar[bool] = False
 
     def __init__(self, data_dir: Path) -> None:
         """Bind to the data directory."""
@@ -98,14 +104,13 @@ class AlphaMissenseAnnotator(Annotator):
 
     def setup(self) -> None:
         """Download the pre-built AlphaMissense cache from HuggingFace."""
-        signal = self.fetch_remote_signal()
         gz_path = self.data_dir / "alphamissense.sqlite.gz"
         download(ALPHAMISSENSE_CACHE_URL, gz_path)
+        verify_file_hash(gz_path, "sha256", ALPHAMISSENSE_EXPECTED_SHA256)
         install_prebuilt_cache(
             gz_path,
             self._db_path,
             source_url=ALPHAMISSENSE_CACHE_URL,
-            remote_signal=signal,
         )
         try:
             gz_path.unlink()
@@ -137,24 +142,12 @@ class AlphaMissenseAnnotator(Annotator):
             self._conn = None
 
     def fetch_remote_signal(self) -> str | None:
-        """Probe the HuggingFace asset URL for ETag or Last-Modified."""
-        headers = head_request_headers(ALPHAMISSENSE_CACHE_URL)
-        if headers is None:
-            return None
-        etag = headers.get("ETag") or headers.get("Etag")
-        last_modified = headers.get("Last-Modified") or headers.get("Last-modified")
-        if etag:
-            return f"etag:{etag.strip()}"
-        if last_modified:
-            return f"lm:{last_modified.strip()}"
+        """Code-driven source — no runtime freshness probe (ADR-0030)."""
         return None
 
     def cached_remote_signal(self) -> str | None:
-        """Return the remote signal stored at last successful download."""
-        info = get_database_info(self._db_path, "alphamissense")
-        if not info or not info["remote_signal"]:
-            return None
-        return info["remote_signal"]
+        """Code-driven source — no cached signal to compare (ADR-0030)."""
+        return None
 
     def annotate(self, variant: Variant) -> list[Annotation]:
         """Not used — AlphaMissense enriches, does not annotate. Always returns []."""

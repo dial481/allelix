@@ -52,6 +52,7 @@ class Annotator(ABC):
     display_name: ClassVar[str]
     attribution: ClassVar[str]
     requires_download: ClassVar[bool] = True
+    server_driven_freshness: ClassVar[bool] = True
 
     def __init__(self, data_dir: Path) -> None:
         """Bind the annotator to a data directory (created elsewhere)."""

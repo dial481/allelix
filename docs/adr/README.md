@@ -34,6 +34,8 @@ Each ADR captures one decision: the context that forced it, what we chose, and t
 - [ADR-0026: gnomAD exome frequency cache](0026-gnomad-exome-frequency-cache.md)
 - [ADR-0027: AlphaMissense pathogenicity cache](0027-alphamissense-pathogenicity-cache.md)
 - [ADR-0028: Local version tag convention (`local_version_tag`)](0028-local-version-tag-convention.md)
+- [ADR-0029: Download integrity verification](0029-download-integrity-verification.md)
+- [ADR-0030: Data source update cadence drives refresh and integrity](0030-data-source-update-cadence.md)
 
 ## Writing a new ADR
 

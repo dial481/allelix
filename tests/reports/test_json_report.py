@@ -178,3 +178,11 @@ class TestLicenseAttributions:
         ann = payload["annotations"][0]
         assert ann["am_pathogenicity"] is None
         assert ann["am_class"] == ""
+
+    def test_pharmgkb_am_caveat(self, tmp_path: Path):
+        out = tmp_path / "r.json"
+        a = _ann(source="pharmgkb", am_pathogenicity=0.85, am_class="likely_pathogenic")
+        render_json(_result([a]), output_path=out)
+        payload = json.loads(out.read_text())
+        ann = payload["annotations"][0]
+        assert ann["am_caveat"] == "protein structure impact only"

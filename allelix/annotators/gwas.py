@@ -116,6 +116,9 @@ class GWASCatalogAnnotator(Annotator):
             raise RuntimeError(msg)
         zip_path = self.data_dir / "gwas_catalog_associations.zip"
         tsv_path = self.data_dir / "gwas_catalog_associations.tsv"
+        # No content-hash verification: EBI publishes no checksum for this
+        # file and the content is mutable, so there is nothing to pin or
+        # fetch. TLS + Content-Length truncation guard only. See ADR-0029.
         download(url, zip_path)
         try:
             with zipfile.ZipFile(zip_path) as zf:

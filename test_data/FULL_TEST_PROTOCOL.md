@@ -30,7 +30,7 @@ required — all mock data is committed.
 python -m pytest tests/ -x --tb=short
 ```
 
-**Expected:** 1066 tests pass, 0 failures.
+**Expected:** 1081 tests pass, 0 failures.
 
 Check lint:
 
@@ -295,14 +295,13 @@ allelix db update
 **Expected:** Most annotators show "already current". Per-annotator
 states:
 
-- ClinVar, GWAS Catalog: "already current"
-- PharmGKB: "already current" or "cache present, but remote freshness
-  can't be verified" (depends on CPIC API availability)
-- gnomAD, AlphaMissense: "already current" or "cache present, but
-  remote freshness can't be verified" (depends on HuggingFace
-  returning an ETag header — transient 5xx or missing header makes
-  `fetch_remote_signal()` return None)
-- SNPedia: "already current" (signal stamped during step 3 download)
+- ClinVar, GWAS Catalog (server-driven): "already current" or "can't
+  be verified" (ETag/sidecar-dependent)
+- PharmGKB (server-driven, CPIC-API dependent): "already current" or
+  "can't be verified"
+- gnomAD, AlphaMissense, SNPedia (code-driven, ADR-0030): always
+  "already current" — refresh only via `--force` or code bump of
+  pinned commit SHA
 
 No re-downloads.
 
@@ -311,6 +310,11 @@ allelix db update --force
 ```
 
 **Expected:** All annotators re-download and show green checkmarks.
+Note: `--force` semantics differ by tier. Server-driven sources
+override a "signal matches" skip; code-driven sources have no
+signal-match path to override — `--force` is the only way to
+re-trigger their download because pinned URLs are deterministic.
+See ADR-0030.
 
 ## 13. GWAS Catalog real-data sanity (slow tests)
 
@@ -365,7 +369,7 @@ rm -rf ~/.local/share/allelix/
 
 All of the following must be true:
 
-- [ ] Unit test suite: 1066 passed, 0 failed
+- [ ] Unit test suite: 1081 passed, 0 failed
 - [ ] Ruff lint + format: zero warnings
 - [ ] `db update` downloads all 6 annotators without errors
 - [ ] `db status` shows all annotators ready with version and record count

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import gzip
+import hashlib
 import logging
 import os
 import sqlite3
@@ -131,6 +132,26 @@ def download(url: str, dest: Path) -> None:
             except OSError:
                 logger.warning("Could not remove stale partial download %s", part_path)
         raise
+
+
+def verify_file_hash(path: Path, algorithm: str, expected_hex: str) -> None:
+    """Verify a file's cryptographic hash and delete it on mismatch.
+
+    Reads the file in streaming chunks to avoid loading multi-GB files
+    into memory. On mismatch, deletes the file and raises ``OSError``.
+    """
+    h = hashlib.new(algorithm)
+    with path.open("rb") as f:
+        while chunk := f.read(DOWNLOAD_CHUNK_SIZE):
+            h.update(chunk)
+    actual = h.hexdigest()
+    if actual != expected_hex:
+        path.unlink(missing_ok=True)
+        raise OSError(
+            f"Integrity check failed for {path.name}: "
+            f"expected {algorithm}:{expected_hex}, "
+            f"got {algorithm}:{actual}"
+        )
 
 
 def _parse_info(info: str) -> dict[str, str]:
@@ -305,7 +326,7 @@ def load_clinvar_vcf(
             if batch:
                 conn.executemany(insert_sql, batch)
                 count += len(batch)
-            from allelix.annotators._versions import CLINVAR_INTERPRETER_VERSION
+            from allelix.databases._versions import CLINVAR_INTERPRETER_VERSION
 
             conn.execute(
                 "INSERT INTO database_versions "
@@ -462,7 +483,7 @@ def stamp_existing_clinvar_cache(db_path: Path) -> bool:
         return False
     import contextlib
 
-    from allelix.annotators._versions import CLINVAR_INTERPRETER_VERSION
+    from allelix.databases._versions import CLINVAR_INTERPRETER_VERSION
 
     tag = f"iv:{CLINVAR_INTERPRETER_VERSION}"
     with contextlib.closing(sqlite3.connect(db_path)) as conn:

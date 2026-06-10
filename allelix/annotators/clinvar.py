@@ -17,15 +17,16 @@ import logging
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators._versions import CLINVAR_INTERPRETER_VERSION
 from allelix.annotators.base import Annotator
 from allelix.databases import manager as _manager_module
+from allelix.databases._versions import CLINVAR_INTERPRETER_VERSION
 from allelix.databases.manager import (
     download,
     fetch_remote_text,
     get_database_info,
     load_clinvar_vcf,
     stamp_existing_clinvar_cache,
+    verify_file_hash,
 )
 from allelix.models import Annotation
 
@@ -163,6 +164,7 @@ class ClinVarAnnotator(Annotator):
         vcf_path = self.data_dir / _vcf_filename_for_url(url)
         download(url, vcf_path)
         try:
+            verify_file_hash(vcf_path, "md5", signal.removeprefix("md5:"))
             load_clinvar_vcf(
                 vcf_path,
                 self._db_paths[build],

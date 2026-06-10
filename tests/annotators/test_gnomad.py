@@ -286,26 +286,15 @@ class TestCloseable:
 
 
 class TestRemoteSignal:
-    """Remote signal fetch and cached signal retrieval."""
+    """Code-driven source — signal methods always return None (ADR-0030)."""
 
-    def test_cached_signal_none_when_missing(self, tmp_path: Path) -> None:
+    def test_fetch_remote_signal_returns_none(self, tmp_path: Path) -> None:
+        annotator = GnomadAnnotator(tmp_path)
+        assert annotator.fetch_remote_signal() is None
+
+    def test_cached_remote_signal_returns_none(self, tmp_path: Path) -> None:
         annotator = GnomadAnnotator(tmp_path)
         assert annotator.cached_remote_signal() is None
-
-    def test_cached_signal_none_when_no_signal_stored(self, gnomad_db: Path) -> None:
-        annotator = GnomadAnnotator(gnomad_db)
-        assert annotator.cached_remote_signal() is None
-
-    def test_cached_signal_returns_stored_value(self, gnomad_db: Path) -> None:
-        db_path = gnomad_db / GNOMAD_DB_FILENAME
-        with contextlib.closing(sqlite3.connect(db_path)) as conn:
-            conn.execute(
-                "UPDATE database_versions SET remote_signal = ? WHERE name = 'gnomad'",
-                ("etag:abc123",),
-            )
-            conn.commit()
-        annotator = GnomadAnnotator(gnomad_db)
-        assert annotator.cached_remote_signal() == "etag:abc123"
 
 
 class TestRegistryMetadata:

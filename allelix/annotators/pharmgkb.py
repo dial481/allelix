@@ -10,8 +10,8 @@ import sqlite3
 import urllib.error
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators._versions import PHARMGKB_INTERPRETER_VERSION
 from allelix.annotators.base import Annotator, is_clinvar_homref
+from allelix.databases._versions import PHARMGKB_INTERPRETER_VERSION
 from allelix.databases.cpic_loader import (
     fetch_cpic_allele_functions,
     fetch_cpic_remote_signal,
@@ -110,6 +110,9 @@ class PharmGKBAnnotator(Annotator):
             )
             raise RuntimeError(msg)
         zip_path = self.data_dir / "clinicalAnnotations.zip"
+        # No content-hash verification: PharmGKB publishes no checksum and
+        # the content is mutable, so there is nothing to pin or fetch.
+        # TLS + Content-Length truncation guard only. See ADR-0029.
         download(url, zip_path)
         try:
             cpic_lookup = fetch_cpic_allele_functions()

@@ -144,6 +144,10 @@ def _maybe_refresh_databases(data_dir: Path) -> None:
         with annotator:
             if not annotator.requires_download or not annotator.is_ready():
                 continue
+            # Code-driven sources (commit-pinned HF caches) never change
+            # at a fixed URL — skip the HEAD request. See ADR-0030.
+            if not annotator.server_driven_freshness:
+                continue
             db_files = list(data_dir.glob(f"{annotator.name}*sqlite*"))
             if not db_files:
                 continue
@@ -1078,6 +1082,15 @@ def db_update(
                         f"  [green]✓ {annotator.name} refreshed[/green] "
                         f"(version {annotator.version() or '(unknown)'})"
                     )
+                continue
+
+            # Code-driven sources (commit-pinned HF caches) are updated
+            # only via code changes — no runtime freshness probe needed.
+            if not annotator.server_driven_freshness:
+                console.print(
+                    f"  [dim]{annotator.name}: already current "
+                    f"(version {annotator.version() or '(unknown)'})[/dim]"
+                )
                 continue
 
             remote = annotator.fetch_remote_signal()

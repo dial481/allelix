@@ -270,7 +270,7 @@ class TestInstallPrebuiltCache:
 
         dest_db = tmp_path / "out.sqlite"
         fake_usage = type("Usage", (), {"free": 1})()
-        target = "allelix.databases.alphamissense_loader.shutil.disk_usage"
+        target = "allelix.databases.loader_utils.shutil.disk_usage"
         with (
             patch(target, return_value=fake_usage),
             pytest.raises(OSError, match="Not enough disk space"),

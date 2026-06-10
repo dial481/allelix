@@ -17,6 +17,7 @@ from allelix.reports.diff import (
     ChangedAnnotation,
     DiffResult,
     compute_diff,
+    diff_annotation_to_dict,
     load_previous_report,
     summarize_diff,
 )
@@ -316,3 +317,17 @@ class TestSummarizeDiff:
         diff = DiffResult(new=[_ann()], previous_generated_at="")
         result = summarize_diff(diff)
         assert result.startswith("Changes:")
+
+
+class TestDiffAnnotationToDict:
+    def test_serializes_changed_annotation(self) -> None:
+        changed = ChangedAnnotation(
+            current=_ann(significance="clinvar_likely_benign", magnitude=2.0),
+            previous_significance="clinvar_pathogenic",
+            previous_magnitude=9.0,
+        )
+        d = diff_annotation_to_dict(changed)
+        assert d["significance"] == "clinvar_likely_benign"
+        assert d["previous_significance"] == "clinvar_pathogenic"
+        assert d["previous_magnitude"] == 9.0
+        assert "is_must_include" not in d

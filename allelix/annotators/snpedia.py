@@ -19,8 +19,15 @@ import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
 from allelix.annotators.base import Annotator, is_clinvar_homref
-from allelix.databases.manager import download, get_database_info, head_request_headers
-from allelix.databases.snpedia_loader import SNPEDIA_CACHE_URL, install_prebuilt_cache
+from allelix.databases.manager import (
+    download,
+    verify_file_hash,
+)
+from allelix.databases.snpedia_loader import (
+    SNPEDIA_CACHE_URL,
+    SNPEDIA_EXPECTED_SHA256,
+    install_prebuilt_cache,
+)
 from allelix.models import Annotation
 
 if TYPE_CHECKING:
@@ -56,6 +63,7 @@ class SNPediaAnnotator(Annotator):
     display_name: ClassVar[str] = "SNPedia"
     attribution: ClassVar[str] = "SNPedia"
     requires_download: ClassVar[bool] = True
+    server_driven_freshness: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -87,14 +95,13 @@ class SNPediaAnnotator(Annotator):
         client-side parse into structured genotype rows and stamps
         ``database_versions`` with proper version metadata.
         """
-        signal = self.fetch_remote_signal()
         gz_path = self.data_dir / "snpedia.sqlite.gz"
         download(SNPEDIA_CACHE_URL, gz_path)
+        verify_file_hash(gz_path, "sha256", SNPEDIA_EXPECTED_SHA256)
         install_prebuilt_cache(
             gz_path,
             self._db_path,
             source_url=SNPEDIA_CACHE_URL,
-            remote_signal=signal,
         )
         try:
             gz_path.unlink()
@@ -185,24 +192,12 @@ class SNPediaAnnotator(Annotator):
             self._conn = None
 
     def fetch_remote_signal(self) -> str | None:
-        """Probe the HuggingFace asset URL for ETag or Last-Modified."""
-        headers = head_request_headers(SNPEDIA_CACHE_URL)
-        if headers is None:
-            return None
-        etag = headers.get("ETag") or headers.get("Etag")
-        last_modified = headers.get("Last-Modified") or headers.get("Last-modified")
-        if etag:
-            return f"etag:{etag.strip()}"
-        if last_modified:
-            return f"lm:{last_modified.strip()}"
+        """Code-driven source — no runtime freshness probe (ADR-0030)."""
         return None
 
     def cached_remote_signal(self) -> str | None:
-        """Return the remote signal stored at last successful download."""
-        info = get_database_info(self._db_path, SNPEDIA_RECORD_NAME)
-        if not info or not info["remote_signal"]:
-            return None
-        return info["remote_signal"] or None
+        """Code-driven source — no cached signal to compare (ADR-0030)."""
+        return None
 
     def annotate(self, variant: Variant) -> list[Annotation]:
         """Return SNPedia annotations matching the user's genotype."""
