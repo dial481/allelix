@@ -2,6 +2,17 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2]
+
+### Fixed
+- **Coverage gate enforced by pytest again.** v1.5.1 moved the threshold
+  to `[tool.coverage.report]`, but pytest only fails on low coverage when
+  `--cov-fail-under` is set (CI runs `pytest`, not `coverage report`), and
+  the config key is honored version-dependently on unpinned pytest-cov.
+  Restored `--cov-fail-under=92` to `addopts`; `precision = 2` retained,
+  so the v1.5.1 rounding fix stands. Pinned `pytest-cov>=7,<8` to prevent
+  future drift.
+
 ## [1.5.1]
 
 ### Fixed
@@ -1467,6 +1478,10 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.5.2]: https://github.com/dial481/allelix/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/dial481/allelix/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/dial481/allelix/compare/v1.4.1...v1.5.0
+[1.4.1]: https://github.com/dial481/allelix/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/dial481/allelix/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/dial481/allelix/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/dial481/allelix/compare/v1.2.0...v1.3.0
