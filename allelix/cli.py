@@ -109,10 +109,14 @@ def _ready_annotators(
     *,
     include_benign: bool = False,
     gwas_filter_traits: bool = True,
+    cadd_full: bool = False,
 ) -> tuple[Path, list[Annotator], list[Annotator]]:
     resolved = resolve_data_dir(data_dir)
     annotators = get_annotators(
-        resolved, include_benign=include_benign, gwas_filter_traits=gwas_filter_traits
+        resolved,
+        include_benign=include_benign,
+        gwas_filter_traits=gwas_filter_traits,
+        cadd_full=cadd_full,
     )
     ready: list[Annotator] = []
     not_ready: list[Annotator] = []
@@ -215,13 +219,16 @@ def _run_analysis_command(
     if not no_update:
         _maybe_refresh_databases(resolved)
     parser = _resolve_parser(file_path, fmt)
-    _, ready, not_ready = _ready_annotators(
-        data_dir, include_benign=include_benign, gwas_filter_traits=not gwas_all
-    )
 
     from allelix.config import load_config
 
     cfg = load_config(resolved)
+    _, ready, not_ready = _ready_annotators(
+        data_dir,
+        include_benign=include_benign,
+        gwas_filter_traits=not gwas_all,
+        cadd_full=cfg.cadd_full,
+    )
     annotator_classes = {type(a).name: type(a) for a in ready}
     ready = [a for a in ready if cfg.is_enabled(a.name, annotator_classes)]
 
@@ -248,6 +255,15 @@ def _run_analysis_command(
                 break
     ready = [a for a in ready if a.name != "alphamissense"]
 
+    cadd_annotator = None
+    from allelix.annotators.cadd import CaddAnnotator
+
+    for a in ready:
+        if isinstance(a, CaddAnnotator):
+            cadd_annotator = a
+            break
+    ready = [a for a in ready if a.name != "cadd"]
+
     if not_ready:
         names = [a.name for a in not_ready]
         console.print(
@@ -260,6 +276,8 @@ def _run_analysis_command(
         all_active.append(gnomad_annotator)
     if am_annotator is not None and am_annotator.is_ready():
         all_active.append(am_annotator)
+    if cadd_annotator is not None and cadd_annotator.is_ready():
+        all_active.append(cadd_annotator)
     versions = ", ".join(f"{a.display_name} ({a.version() or 'unknown'})" for a in all_active)
     console.print(f"[dim]Analyzing against: {versions}[/dim]")
 
@@ -273,6 +291,7 @@ def _run_analysis_command(
             build_override=build,
             gnomad=gnomad_annotator,
             alphamissense=am_annotator,
+            cadd=cadd_annotator,
         )
     finally:
         _unwire_parser_logging(counter, stderr_handler, snapshot)
@@ -981,6 +1000,26 @@ def _stamp_remote_signal(annotator: Annotator, signal: str) -> None:
         conn.commit()
 
 
+def _confirm_cadd_license(*, license_held: bool = False) -> bool:
+    """Show the CADD license notice and ask for confirmation."""
+    if license_held:
+        console.print(
+            "\n[bold yellow]CADD License Notice[/bold yellow]\n"
+            "Commercial license asserted. Proceeding with CADD download.\n"
+        )
+        return True
+    console.print(
+        "\n[bold yellow]CADD License Notice[/bold yellow]\n"
+        "CADD scores are provided by the University of Washington.\n"
+        "Commercial use requires a license from UW CoMotion\n"
+        "([link=https://els2.comotion.uw.edu/product/cadd-scores]"
+        "https://els2.comotion.uw.edu/product/cadd-scores[/link]).\n"
+        "By continuing, you confirm that your use is non-commercial\n"
+        "or that you hold a valid commercial license.\n"
+    )
+    return click.confirm("Continue with CADD download?", default=False)
+
+
 def _run_setup(annotator: Annotator) -> bool:
     """Invoke annotator.setup(). Returns True on success, False on failure."""
     try:
@@ -1020,6 +1059,13 @@ def _run_setup(annotator: Annotator) -> bool:
     help="Skip AlphaMissense pathogenicity database.",
 )
 @click.option(
+    "--cadd",
+    "include_cadd",
+    is_flag=True,
+    default=False,
+    help="Download CADD deleteriousness scores (non-commercial use only; disabled by default).",
+)
+@click.option(
     "--build",
     type=click.Choice(["grch37", "grch38", "both"], case_sensitive=False),
     default="both",
@@ -1031,7 +1077,12 @@ def _run_setup(annotator: Annotator) -> bool:
     ),
 )
 def db_update(
-    data_dir: Path | None, force: bool, no_gnomad: bool, no_alphamissense: bool, build: str
+    data_dir: Path | None,
+    force: bool,
+    no_gnomad: bool,
+    no_alphamissense: bool,
+    include_cadd: bool,
+    build: str,
 ) -> None:
     """Download or refresh reference databases.
 
@@ -1049,8 +1100,15 @@ def db_update(
     """
     resolved = resolve_data_dir(data_dir)
     console.print(f"Data directory: [cyan]{resolved}[/cyan]")
+
+    from allelix.config import load_config
+
+    cfg = load_config(resolved)
+
     clinvar_builds = _resolve_clinvar_builds(build)
-    for annotator in get_annotators(resolved, clinvar_builds=clinvar_builds):
+    for annotator in get_annotators(
+        resolved, clinvar_builds=clinvar_builds, cadd_full=cfg.cadd_full
+    ):
         with annotator:
             if no_gnomad and annotator.name == "gnomad":
                 console.print(f"  [dim]{annotator.name}: skipped (--no-gnomad)[/dim]")
@@ -1058,6 +1116,20 @@ def db_update(
             if no_alphamissense and annotator.name == "alphamissense":
                 console.print(f"  [dim]{annotator.name}: skipped (--no-alphamissense)[/dim]")
                 continue
+
+            if annotator.name == "cadd":
+                if not include_cadd and not cfg.is_enabled("cadd"):
+                    console.print(
+                        f"  [dim]{annotator.name}: disabled "
+                        "(enable with `allelix config set sources.cadd true` "
+                        "or pass `--cadd`)[/dim]"
+                    )
+                    continue
+                if (not annotator.is_ready() or force) and not _confirm_cadd_license(
+                    license_held=cfg.license_held("cadd"),
+                ):
+                    console.print(f"  [dim]{annotator.name}: skipped (declined)[/dim]")
+                    continue
 
             if not annotator.requires_download:
                 if annotator.is_ready():
@@ -1131,13 +1203,16 @@ def db_update(
 @_DATA_DIR_OPT
 def db_status(data_dir: Path | None) -> None:
     """Show installed reference database versions and freshness."""
+    from allelix.config import load_config
+
     resolved = resolve_data_dir(data_dir)
+    cfg = load_config(resolved)
     table = Table(title=f"Reference Databases ({resolved})")
     table.add_column("Annotator", style="cyan", no_wrap=True)
     table.add_column("Ready", justify="center")
     table.add_column("Version")
     table.add_column("Records", justify="right")
-    for annotator in get_annotators(resolved):
+    for annotator in get_annotators(resolved, cadd_full=cfg.cadd_full):
         with annotator:
             ready = annotator.is_ready()
             ready_marker = "[green]yes[/green]" if ready else "[red]no[/red]"
@@ -1165,7 +1240,8 @@ def config() -> None:
 def config_show(data_dir: Path | None) -> None:
     """Display current configuration."""
     from allelix.annotators import _ANNOTATOR_CLASSES
-    from allelix.annotators.base import is_non_commercial
+    from allelix.annotators.base import Permission
+    from allelix.annotators.base import permission as check_permission
     from allelix.config import load_config
 
     resolved = resolve_data_dir(data_dir)
@@ -1177,19 +1253,82 @@ def config_show(data_dir: Path | None) -> None:
     table.add_column("Note", style="dim")
     for name, enabled in sorted(cfg.sources.items()):
         cls = _ANNOTATOR_CLASSES.get(name)
-        if cfg.commercial and cls and is_non_commercial(cls.license.spdx):
-            marker = "[red]no[/red]"
-            note = "disabled by commercial mode"
+        note = ""
+        if cls is not None:
+            perm = check_permission(
+                cls.license,
+                commercial=cfg.commercial,
+                license_held=cfg.license_held(name),
+            )
+            if perm is Permission.BLOCK_PURCHASABLE:
+                marker = "[red]no[/red]"
+                note = f"requires commercial license — purchase: {cls.license.purchase_url}"
+            elif perm is Permission.BLOCK_FINAL:
+                marker = "[red]no[/red]"
+                note = "no commercial license is available"
+            elif enabled:
+                marker = "[green]yes[/green]"
+            else:
+                marker = "[red]no[/red]"
         elif enabled:
             marker = "[green]yes[/green]"
-            note = ""
         else:
             marker = "[red]no[/red]"
-            note = ""
         table.add_row(name, marker, note)
     console.print(table)
     mode = "[yellow]commercial[/yellow]" if cfg.commercial else "[green]personal[/green]"
     console.print(f"License mode: {mode}")
+
+
+@config.command("get")
+@_DATA_DIR_OPT
+@click.argument("key", required=False, default=None)
+def config_get(data_dir: Path | None, key: str | None) -> None:
+    r"""Get a configuration value (or dump entire config).
+
+    \b
+    Keys:
+      sources.<name>       Show if a source is enabled
+      license.commercial   Show commercial mode
+      license.<source>     Show if a license is asserted for <source>
+      options.cadd_full    Show full CADD tabix mode
+
+    \b
+    Examples:
+      allelix config get                     # dump entire config
+      allelix config get sources.cadd        # true
+      allelix config get license.cadd        # false
+      allelix config get options.cadd_full   # false
+    """
+    from allelix.config import _serialize, load_config
+
+    resolved = resolve_data_dir(data_dir)
+    cfg = load_config(resolved)
+
+    if key is None:
+        click.echo(_serialize(cfg))
+        return
+
+    if key.startswith("sources."):
+        source_name = key[len("sources.") :]
+        val = cfg.sources.get(source_name)
+        if val is None:
+            raise click.ClickException(
+                f"Unknown source {source_name!r}. Known sources: {', '.join(sorted(cfg.sources))}"
+            )
+        click.echo(str(val).lower())
+    elif key == "license.commercial":
+        click.echo(str(cfg.commercial).lower())
+    elif key.startswith("license."):
+        source_name = key[len("license.") :]
+        click.echo(str(cfg.license_held(source_name)).lower())
+    elif key == "options.cadd_full":
+        click.echo(str(cfg.cadd_full).lower())
+    else:
+        raise click.ClickException(
+            f"Unknown key {key!r}. Use 'sources.<name>', 'license.commercial', "
+            "'license.<source>', or 'options.cadd_full'."
+        )
 
 
 @config.command("set")
@@ -1201,13 +1340,17 @@ def config_set(data_dir: Path | None, key: str, value: str) -> None:
 
     \b
     Keys:
-      sources.<name>     Enable/disable a source (true/false)
-      license.commercial Set commercial mode (true/false)
+      sources.<name>       Enable/disable a source (true/false)
+      license.commercial   Set commercial mode (true/false)
+      license.<source>     Assert you hold a commercial license for <source>
+      options.cadd_full    Use full CADD tabix file instead of cache (true/false)
 
     \b
     Examples:
       allelix config set sources.snpedia false
       allelix config set license.commercial true
+      allelix config set license.cadd true
+      allelix config set options.cadd_full true
     """
     from allelix.config import load_config, save_config
 
@@ -1224,9 +1367,33 @@ def config_set(data_dir: Path | None, key: str, value: str) -> None:
         cfg.sources[source_name] = bool_val
     elif key == "license.commercial":
         cfg.commercial = bool_val
+    elif key.startswith("license."):
+        source_name = key[len("license.") :]
+        if bool_val:
+            from allelix.annotators import get_annotator_class
+
+            cls = get_annotator_class(source_name)
+            if cls is not None and not cls.license.licensable:
+                raise click.ClickException(
+                    f"{source_name} is not commercially licensable. "
+                    f"This assertion has no effect and cannot be set."
+                )
+            cfg.license_overrides[source_name] = True
+        else:
+            from allelix.annotators import get_annotator_class
+
+            if (
+                get_annotator_class(source_name) is None
+                and source_name not in cfg.license_overrides
+            ):
+                console.print(f"[yellow]Warning: unknown source {source_name!r}[/yellow]")
+            cfg.license_overrides.pop(source_name, None)
+    elif key == "options.cadd_full":
+        cfg.cadd_full = bool_val
     else:
         raise click.ClickException(
-            f"Unknown key {key!r}. Use 'sources.<name>' or 'license.commercial'."
+            f"Unknown key {key!r}. Use 'sources.<name>', 'license.commercial', "
+            "'license.<source>', or 'options.cadd_full'."
         )
 
     save_config(resolved, cfg)

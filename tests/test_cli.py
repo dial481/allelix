@@ -490,6 +490,10 @@ class TestDbCommands:
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
 
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
+
         # The download() helper writes to data_dir/clinvar.vcf.gz and
         # data_dir/clinicalAnnotations.zip. Use a separate cache subdir so the
         # source ZIP fixture above doesn't collide.
@@ -581,6 +585,10 @@ class TestDbCommands:
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
 
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
+
         runner = CliRunner()
         result = runner.invoke(
             main,
@@ -665,6 +673,10 @@ class TestDbCommands:
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
 
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
+
         runner = CliRunner()
         result = runner.invoke(
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
@@ -726,6 +738,10 @@ class TestDbCommands:
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
 
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
+
         runner = CliRunner()
         result = runner.invoke(
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
@@ -767,6 +783,10 @@ class TestDbCommands:
         from allelix.annotators.snpedia import SNPediaAnnotator
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(main, ["db", "update", "--data-dir", str(clinvar_data_dir)])
@@ -846,6 +866,10 @@ class TestDbCommands:
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
 
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
+
         runner = CliRunner()
         result = runner.invoke(
             main, ["db", "update", "--data-dir", str(tmp_path), "--build", "grch37"]
@@ -883,6 +907,10 @@ class TestDbCommands:
         from allelix.annotators.snpedia import SNPediaAnnotator
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -925,6 +953,10 @@ class TestDbCommands:
         from allelix.annotators.snpedia import SNPediaAnnotator
 
         monkeypatch.setattr(SNPediaAnnotator, "setup", lambda self: None)
+
+        from allelix.annotators.cadd import CaddAnnotator
+
+        monkeypatch.setattr(CaddAnnotator, "setup", lambda self: None)
 
         runner = CliRunner()
         result = runner.invoke(
@@ -1594,3 +1626,133 @@ class TestConfigCommands:
         )
         assert result.exit_code != 0
         assert "true" in result.output or "false" in result.output
+
+
+class TestConfigGetCommand:
+    def test_config_get_no_key_dumps_toml(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["config", "get", "--data-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "[sources]" in result.output
+        assert "[license]" in result.output
+        assert "[options]" in result.output
+
+    def test_config_get_sources_cadd(self, tmp_path: Path):
+        runner = CliRunner()
+        runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "sources.cadd", "true"],
+        )
+        result = runner.invoke(
+            main, ["config", "get", "--data-dir", str(tmp_path), "sources.cadd"]
+        )
+        assert result.exit_code == 0
+        assert result.output.strip() == "true"
+
+    def test_config_get_options_cadd_full(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["config", "get", "--data-dir", str(tmp_path), "options.cadd_full"]
+        )
+        assert result.exit_code == 0
+        assert result.output.strip() == "false"
+
+    def test_config_get_license_commercial(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["config", "get", "--data-dir", str(tmp_path), "license.commercial"]
+        )
+        assert result.exit_code == 0
+        assert result.output.strip() == "false"
+
+    def test_config_get_unknown_key(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(main, ["config", "get", "--data-dir", str(tmp_path), "foo.bar"])
+        assert result.exit_code != 0
+        assert "Unknown key" in result.output
+
+    def test_config_get_unknown_source(self, tmp_path: Path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["config", "get", "--data-dir", str(tmp_path), "sources.nonexistent"]
+        )
+        assert result.exit_code != 0
+        assert "Unknown source" in result.output
+
+    def test_config_get_license_source(self, tmp_path: Path):
+        from allelix.config import AllelixConfig, save_config
+
+        save_config(tmp_path, AllelixConfig(license_overrides={"cadd": True}))
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["config", "get", "--data-dir", str(tmp_path), "license.cadd"]
+        )
+        assert result.exit_code == 0
+        assert result.output.strip() == "true"
+
+
+class TestLicensableGating:
+    def test_block_purchasable_message_contains_url(self, tmp_path: Path):
+        """Commercial mode, CADD not asserted → config show contains purchase URL."""
+        from allelix.config import AllelixConfig, save_config
+
+        save_config(tmp_path, AllelixConfig(commercial=True, sources={"cadd": True}))
+        runner = CliRunner(env={"COLUMNS": "300"})
+        result = runner.invoke(main, ["config", "show", "--data-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "els2.comotion.uw.edu" in result.output
+
+    def test_consent_notice_branches_on_license_held(self):
+        """license_held=True auto-accepts and does NOT show non-commercial affirmation."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        from allelix import cli as cli_mod
+
+        buf = StringIO()
+        original = cli_mod.console
+        cli_mod.console = Console(file=buf)
+        try:
+            result = cli_mod._confirm_cadd_license(license_held=True)
+        finally:
+            cli_mod.console = original
+        assert result is True
+        output = buf.getvalue()
+        assert "non-commercial" not in output.lower()
+        assert "Commercial license asserted" in output
+
+    def test_block_final_message_no_license_available(self, tmp_path: Path):
+        """Commercial mode, SNPedia → config show says no commercial license available."""
+        from allelix.config import AllelixConfig, save_config
+
+        save_config(tmp_path, AllelixConfig(commercial=True))
+        runner = CliRunner(env={"COLUMNS": "300"})
+        result = runner.invoke(main, ["config", "show", "--data-dir", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "no commercial license is available" in result.output
+
+    def test_config_set_license_non_licensable_rejected(self, tmp_path: Path):
+        """Setting license.snpedia true is rejected — SNPedia is not licensable."""
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "license.snpedia", "true"],
+        )
+        assert result.exit_code != 0
+        assert "not commercially licensable" in result.output
+
+    def test_config_set_license_false_pops_key(self, tmp_path: Path):
+        """Setting license.cadd false removes the key from the serialized config."""
+        from allelix.config import AllelixConfig, load_config, save_config
+
+        save_config(tmp_path, AllelixConfig(license_overrides={"cadd": True}))
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["config", "set", "--data-dir", str(tmp_path), "license.cadd", "false"],
+        )
+        assert result.exit_code == 0
+        cfg = load_config(tmp_path)
+        assert not cfg.license_held("cadd")
+        assert "cadd" not in cfg.license_overrides

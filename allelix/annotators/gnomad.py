@@ -60,6 +60,7 @@ class GnomadAnnotator(Annotator):
         license_url="https://opendatacommons.org/licenses/odbl/1-0/",
         attribution_text=("Population frequencies sourced from gnomAD, used under ODbL v1.0."),
         source_url="https://gnomad.broadinstitute.org",
+        commercial_ok=True,
     )
 
     def __init__(self, data_dir: Path) -> None:
@@ -161,6 +162,32 @@ class GnomadAnnotator(Annotator):
             for rsid, af in rows:
                 if af is not None:
                     result[rsid] = af
+        return result
+
+    def bulk_resolve_coordinates(
+        self, rsids: set[str]
+    ) -> dict[str, list[tuple[str, int, str, str]]]:
+        """Return ``{rsid: [(chrom, pos, ref, alt), ...]}`` from the gnomAD cache.
+
+        Maps rsIDs to genomic coordinates for coordinate-based lookups
+        (CADD, future VCF-keyed sources). Multi-allelic sites return
+        multiple tuples per rsid.
+        """
+        if not rsids:
+            return {}
+        conn = self._connection()
+        result: dict[str, list[tuple[str, int, str, str]]] = {}
+        rsid_list = list(rsids)
+        for i in range(0, len(rsid_list), _BULK_BATCH_SIZE):
+            batch = rsid_list[i : i + _BULK_BATCH_SIZE]
+            placeholders = ",".join("?" * len(batch))
+            rows = conn.execute(
+                f"SELECT rsid, chrom, pos, ref, alt FROM gnomad_frequencies"
+                f" WHERE rsid IN ({placeholders})",
+                batch,
+            ).fetchall()
+            for rsid, chrom, pos, ref, alt in rows:
+                result.setdefault(rsid, []).append((chrom, pos, ref, alt))
         return result
 
     def bulk_lookup_by_alt(self, keys: set[tuple[str, str]]) -> dict[tuple[str, str], float]:

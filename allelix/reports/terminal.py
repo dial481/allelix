@@ -154,6 +154,7 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
     has_am_caveat = any(
         a.am_pathogenicity is not None and a.source == "pharmgkb" for a in filtered
     )
+    has_cadd = any(a.cadd_phred is not None for a in filtered)
 
     table = Table(title=f"Annotations ({len(filtered)})")
     table.add_column("rsID", style="cyan", no_wrap=True)
@@ -167,6 +168,8 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
         table.add_column("Freq", justify="right", no_wrap=True)
     if has_am:
         table.add_column("AM", justify="right", no_wrap=True)
+    if has_cadd:
+        table.add_column("CADD", justify="right", no_wrap=True)
     table.add_column("Condition", overflow="fold")
 
     for a in filtered:
@@ -189,6 +192,8 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
                 row.append(am_str)
             else:
                 row.append("—")
+        if has_cadd:
+            row.append(f"{a.cadd_phred:.1f}" if a.cadd_phred is not None else "—")
         row.append(a.condition or "—")
         table.add_row(*row)
     console.print(table)

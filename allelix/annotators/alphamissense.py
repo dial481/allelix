@@ -65,6 +65,7 @@ class AlphaMissenseAnnotator(Annotator):
         ),
         source_url="https://zenodo.org/records/10813168",
         citation="Cheng et al., Science 2023 (doi:10.1126/science.adg7492)",
+        commercial_ok=True,
     )
 
     def __init__(self, data_dir: Path) -> None:

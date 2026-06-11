@@ -149,3 +149,17 @@ CREATE INDEX IF NOT EXISTS idx_am_rsid ON alphamissense_scores(rsid);
 """
     + _DATABASE_VERSIONS_TABLE
 )
+
+CADD_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS cadd_scores (
+    chrom TEXT NOT NULL,
+    pos INTEGER NOT NULL,
+    ref TEXT NOT NULL,
+    alt TEXT NOT NULL,
+    phred REAL NOT NULL,
+    PRIMARY KEY (chrom, pos, ref, alt)
+);
+"""
+    + _DATABASE_VERSIONS_TABLE
+)

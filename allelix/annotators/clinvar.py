@@ -103,6 +103,7 @@ class ClinVarAnnotator(Annotator):
         license_url="https://www.ncbi.nlm.nih.gov/clinvar/docs/maintenance_use/",
         attribution_text="ClinVar variant classifications from NCBI.",
         source_url="https://www.ncbi.nlm.nih.gov/clinvar/",
+        commercial_ok=True,
     )
 
     def __init__(

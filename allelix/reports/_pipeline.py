@@ -15,6 +15,7 @@ override) before annotators see the variant.
 from __future__ import annotations
 
 import contextlib
+import logging
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
 
     from allelix.annotators.alphamissense import AlphaMissenseAnnotator
     from allelix.annotators.base import Annotator
+    from allelix.annotators.cadd import CaddAnnotator
     from allelix.annotators.gnomad import GnomadAnnotator
     from allelix.models import Annotation, Variant
     from allelix.parsers.base import GenotypeParser
@@ -229,6 +231,49 @@ def rollup_gwas_duplicates(annotations: list[Annotation]) -> list[Annotation]:
     return survivors
 
 
+def _enrich_cadd(
+    annotations: list[Annotation],
+    gnomad: GnomadAnnotator,
+    cadd: CaddAnnotator,
+) -> None:
+    """Stamp annotations with CADD PHRED scores via coordinate resolution.
+
+    Resolves rsIDs to genomic coordinates through gnomAD, normalizes
+    alleles to reference-forward orientation, and looks up CADD scores.
+    """
+    from allelix.utils.allele import resolve_strand
+
+    rsids = {a.rsid for a in annotations}
+    coord_map = gnomad.bulk_resolve_coordinates(rsids)
+    if not coord_map:
+        return
+
+    cadd_keys: set[tuple[str, int, str, str]] = set()
+    for coords in coord_map.values():
+        for chrom, pos, ref, alt in coords:
+            cadd_keys.add((chrom, pos, ref, alt))
+    scores = cadd.bulk_lookup(cadd_keys)
+    if not scores:
+        return
+
+    for a in annotations:
+        coords = coord_map.get(a.rsid)
+        if not coords:
+            continue
+        best: float | None = None
+        for chrom, pos, ref, alt in coords:
+            if a.alt:
+                resolved = resolve_strand(a.alt, ref, alt)
+                if resolved is None:
+                    continue
+                score = scores.get((chrom, pos, ref, resolved))
+            else:
+                score = scores.get((chrom, pos, ref, alt))
+            if score is not None and (best is None or score > best):
+                best = score
+        a.cadd_phred = best
+
+
 def run_analysis(
     file_path: Path,
     parser: GenotypeParser,
@@ -238,6 +283,7 @@ def run_analysis(
     build_override: str | None = None,
     gnomad: GnomadAnnotator | None = None,
     alphamissense: AlphaMissenseAnnotator | None = None,
+    cadd: CaddAnnotator | None = None,
 ) -> AnalysisResult:
     """Stream the file once, query every ready annotator per variant, return results.
 
@@ -294,11 +340,23 @@ def run_analysis(
             if hit is not None:
                 a.am_pathogenicity, a.am_class = hit
 
+    if cadd is not None and cadd.is_ready() and gnomad is not None and gnomad.is_ready():
+        if getattr(cadd, "_full_mode", False) and diag.effective_build != BUILD_GRCH38:
+            logging.getLogger(__name__).warning(
+                "CADD full mode requires GRCh38 coordinates; "
+                "detected %s — skipping CADD enrichment",
+                diag.effective_build,
+            )
+        else:
+            _enrich_cadd(annotations, gnomad, cadd)
+
     annotators_used = [(a.name, a.version()) for a in annotators]
     if gnomad is not None and gnomad.is_ready():
         annotators_used.append((gnomad.name, gnomad.version()))
     if alphamissense is not None and alphamissense.is_ready():
         annotators_used.append((alphamissense.name, alphamissense.version()))
+    if cadd is not None and cadd.is_ready():
+        annotators_used.append((cadd.name, cadd.version()))
 
     return AnalysisResult(
         file_path=file_path,

@@ -9,7 +9,8 @@ import tomllib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from allelix.annotators.base import is_non_commercial
+from allelix.annotators.base import Permission
+from allelix.annotators.base import permission as check_permission
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -25,6 +26,7 @@ _DEFAULT_SOURCES: dict[str, bool] = {
     "gnomad": True,
     "alphamissense": True,
     "snpedia": True,
+    "cadd": False,
 }
 
 
@@ -34,31 +36,43 @@ class AllelixConfig:
 
     sources: dict[str, bool] = field(default_factory=lambda: dict(_DEFAULT_SOURCES))
     commercial: bool = False
+    cadd_full: bool = False
+    license_overrides: dict[str, bool] = field(default_factory=dict)
+
+    def license_held(self, source_name: str) -> bool:
+        """Return whether the user asserts they hold a license for this source."""
+        return self.license_overrides.get(source_name, False)
 
     def is_enabled(
         self,
         source_name: str,
         annotator_classes: dict[str, type] | None = None,
     ) -> bool:
-        """Check if a source is enabled, respecting commercial mode.
+        """Check if a source is enabled, respecting the permission ladder.
 
-        When ``commercial`` is True, sources whose annotator declares a
-        non-commercial SPDX license are disabled regardless of the
-        ``sources`` toggle. The annotator registry is consulted
-        automatically when ``annotator_classes`` is not provided.
+        Resolves the annotator class, computes the three-state
+        ``Permission``, and returns ``False`` for any non-ALLOW result.
+        Falls through to the source toggle for allowed sources.
         """
-        if self.commercial:
-            resolved = annotator_classes
-            if resolved is None:
-                from allelix.annotators import get_annotator_class
+        cls = None
+        if annotator_classes:
+            cls = annotator_classes.get(source_name)
+        if cls is None:
+            from allelix.annotators import get_annotator_class
 
-                cls = get_annotator_class(source_name)
-                if cls is not None:
-                    resolved = {source_name: cls}
-            if resolved:
-                cls = resolved.get(source_name)
-                if cls and is_non_commercial(cls.license.spdx):
-                    return False
+            cls = get_annotator_class(source_name)
+
+        if cls is not None:
+            perm = check_permission(
+                cls.license,
+                commercial=self.commercial,
+                license_held=self.license_held(source_name),
+            )
+            if perm is not Permission.ALLOW:
+                return False
+        elif source_name not in _DEFAULT_SOURCES:
+            return False
+
         return self.sources.get(source_name, True)
 
 
@@ -74,6 +88,12 @@ def _serialize(config: AllelixConfig) -> str:
     lines.append("")
     lines.append("[license]")
     lines.append(f"commercial = {str(config.commercial).lower()}")
+    for name, held in sorted(config.license_overrides.items()):
+        if held:
+            lines.append(f"{name} = {str(held).lower()}")
+    lines.append("")
+    lines.append("[options]")
+    lines.append(f"cadd_full = {str(config.cadd_full).lower()}")
     lines.append("")
     return "\n".join(lines)
 
@@ -104,7 +124,20 @@ def load_config(data_dir: Path) -> AllelixConfig:
                 sources[key] = val
 
     commercial = False
+    license_overrides: dict[str, bool] = {}
     if "license" in raw and isinstance(raw["license"], dict):
         commercial = bool(raw["license"].get("commercial", False))
+        for key, val in raw["license"].items():
+            if key != "commercial" and isinstance(val, bool) and val:
+                license_overrides[key] = True
 
-    return AllelixConfig(sources=sources, commercial=commercial)
+    cadd_full = False
+    if "options" in raw and isinstance(raw["options"], dict):
+        cadd_full = bool(raw["options"].get("cadd_full", False))
+
+    return AllelixConfig(
+        sources=sources,
+        commercial=commercial,
+        cadd_full=cadd_full,
+        license_overrides=license_overrides,
+    )

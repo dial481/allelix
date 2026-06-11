@@ -417,3 +417,125 @@ class TestEnrichmentExactVsFallback:
             for r in results:
                 assert r.alt == "", f"GWAS annotation should not set alt, got {r.alt!r}"
             ann.close()
+
+
+class TestCaddEnrichment:
+    """CADD enrichment stamps cadd_phred on annotations via gnomAD coordinate resolution."""
+
+    def test_enrichment_stamps_cadd_phred(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """run_analysis with CADD + gnomAD stamps cadd_phred."""
+        import sqlite3
+
+        from allelix.annotators.cadd import CaddAnnotator
+        from allelix.annotators.gnomad import GnomadAnnotator
+        from allelix.databases.cadd_loader import CADD_DB_FILENAME
+        from allelix.databases.gnomad_loader import GNOMAD_DB_FILENAME
+        from allelix.databases.schema import CADD_SCHEMA, GNOMAD_SCHEMA
+
+        gnomad_path = clinvar_data_dir / GNOMAD_DB_FILENAME
+        with contextlib.closing(sqlite3.connect(gnomad_path)) as conn:
+            for stmt in GNOMAD_SCHEMA.split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    conn.execute(stmt)
+            conn.execute(
+                "INSERT OR REPLACE INTO gnomad_frequencies"
+                " (chrom, pos, ref, alt, rsid, af) VALUES (?, ?, ?, ?, ?, ?)",
+                ("1", 11796321, "G", "A", "rs1801133", 0.35),
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count)"
+                " VALUES (?, ?, ?, ?, ?)",
+                ("gnomad", "test://mock", "4.1", "2026-01-01T00:00:00Z", 1),
+            )
+            conn.commit()
+
+        cadd_path = clinvar_data_dir / CADD_DB_FILENAME
+        with contextlib.closing(sqlite3.connect(cadd_path)) as conn:
+            for stmt in CADD_SCHEMA.split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    conn.execute(stmt)
+            conn.execute(
+                "INSERT INTO cadd_scores (chrom, pos, ref, alt, phred) VALUES (?, ?, ?, ?, ?)",
+                ("1", 11796321, "G", "A", 24.3),
+            )
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count,"
+                "  local_version_tag)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                ("cadd", "test://mock", "v1.7", "2026-01-01T00:00:00Z", 1, "sv:1"),
+            )
+            conn.commit()
+
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        gnomad = GnomadAnnotator(clinvar_data_dir)
+        cadd = CaddAnnotator(clinvar_data_dir)
+        result = run_analysis(
+            mock_mhg_path,
+            parser,
+            [clinvar],
+            gnomad=gnomad,
+            cadd=cadd,
+        )
+        mthfr = [a for a in result.annotations if a.rsid == "rs1801133"]
+        assert any(a.cadd_phred is not None for a in mthfr)
+        assert any(a.cadd_phred == pytest.approx(24.3) for a in mthfr if a.cadd_phred is not None)
+        assert ("cadd", "v1.7") in result.annotators_used
+
+    def test_no_cadd_no_phred(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """run_analysis without CADD leaves cadd_phred as None."""
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        result = run_analysis(mock_mhg_path, parser, [clinvar])
+        assert all(a.cadd_phred is None for a in result.annotations)
+        assert all(name != "cadd" for name, _ in result.annotators_used)
+
+    def test_cadd_without_gnomad_skips_enrichment(
+        self,
+        mock_mhg_path: Path,
+        clinvar_data_dir: Path,
+    ) -> None:
+        """CADD enrichment requires gnomAD for coordinate resolution."""
+        import sqlite3
+
+        from allelix.annotators.cadd import CaddAnnotator
+        from allelix.databases.cadd_loader import CADD_DB_FILENAME
+        from allelix.databases.schema import CADD_SCHEMA
+
+        cadd_path = clinvar_data_dir / CADD_DB_FILENAME
+        with contextlib.closing(sqlite3.connect(cadd_path)) as conn:
+            for stmt in CADD_SCHEMA.split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    conn.execute(stmt)
+            conn.execute(
+                "INSERT INTO database_versions"
+                " (name, source_url, version, downloaded_at, record_count,"
+                "  local_version_tag)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                ("cadd", "test://mock", "v1.7", "2026-01-01T00:00:00Z", 0, "sv:1"),
+            )
+            conn.commit()
+
+        parser = MyHappyGenesParser()
+        clinvar = ClinVarAnnotator(clinvar_data_dir)
+        cadd = CaddAnnotator(clinvar_data_dir)
+        result = run_analysis(
+            mock_mhg_path,
+            parser,
+            [clinvar],
+            cadd=cadd,
+        )
+        assert all(a.cadd_phred is None for a in result.annotations)

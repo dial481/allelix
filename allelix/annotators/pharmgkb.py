@@ -68,6 +68,7 @@ class PharmGKBAnnotator(Annotator):
             "Pharmacogenomic annotations sourced from PharmGKB, used under CC BY-SA 4.0."
         ),
         source_url="https://www.pharmgkb.org",
+        commercial_ok=True,
     )
 
     def __init__(

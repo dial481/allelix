@@ -452,3 +452,43 @@ class TestInstallPrebuiltCache:
                 "SELECT remote_signal FROM database_versions WHERE name = 'gnomad'"
             ).fetchone()
         assert row[0] == "etag:no-table"
+
+
+class TestBulkResolveCoordinates:
+    """Map rsIDs to (chrom, pos, ref, alt) tuples for CADD lookups."""
+
+    def test_known_rsids(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            result = annotator.bulk_resolve_coordinates({"rs1801133", "rs4680"})
+            assert ("1", 11796321, "G", "A") in result["rs1801133"]
+            assert ("22", 19963748, "G", "A") in result["rs4680"]
+        finally:
+            annotator.close()
+
+    def test_multi_allelic(self, gnomad_db: Path) -> None:
+        """rs429358 has two alleles; both coordinates returned."""
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            result = annotator.bulk_resolve_coordinates({"rs429358"})
+            coords = result["rs429358"]
+            assert len(coords) == 2
+            assert ("19", 44908684, "T", "C") in coords
+            assert ("19", 44908684, "T", "G") in coords
+        finally:
+            annotator.close()
+
+    def test_unknown_rsid(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            result = annotator.bulk_resolve_coordinates({"rs999999999"})
+            assert result == {}
+        finally:
+            annotator.close()
+
+    def test_empty_input(self, gnomad_db: Path) -> None:
+        annotator = GnomadAnnotator(gnomad_db)
+        try:
+            assert annotator.bulk_resolve_coordinates(set()) == {}
+        finally:
+            annotator.close()

@@ -22,20 +22,24 @@ attribution maps. The problem grows linearly with each new source
 ## Decision
 
 Each annotator declares a `license` ClassVar of type
-`LicenseDescriptor` — a frozen dataclass with four fields:
+`LicenseDescriptor` — a frozen dataclass with these fields:
 
 - `spdx`: SPDX license identifier (e.g. `"CC-BY-SA-4.0"`,
-  `"CC-BY-NC-SA-3.0-US"`, `"custom-clinvar"`)
+  `"CC-BY-NC-SA-3.0-US"`, `"custom-clinvar"`, `"LicenseRef-CADD"`)
 - `license_url`: license deed or terms-of-use URL
 - `attribution_text`: one-line human-readable attribution string
 - `source_url`: optional source website URL (e.g. pharmgkb.org)
 - `citation`: optional citation string (e.g. AlphaMissense paper)
+- `commercial_ok`: optional bool — required when `spdx` starts with
+  `LicenseRef-` or `custom-` (enforced by `__init_subclass__`).
+  Overrides the SPDX allowlist when set.
 
 The `Annotator` base class declares `license: ClassVar[LicenseDescriptor]`
 with no default, so any subclass that omits it will raise
 `AttributeError` on access.
 
-Non-commercial gating is derived from the SPDX identifier via
+Non-commercial gating is derived from `commercial_ok` first (if set),
+then falls back to the SPDX identifier via
 `is_non_commercial(spdx)`, which checks against a frozen set of
 known NC identifiers. The hand-maintained `NON_COMMERCIAL_SOURCES`
 frozenset in `config.py` is deleted.

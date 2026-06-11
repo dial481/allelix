@@ -302,6 +302,13 @@ def _format_freq(af: float | None) -> str:
     return f"{pct:.2f}%"
 
 
+def _format_cadd(score: float | None) -> str:
+    """Format a CADD PHRED score for display."""
+    if score is None:
+        return "—"
+    return f"{score:.1f}"
+
+
 def _row_html(
     a: Annotation,
     css_class: str = "",
@@ -309,6 +316,7 @@ def _row_html(
     show_freq: bool = False,
     show_review: bool = True,
     show_am: bool = False,
+    show_cadd: bool = False,
 ) -> str:
     """Render a single annotation as an HTML table row."""
     bar_width = max(1, int(a.magnitude * 8))
@@ -326,6 +334,7 @@ def _row_html(
     am_neutral = a.source == "pharmgkb"
     am_cell = _format_am(a.am_pathogenicity, a.am_class, neutral=am_neutral)
     am_td = f"<td>{am_cell}</td>" if show_am else ""
+    cadd_td = f"<td>{_format_cadd(a.cadd_phred)}</td>" if show_cadd else ""
     return (
         f"{tr_open}"
         f'<td class="col-rsid">{_escape(a.rsid)}</td>'
@@ -339,6 +348,7 @@ def _row_html(
         f"<td>{_escape(a.genotype_match)}</td>"
         f"{freq_td}"
         f"{am_td}"
+        f"{cadd_td}"
         f'<td class="desc-cell">{_escape(a.condition) or "—"}<br>'
         f'<span class="condition">{_escape(a.description)}</span>{refs_html}</td>'
         "</tr>"
@@ -463,6 +473,7 @@ def render_html(
     has_freq = any(a.allele_frequency is not None for a in filtered)
     show_review = any(a.review_status and a.review_status != "—" for a in filtered)
     has_am = any(a.am_pathogenicity is not None for a in filtered)
+    has_cadd = any(a.cadd_phred is not None for a in filtered)
 
     def _th(label: str) -> str:
         return f'<th>{label}<span class="sort-arrow"></span></th>'
@@ -484,6 +495,7 @@ def render_html(
                     show_freq=has_freq,
                     show_review=show_review,
                     show_am=has_am,
+                    show_cadd=has_cadd,
                 )
             )
         if diff and diff.removed:
@@ -492,6 +504,7 @@ def render_html(
         freq_th = _th("Pop. Freq") if has_freq else ""
         review_th = _th("Review Status") if show_review else ""
         am_th = _th("AM") if has_am else ""
+        cadd_th = _th("CADD") if has_cadd else ""
         body = (
             '<div class="table-wrap">'
             "<table>"
@@ -500,6 +513,7 @@ def render_html(
             f"{review_th}{_th('Magnitude')}{_th('Genotype')}"
             f"{freq_th}"
             f"{am_th}"
+            f"{cadd_th}"
             f"{_th('Condition / Description')}"
             "</tr></thead>"
             f"<tbody>{rows_html}</tbody></table>"

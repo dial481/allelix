@@ -235,7 +235,7 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING, ClassVar
 
-from allelix.annotators.base import Annotator
+from allelix.annotators.base import Annotator, LicenseDescriptor
 from allelix.models import Annotation
 
 if TYPE_CHECKING:
@@ -249,6 +249,13 @@ class MyDBAnnotator(Annotator):
     display_name: ClassVar[str] = "MyDB"
     attribution: ClassVar[str] = "MyDB"
     requires_download: ClassVar[bool] = True
+    license: ClassVar[LicenseDescriptor] = LicenseDescriptor(
+        spdx="CC-BY-4.0",
+        license_url="https://example.com/mydb/license",
+        attribution_text="MyDB variant data.",
+        source_url="https://example.com/mydb",
+        commercial_ok=True,
+    )
 
     def __init__(self, data_dir: Path) -> None:
         super().__init__(data_dir)

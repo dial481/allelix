@@ -97,6 +97,7 @@ class GWASCatalogAnnotator(Annotator):
             " available under EMBL-EBI Terms of Use."
         ),
         source_url="https://www.ebi.ac.uk/gwas/",
+        commercial_ok=True,
     )
 
     def __init__(self, data_dir: Path, *, filter_traits: bool = True) -> None:

@@ -44,6 +44,36 @@ def flip_genotype(allele1: str, allele2: str) -> tuple[str, str]:
     return complement(allele1), complement(allele2)
 
 
+_PALINDROMIC = frozenset({("A", "T"), ("T", "A"), ("C", "G"), ("G", "C")})
+
+
+def resolve_strand(user_allele: str, gnomad_ref: str, gnomad_alt: str) -> str | None:
+    """Return reference-forward allele, or None if ambiguous.
+
+    Maps an array-reported allele to its reference-forward equivalent
+    using gnomAD's ref/alt as the ground truth. If the user allele
+    matches ref or alt directly, it's already forward. If the
+    complement matches, the array was minus-strand. Palindromic SNPs
+    (A/T, C/G ref/alt pairs) cannot be resolved and return None.
+
+    Only operates on single-base alleles. Multi-base alleles (indels)
+    pass through as-is — array indels are rare and not minus-strand
+    reported.
+    """
+    if len(user_allele) != 1:
+        return user_allele
+    if user_allele in (gnomad_ref, gnomad_alt):
+        return user_allele
+    comp = _COMPLEMENT.get(user_allele)
+    if comp is None:
+        return None
+    if comp in (gnomad_ref, gnomad_alt):
+        if (gnomad_ref, gnomad_alt) in _PALINDROMIC:
+            return None
+        return comp
+    return None
+
+
 def is_strand_ambiguous(ref: str, alt: str) -> bool:
     """True if (ref, alt) is an A/T or C/G pair — strand cannot be inferred.
 

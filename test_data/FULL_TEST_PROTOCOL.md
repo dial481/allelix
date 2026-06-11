@@ -30,7 +30,7 @@ required — all mock data is committed.
 python -m pytest tests/ -x --tb=short
 ```
 
-**Expected:** 1090 tests pass, 0 failures.
+**Expected:** 1215 tests pass, 0 failures.
 
 Check lint:
 
@@ -48,8 +48,9 @@ allelix db update
 
 This downloads ClinVar (GRCh37 + GRCh38), PharmGKB, GWAS Catalog,
 gnomAD (~6 GB), AlphaMissense (~8 GB), and SNPedia from HuggingFace.
+CADD is opt-in and not included here — see step 11.
 
-**Expected:** All 6 annotators show green checkmarks. No errors.
+**Expected:** All enabled annotators show green checkmarks. No errors.
 
 Verify status:
 
@@ -277,7 +278,49 @@ allelix config show
 from analysis automatically. After setting back to `false`, SNPedia
 is included again.
 
-## 11. Diff command
+## 11. CADD opt-in flow
+
+CADD is disabled by default. Verify the opt-in path:
+
+```bash
+allelix config show | grep cadd
+# Expected: sources.cadd = false
+
+allelix db update --cadd
+# Expected: CADD license confirmation prompt. Accept to download CADD cache.
+
+allelix db status | grep -i cadd
+# Expected: CADD shows "yes" in Ready column with version "v1.7"
+
+allelix analyze test_data/real/23andme/user1190_v5.txt --output /tmp/allelix-review/cadd_check.json
+python3 -c "
+import json
+data = json.load(open('/tmp/allelix-review/cadd_check.json'))
+has_cadd = sum(1 for a in data['annotations'] if a.get('cadd_phred') is not None)
+print(f'With CADD score: {has_cadd}')
+"
+# Expected: Non-zero CADD enrichment count.
+```
+
+Verify commercial mode gates CADD:
+
+```bash
+allelix config set license.commercial true
+allelix config show | grep -E "cadd|commercial"
+# Expected: CADD is excluded when commercial mode is active (commercial_ok=False)
+allelix config set license.commercial false
+```
+
+If full mode is available (pysam installed + local tabix file):
+
+```bash
+allelix config set options.cadd_full true
+allelix analyze test_data/real/23andme/user1190_v5.txt 2>&1 | grep -i "cadd\|grch38"
+# Expected: GRCh38-only guard — if input is not GRCh38, warning about skipping CADD full mode
+allelix config set options.cadd_full false
+```
+
+## 12. Diff command
 
 ```bash
 allelix analyze test_data/real/23andme/user1190_v5.txt --output /tmp/allelix-review/baseline.json
@@ -286,7 +329,7 @@ allelix analyze test_data/real/23andme/user1190_v5.txt --output /tmp/allelix-rev
 
 **Expected:** Diff reports no changes (same input, same databases).
 
-## 12. Database update signals
+## 13. Database update signals
 
 ```bash
 allelix db update
@@ -299,9 +342,10 @@ states:
   be verified" (ETag/sidecar-dependent)
 - PharmGKB (server-driven, CPIC-API dependent): "already current" or
   "can't be verified"
-- gnomAD, AlphaMissense, SNPedia (code-driven, ADR-0030): always
+- gnomAD, AlphaMissense, SNPedia, CADD (code-driven, ADR-0030): always
   "already current" — refresh only via `--force` or code bump of
-  pinned commit SHA
+  pinned commit SHA. CADD only appears if previously downloaded via
+  `--cadd`.
 
 No re-downloads.
 
@@ -316,7 +360,7 @@ signal-match path to override — `--force` is the only way to
 re-trigger their download because pinned URLs are deterministic.
 See ADR-0030.
 
-## 13. GWAS Catalog real-data sanity (slow tests)
+## 14. GWAS Catalog real-data sanity (slow tests)
 
 These tests load the real 795K-record GWAS Catalog and verify that the
 magnitude scoring formula produces bounded output.
@@ -328,7 +372,7 @@ python -m pytest tests/test_end_to_end.py -k "TestRealDataGwasSanity" -v
 **Expected:** 2 tests pass. Default floor (9.0) keeps output under 50
 rows. Old floor (7.0) produces more output than new floor.
 
-## 14. Edge case files
+## 15. Edge case files
 
 ```bash
 # Build mismatch detection (analyze runs the build-detection pipeline; stats does not)
@@ -353,7 +397,7 @@ allelix stats test_data/edge_cases/unsupported_23andme_exome_vcf.txt 2>&1
 # Expected: "No parser recognized" for both
 ```
 
-## 15. Cleanup
+## 16. Cleanup
 
 ```bash
 rm -rf /tmp/allelix-review
@@ -369,15 +413,17 @@ rm -rf ~/.local/share/allelix/
 
 All of the following must be true:
 
-- [ ] Unit test suite: 1090 passed, 0 failed
+- [ ] Unit test suite: 1215 passed, 0 failed
 - [ ] Ruff lint + format: zero warnings
-- [ ] `db update` downloads all 6 annotators without errors
+- [ ] `db update` downloads all enabled annotators without errors
 - [ ] `db status` shows all annotators ready with version and record count
 - [ ] All 6 parser formats produce successful analysis
 - [ ] Cross-parser identity: same annotation count across all user1190 representations
 - [ ] HTML report renders correctly in a browser
-- [ ] JSON report has schema version 3 with gnomAD + AM enrichment
+- [ ] JSON report has schema version 3 with gnomAD + AM + CADD enrichment
 - [ ] Config system correctly gates SNPedia on `license.commercial`
+- [ ] CADD opt-in: `--cadd` downloads cache, license prompt shown, scores enriched
+- [ ] CADD commercial gate: `license.commercial = true` excludes CADD
 - [ ] Edge case files produce expected behavior
 - [ ] `db update` (second run) skips already-current databases
 - [ ] GWAS Catalog slow tests pass

@@ -71,6 +71,7 @@ class SNPediaAnnotator(Annotator):
             "SNPedia annotations sourced from SNPedia, used under CC BY-NC-SA 3.0 US."
         ),
         source_url="https://www.snpedia.com",
+        commercial_ok=False,
     )
 
     def __init__(

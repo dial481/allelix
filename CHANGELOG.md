@@ -2,6 +2,33 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0]
+
+### Added
+- **CADD v1.7 variant deleteriousness scores (ADR-0032).** PHRED-scaled
+  scores ranking how deleterious any single-nucleotide variant is, using
+  100+ annotation tracks. Enrichment-only annotator following the
+  gnomAD/AlphaMissense pattern. Two modes: cache (pre-built SQLite from
+  HuggingFace, ~5 GB, ~120M variant keys) and full (81 GB tabix file via pysam, GRCh38
+  only). CADD column appears in HTML, terminal, and JSON reports when
+  scores are present.
+- **Non-commercial source opt-in pattern.** CADD is the first source
+  with `commercial_ok=False`. Disabled by default (`sources.cadd =
+  false`). Users opt in via `allelix config set sources.cadd true` or
+  `allelix db update --cadd`. First download shows a license
+  confirmation prompt.
+- **Strand normalization for array data.** `resolve_strand()` maps
+  array-reported alleles to reference-forward orientation using gnomAD
+  ref/alt as ground truth. Palindromic SNPs (A/T, C/G) return None
+  rather than guessing.
+- **CADD cache build script.** `scripts/build_cadd_cache.py` filters
+  the full CADD SNV and indel files to positions present in gnomAD,
+  AlphaMissense, and ClinVar (GRCh38). Uses int64 packing for SNV
+  keys to fit the ~120M position set (117M SNV + 3M indel).
+- **`options.cadd_full` config key.** Enables full CADD mode (tabix
+  queries against the complete CADD file). Requires `pip install
+  allelix[cadd]` for pysam.
+
 ## [1.5.3]
 
 ### Fixed
@@ -1502,6 +1529,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.6.0]: https://github.com/dial481/allelix/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/dial481/allelix/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/dial481/allelix/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/dial481/allelix/compare/v1.5.0...v1.5.1

@@ -7,6 +7,7 @@ from __future__ import annotations
 import contextlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum, auto
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
@@ -26,6 +27,9 @@ class LicenseDescriptor:
     attribution_text: str
     source_url: str | None = None
     citation: str | None = None
+    commercial_ok: bool | None = None
+    licensable: bool = False
+    purchase_url: str | None = None
 
 
 _NON_COMMERCIAL_SPDX: frozenset[str] = frozenset(
@@ -37,9 +41,37 @@ _NON_COMMERCIAL_SPDX: frozenset[str] = frozenset(
 )
 
 
-def is_non_commercial(spdx: str) -> bool:
-    """Return True if the SPDX identifier prohibits commercial use."""
-    return spdx in _NON_COMMERCIAL_SPDX
+def is_non_commercial(descriptor: LicenseDescriptor) -> bool:
+    """Return True if the license prohibits commercial use."""
+    if descriptor.commercial_ok is not None:
+        return not descriptor.commercial_ok
+    return descriptor.spdx in _NON_COMMERCIAL_SPDX
+
+
+class Permission(Enum):
+    """Three-state permission result for a source in the current license context."""
+
+    ALLOW = auto()
+    BLOCK_FINAL = auto()
+    BLOCK_PURCHASABLE = auto()
+
+
+def permission(
+    descriptor: LicenseDescriptor,
+    *,
+    commercial: bool,
+    license_held: bool,
+) -> Permission:
+    """Determine whether a source is permitted under the current license context."""
+    if not commercial:
+        return Permission.ALLOW
+    if not is_non_commercial(descriptor):
+        return Permission.ALLOW
+    if not descriptor.licensable:
+        return Permission.BLOCK_FINAL
+    if license_held:
+        return Permission.ALLOW
+    return Permission.BLOCK_PURCHASABLE
 
 
 def is_clinvar_homref(
@@ -88,6 +120,22 @@ class Annotator(ABC):
         if not is_abstract and not hasattr(cls, "license"):
             msg = f"{cls.__name__} must declare a 'license' ClassVar of type LicenseDescriptor"
             raise TypeError(msg)
+        if hasattr(cls, "license"):
+            desc = cls.license
+            if (
+                desc.spdx.startswith("LicenseRef-") or desc.spdx.startswith("custom-")
+            ) and desc.commercial_ok is None:
+                msg = (
+                    f"{cls.__name__} uses custom SPDX '{desc.spdx}' but "
+                    f"does not declare commercial_ok (True or False)"
+                )
+                raise TypeError(msg)
+            if desc.licensable and desc.purchase_url is None:
+                msg = (
+                    f"{cls.__name__} declares licensable=True but "
+                    f"purchase_url is None — set it explicitly"
+                )
+                raise TypeError(msg)
 
     def __init__(self, data_dir: Path) -> None:
         """Bind the annotator to a data directory (created elsewhere)."""

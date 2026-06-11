@@ -104,3 +104,4 @@ class Annotation:
     allele_frequency: float | None = None
     am_pathogenicity: float | None = None
     am_class: str = ""
+    cadd_phred: float | None = None
