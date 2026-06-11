@@ -38,6 +38,7 @@ Each ADR captures one decision: the context that forced it, what we chose, and t
 - [ADR-0030: Data source update cadence drives refresh and integrity](0030-data-source-update-cadence.md)
 - [ADR-0031: Centralized license descriptors on annotator base class](0031-centralized-license-descriptors.md)
 - [ADR-0032: CADD v1.7 integration](0032-cadd-integration.md)
+- [ADR-0033: Schema version bump policy](0033-schema-version-bump-policy.md) — supersedes ADR-0032's schema-version stance
 
 ## Writing a new ADR
 

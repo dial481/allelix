@@ -5,7 +5,7 @@
 Output schema (versioned via `schema_version`):
 
     {
-      "schema_version": "3",
+      "schema_version": "4",
       "allelix_version": "1.1.0",
       "generated_at": "2026-05-11T12:34:56+00:00",
       "regulatory_notice": "...",
@@ -52,12 +52,13 @@ if TYPE_CHECKING:
     from allelix.reports.diff import DiffResult
 
 
-SCHEMA_VERSION = "3"
+SCHEMA_VERSION = "4"
 
 
 def _annotation_dict(a: Annotation) -> dict:
     """Serialize an annotation, adding AM caveat for non-protein sources."""
     d = {k: v for k, v in asdict(a).items() if k != "is_must_include"}
+    d["zygosity"] = a.zygosity
     if a.am_pathogenicity is not None and a.source == "pharmgkb":
         d["am_caveat"] = "protein structure impact only"
     return d

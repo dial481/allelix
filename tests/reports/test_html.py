@@ -510,3 +510,72 @@ class TestAlphaMissenseColumn:
         body = out.read_text()
         assert "am-pathogenic" in body
         assert "protein structure impact only" not in body
+
+
+class TestZygosityColumn:
+    """Zygosity column appears on every report."""
+
+    def test_zygosity_column_header_present(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(genotype_match="A/G")]), output_path=out)
+        body = out.read_text()
+        assert "Zygosity" in body
+
+    def test_heterozygous_label(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(genotype_match="A/G")]), output_path=out)
+        body = out.read_text()
+        assert "Heterozygous" in body
+
+    def test_homozygous_label(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(genotype_match="A/A")]), output_path=out)
+        body = out.read_text()
+        assert "Homozygous" in body
+
+    def test_no_call_label(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(genotype_match="A/-")]), output_path=out)
+        body = out.read_text()
+        assert "No Call" in body
+
+
+class TestCaddColumn:
+    """Tests for CADD PHRED score column rendering."""
+
+    def test_cadd_column_present_when_data_exists(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(cadd_phred=25.3)]), output_path=out)
+        body = out.read_text()
+        assert "CADD" in body
+        assert "25.3" in body
+
+    def test_cadd_column_absent_when_no_data(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "<th>CADD<" not in body
+
+    def test_cadd_high_class(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(cadd_phred=35.0)]), output_path=out)
+        assert "cadd-high" in out.read_text()
+        assert "top 0.1%" in out.read_text()
+
+    def test_cadd_med_class(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(cadd_phred=25.0)]), output_path=out)
+        assert "cadd-med" in out.read_text()
+        assert "top 1%" in out.read_text()
+
+    def test_cadd_low_with_tooltip(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(cadd_phred=15.0)]), output_path=out)
+        assert "cadd-low" in out.read_text()
+        assert "top 10%" in out.read_text()
+
+    def test_cadd_below_10_no_tooltip(self, tmp_path: Path) -> None:
+        out = tmp_path / "report.html"
+        render_html(_result([_ann(cadd_phred=5.0)]), output_path=out)
+        body = out.read_text()
+        assert 'class="cadd-low">5.0</span>' in body

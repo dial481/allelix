@@ -105,3 +105,13 @@ class Annotation:
     am_pathogenicity: float | None = None
     am_class: str = ""
     cadd_phred: float | None = None
+
+    @property
+    def zygosity(self) -> str:
+        """Classify the genotype call as Heterozygous, Homozygous, or No Call."""
+        if NO_CALL_MARKER in self.genotype_match:
+            return "No Call"
+        parts = self.genotype_match.split("/")
+        if len(parts) != 2:
+            return "Homozygous" if len(set(self.genotype_match)) == 1 else "Heterozygous"
+        return "Heterozygous" if parts[0] != parts[1] else "Homozygous"

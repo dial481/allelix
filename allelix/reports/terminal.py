@@ -164,6 +164,7 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
     table.add_column("Review Status", style="dim")
     table.add_column("Magnitude", justify="right")
     table.add_column("Genotype", no_wrap=True)
+    table.add_column("Zygosity", no_wrap=True)
     if has_freq:
         table.add_column("Freq", justify="right", no_wrap=True)
     if has_am:
@@ -181,6 +182,7 @@ def _print_table(filtered: list[Annotation], console: Console) -> None:
             a.review_status or "—",
             f"{a.magnitude:.1f}",
             a.genotype_match,
+            a.zygosity,
         ]
         if has_freq:
             row.append(_format_freq(a.allele_frequency))

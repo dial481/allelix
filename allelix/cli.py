@@ -1306,6 +1306,7 @@ def config_get(data_dir: Path | None, key: str | None) -> None:
     cfg = load_config(resolved)
 
     if key is None:
+        console.print(f"[dim]Config: {resolved / 'config.toml'}[/dim]")
         click.echo(_serialize(cfg))
         return
 
@@ -1397,6 +1398,7 @@ def config_set(data_dir: Path | None, key: str, value: str) -> None:
         )
 
     save_config(resolved, cfg)
+    console.print(f"[dim]Config: {resolved / 'config.toml'}[/dim]")
     console.print(f"[green]Set {key} = {val_lower}[/green]")
 
 

@@ -101,6 +101,26 @@ class TestRenderJson:
         assert payload["annotations"] == []
 
 
+class TestZygosityField:
+    def test_zygosity_in_json_heterozygous(self, tmp_path: Path):
+        out = tmp_path / "r.json"
+        render_json(_result([_ann(genotype_match="A/G")]), output_path=out)
+        payload = json.loads(out.read_text())
+        assert payload["annotations"][0]["zygosity"] == "Heterozygous"
+
+    def test_zygosity_in_json_homozygous(self, tmp_path: Path):
+        out = tmp_path / "r.json"
+        render_json(_result([_ann(genotype_match="A/A")]), output_path=out)
+        payload = json.loads(out.read_text())
+        assert payload["annotations"][0]["zygosity"] == "Homozygous"
+
+    def test_zygosity_in_json_no_call(self, tmp_path: Path):
+        out = tmp_path / "r.json"
+        render_json(_result([_ann(genotype_match="A/-")]), output_path=out)
+        payload = json.loads(out.read_text())
+        assert payload["annotations"][0]["zygosity"] == "No Call"
+
+
 class TestLicenseAttributions:
     def _result_with_annotators(self, annotators: list[tuple[str, str | None]]) -> AnalysisResult:
         return AnalysisResult(

@@ -133,6 +133,24 @@ class TestRenderTerminal:
         assert "35.00%" in out
 
 
+class TestZygosityColumn:
+    def test_zygosity_column_present(self):
+        out, _ = _render([_ann(genotype_match="A/G")])
+        assert "Zygosity" in out
+
+    def test_heterozygous_label(self):
+        out, _ = _render([_ann(genotype_match="A/G")])
+        assert "Heterozygous" in out
+
+    def test_homozygous_label(self):
+        out, _ = _render([_ann(genotype_match="A/A")])
+        assert "Homozygous" in out
+
+    def test_no_call_label(self):
+        out, _ = _render([_ann(genotype_match="A/-")])
+        assert "No Call" in out
+
+
 class TestAlphaMissenseColumn:
     def test_am_column_present_when_data_exists(self):
         out, _ = _render([_ann(am_pathogenicity=0.95, am_class="likely_pathogenic")])

@@ -81,3 +81,35 @@ class TestAnnotation:
         assert a.references == ["PMID:1234"]
         assert a.condition == "Sickle cell"
         assert a.gene == "HBB"
+
+    def test_zygosity_homozygous(self):
+        a = self._minimal(genotype_match="A/A")
+        assert a.zygosity == "Homozygous"
+
+    def test_zygosity_heterozygous(self):
+        a = self._minimal(genotype_match="A/G")
+        assert a.zygosity == "Heterozygous"
+
+    def test_zygosity_no_call(self):
+        a = self._minimal(genotype_match="A/-")
+        assert a.zygosity == "No Call"
+
+    def test_zygosity_no_call_both(self):
+        a = self._minimal(genotype_match="-/-")
+        assert a.zygosity == "No Call"
+
+    def test_zygosity_single_allele(self):
+        a = self._minimal(genotype_match="A")
+        assert a.zygosity == "Homozygous"
+
+    def test_zygosity_single_allele_heterozygous(self):
+        a = self._minimal(genotype_match="AG")
+        assert a.zygosity == "Heterozygous"
+
+    def test_zygosity_concat_no_call(self):
+        a = self._minimal(genotype_match="A-")
+        assert a.zygosity == "No Call"
+
+    def test_zygosity_concat_no_call_both(self):
+        a = self._minimal(genotype_match="--")
+        assert a.zygosity == "No Call"

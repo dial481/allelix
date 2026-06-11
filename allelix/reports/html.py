@@ -108,6 +108,9 @@ tr.repute-good td.col-rsid { background: #e8f5e9; }
 .am-benign { color: #2e7d32; font-weight: 600; }
 .am-ambiguous { color: #f9a825; font-weight: 600; }
 .am-score { color: #999; }
+.cadd-high { color: #c62828; font-weight: 600; }
+.cadd-med { color: #e65100; font-weight: 600; }
+.cadd-low { color: #999; }
 tr.diff-new { background: #e8f5e9; }
 tr.diff-changed { background: #fff3e0; }
 tr.diff-removed { background: #fafafa; text-decoration: line-through; color: #999; }
@@ -306,7 +309,15 @@ def _format_cadd(score: float | None) -> str:
     """Format a CADD PHRED score for display."""
     if score is None:
         return "—"
-    return f"{score:.1f}"
+    if score >= 30:
+        css, tip = "cadd-high", "top 0.1% most deleterious"
+    elif score >= 20:
+        css, tip = "cadd-med", "top 1% most deleterious"
+    else:
+        css, tip = "cadd-low", "top 10% most deleterious" if score >= 10 else ""
+    if tip:
+        return f'<span class="{css}" title="{tip}">{score:.1f}</span>'
+    return f'<span class="{css}">{score:.1f}</span>'
 
 
 def _row_html(
@@ -346,6 +357,7 @@ def _row_html(
         f'<span class="bar" style="width: {bar_width}px;"></span>'
         f"{a.magnitude:.1f}</td>"
         f"<td>{_escape(a.genotype_match)}</td>"
+        f"<td>{_escape(a.zygosity)}</td>"
         f"{freq_td}"
         f"{am_td}"
         f"{cadd_td}"
@@ -510,7 +522,7 @@ def render_html(
             "<table>"
             "<thead><tr>"
             f"{_th('rsID')}{_th('Gene')}{_th('Source')}{_th('Significance')}"
-            f"{review_th}{_th('Magnitude')}{_th('Genotype')}"
+            f"{review_th}{_th('Magnitude')}{_th('Genotype')}{_th('Zygosity')}"
             f"{freq_th}"
             f"{am_th}"
             f"{cadd_th}"

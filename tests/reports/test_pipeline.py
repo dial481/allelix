@@ -539,3 +539,60 @@ class TestCaddEnrichment:
             cadd=cadd,
         )
         assert all(a.cadd_phred is None for a in result.annotations)
+
+
+class TestCaddMultiAllelic:
+    """CADD enrichment at multi-allelic sites must use the user's allele, not max."""
+
+    def test_multiallelic_uses_user_allele_not_max(self) -> None:
+        """At a multi-allelic site, CADD score must match the user's allele."""
+        from allelix.reports._pipeline import _lookup_user_allele
+        from allelix.utils.allele import resolve_strand
+
+        coords = [("1", 100, "A", "C"), ("1", 100, "A", "G")]
+        scores = {("1", 100, "A", "C"): 5.0, ("1", 100, "A", "G"): 30.0}
+
+        result = _lookup_user_allele("C", coords, scores, resolve_strand)
+        assert result == pytest.approx(5.0)
+
+    def test_multiallelic_no_alt_uses_max(self) -> None:
+        """Without a known user allele, max-reduce is the correct fallback."""
+        from allelix.models import Annotation
+        from allelix.reports._pipeline import _enrich_cadd
+
+        coords = [("1", 100, "A", "C"), ("1", 100, "A", "G")]
+        scores = {("1", 100, "A", "C"): 5.0, ("1", 100, "A", "G"): 30.0}
+
+        ann = Annotation(
+            source="clinvar",
+            rsid="rs999",
+            significance="clinvar_pathogenic",
+            category="clinical",
+            magnitude=9.0,
+            description="test",
+            attribution="ClinVar",
+            genotype_match="A/C",
+            alt="",
+        )
+
+        class MockGnomad:
+            def bulk_resolve_coordinates(self, rsids):
+                return {"rs999": coords}
+
+        class MockCadd:
+            def bulk_lookup(self, keys):
+                return scores
+
+        _enrich_cadd([ann], MockGnomad(), MockCadd())
+        assert ann.cadd_phred == pytest.approx(30.0)
+
+    def test_complement_fallback(self) -> None:
+        """Complement match works when no direct match exists."""
+        from allelix.reports._pipeline import _lookup_user_allele
+        from allelix.utils.allele import resolve_strand
+
+        coords = [("1", 200, "C", "A")]
+        scores = {("1", 200, "C", "A"): 12.5}
+
+        result = _lookup_user_allele("T", coords, scores, resolve_strand)
+        assert result == pytest.approx(12.5)

@@ -285,6 +285,34 @@ class TestLoadPreviousReport:
         assert len(diff.new) == 1
         assert diff.new[0].rsid == "rs4680"
 
+    def test_v4_report_loads(self, tmp_path: Path) -> None:
+        """Schema version 4 reports must load through diff without error."""
+        report = {
+            "schema_version": "4",
+            "generated_at": "2026-06-11T00:00:00",
+            "annotations": [_ann_dict()],
+        }
+        path = tmp_path / "report.json"
+        path.write_text(json.dumps(report))
+        data = load_previous_report(path)
+        assert data["schema_version"] == "4"
+        assert len(data["annotations"]) == 1
+
+    def test_v3_vs_v4_cross_version_diff(self, tmp_path: Path) -> None:
+        """Diffing a v3 report against v4 annotations works."""
+        previous = {
+            "schema_version": "3",
+            "generated_at": "2026-06-01T00:00:00",
+            "annotations": [_ann_dict()],
+        }
+        path = tmp_path / "prev.json"
+        path.write_text(json.dumps(previous))
+        data = load_previous_report(path)
+        current = [_ann(), _ann(rsid="rs4680", condition="COMT", gene="COMT")]
+        diff = compute_diff(current, data["annotations"], data["generated_at"])
+        assert len(diff.new) == 1
+        assert diff.new[0].rsid == "rs4680"
+
 
 class TestSummarizeDiff:
     """Tests for the human-readable summary."""

@@ -231,6 +231,28 @@ def rollup_gwas_duplicates(annotations: list[Annotation]) -> list[Annotation]:
     return survivors
 
 
+def _lookup_user_allele(
+    user_alt: str,
+    coords: list[tuple[str, int, str, str]],
+    scores: dict[tuple[str, int, str, str], float],
+    resolve_strand: Callable[[str, str, str], str | None],
+) -> float | None:
+    """Find the CADD score for a specific user allele at a multi-allelic site.
+
+    Prefers a direct allele match over a complement (minus-strand) match
+    to avoid false positives where the complement of the user's allele
+    coincidentally equals a different alt at the same position.
+    """
+    for chrom, pos, ref, alt in coords:
+        if user_alt == alt:
+            return scores.get((chrom, pos, ref, alt))
+    for chrom, pos, ref, alt in coords:
+        resolved = resolve_strand(user_alt, ref, alt)
+        if resolved is not None and resolved == alt:
+            return scores.get((chrom, pos, ref, alt))
+    return None
+
+
 def _enrich_cadd(
     annotations: list[Annotation],
     gnomad: GnomadAnnotator,
@@ -260,18 +282,16 @@ def _enrich_cadd(
         coords = coord_map.get(a.rsid)
         if not coords:
             continue
-        best: float | None = None
-        for chrom, pos, ref, alt in coords:
-            if a.alt:
-                resolved = resolve_strand(a.alt, ref, alt)
-                if resolved is None:
-                    continue
-                score = scores.get((chrom, pos, ref, resolved))
-            else:
+        if a.alt:
+            score = _lookup_user_allele(a.alt, coords, scores, resolve_strand)
+            a.cadd_phred = score
+        else:
+            best: float | None = None
+            for chrom, pos, ref, alt in coords:
                 score = scores.get((chrom, pos, ref, alt))
-            if score is not None and (best is None or score > best):
-                best = score
-        a.cadd_phred = best
+                if score is not None and (best is None or score > best):
+                    best = score
+            a.cadd_phred = best
 
 
 def run_analysis(

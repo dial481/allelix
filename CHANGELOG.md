@@ -2,6 +2,37 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1]
+
+### Added
+- **Zygosity column in all report outputs (#41).** Every annotation row
+  now shows `Heterozygous`, `Homozygous`, or `No Call` — derived from
+  the genotype call. Appears in HTML, terminal, and JSON reports.
+  Functional-medicine `+/−` notation deferred until the risk allele
+  field lands (v2.1+).
+- **CADD PHRED styling in HTML reports (#42).** CADD scores are now
+  color-coded by deleteriousness tier: red (≥30, top 0.1%), orange
+  (≥20, top 1%), gray (10–20, top 10%), gray (<10, no tooltip).
+  Tooltip shows the percentile tier on hover for scores ≥10.
+- **Config file path in `config get` / `config set` output (#43).**
+  Both commands now print the resolved config file path, so users know
+  which file is being read or written.
+
+### Changed
+- **JSON schema version bumped to 4.** New `zygosity` field on every
+  annotation. Diff between v1–v4 reports still works.
+- **Methylation panel expanded to 34 genes (#31).** Added ACAT1, DHFR,
+  GNMT, MAOA, NOS3, SUOX, VDR. Sorted alphabetically.
+
+### Fixed
+- **CADD multi-allelic scoring bug (#45).** At multi-allelic positions,
+  `_enrich_cadd` max-reduced CADD PHRED across all alts, stamping the
+  highest score regardless of which allele the user carries. Now looks
+  up the score for the user's specific allele (direct match preferred
+  over complement). Biallelic sites were unaffected.
+- **Test protocol AM column name.** `FULL_TEST_PROTOCOL.md` referenced
+  "AM Score" but the actual HTML header is "AM".
+
 ## [1.6.0]
 
 ### Added
@@ -1529,6 +1560,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.6.1]: https://github.com/dial481/allelix/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/dial481/allelix/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/dial481/allelix/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/dial481/allelix/compare/v1.5.1...v1.5.2

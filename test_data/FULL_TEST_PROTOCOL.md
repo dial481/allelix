@@ -30,7 +30,7 @@ required — all mock data is committed.
 python -m pytest tests/ -x --tb=short
 ```
 
-**Expected:** 1215 tests pass, 0 failures.
+**Expected:** 1245 tests pass, 0 failures.
 
 Check lint:
 
@@ -195,9 +195,11 @@ Open `/tmp/allelix-review/report.html` in a browser. Verify:
 - Columns are sortable (click headers)
 - Review Status column appears for ClinVar rows
 - Pop. Freq column shows gnomAD frequencies
-- AM Score column shows AlphaMissense scores
+- AM column shows AlphaMissense scores
 - PharmGKB AM scores show dimmed caveat indicator
 - Row borders are color-coded (red = pathogenic, green = benign)
+- Zygosity column shows Heterozygous / Homozygous for each row
+- CADD column scores are color-coded (red ≥30, orange ≥20, gray <20) with tooltips
 - "Reading This Report" section is present
 - Regulatory notice is present
 
@@ -222,11 +224,11 @@ print(f\"Sources: {set(a['source'] for a in data['annotations'])}\")
 has_af = sum(1 for a in data['annotations'] if a.get('allele_frequency') is not None)
 has_am = sum(1 for a in data['annotations'] if a.get('am_pathogenicity') is not None)
 print(f\"With gnomAD freq: {has_af}\")
-print(f\"With AM score: {has_am}\")
+print(f\"With AM: {has_am}\")
 "
 ```
 
-**Expected:** Schema version 3. Multiple sources present. gnomAD and
+**Expected:** Schema version 4. Multiple sources present. gnomAD and
 AM enrichment counts > 0.
 
 ## 9. Stats, extract, and focused reports
@@ -413,14 +415,14 @@ rm -rf ~/.local/share/allelix/
 
 All of the following must be true:
 
-- [ ] Unit test suite: 1215 passed, 0 failed
+- [ ] Unit test suite: 1245 passed, 0 failed
 - [ ] Ruff lint + format: zero warnings
 - [ ] `db update` downloads all enabled annotators without errors
 - [ ] `db status` shows all annotators ready with version and record count
 - [ ] All 6 parser formats produce successful analysis
 - [ ] Cross-parser identity: same annotation count across all user1190 representations
 - [ ] HTML report renders correctly in a browser
-- [ ] JSON report has schema version 3 with gnomAD + AM + CADD enrichment
+- [ ] JSON report has schema version 4 with gnomAD + AM + CADD enrichment
 - [ ] Config system correctly gates SNPedia on `license.commercial`
 - [ ] CADD opt-in: `--cadd` downloads cache, license prompt shown, scores enriched
 - [ ] CADD commercial gate: `license.commercial = true` excludes CADD
