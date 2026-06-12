@@ -74,7 +74,7 @@ never splits on `:`.
 
    In both families, a non-empty tag that doesn't match the current
    version means "stale, rebuild."
-5. Version constants live in `allelix/annotators/_versions.py`. Bump the
+5. Version constants live in `allelix/databases/_versions.py`. Bump the
    constant when local processing logic changes in a way that would
    produce different cache contents from the same input data.
 

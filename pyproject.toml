@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "allelix"
-version = "1.8.1"
+version = "1.8.2"
 description = "Open-source genotype analysis toolkit. Format-agnostic ingestion, database-agnostic annotation, offline-first."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,8 +42,10 @@ dev = [
 allelix = "allelix.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/dial481/allelix"
+Homepage = "https://allelix.io"
+Source = "https://github.com/dial481/allelix"
 Issues = "https://github.com/dial481/allelix/issues"
+Changelog = "https://github.com/dial481/allelix/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["allelix*"]

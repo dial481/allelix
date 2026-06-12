@@ -2,11 +2,35 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2]
+
+### Fixed
+- **HTML report link colors.** Links in dark mode were browser-default
+  neon blue (#0000EE), unreadable against the dark background. Dark mode
+  now uses #93c5fd; light mode uses #1976d2 (matching the existing accent).
+- **Favicon SVG rendering.** The report's inline SVG favicon used a
+  `linearGradient` with an internal IRI reference (`url(#g)`) that doesn't
+  resolve inside `data:` URIs, rendering the icon invisible. Replaced with
+  a solid fill and URL-encoded angle brackets.
+- **Genotype column header.** Abbreviated "Genotype" to "GT" to prevent
+  column header overlap on narrow/mobile screens.
+
+### Changed
+- **PyPI metadata.** Homepage now points to allelix.io. Added Source and
+  Changelog links.
+- **Automated PyPI publishing.** GitHub Actions workflow publishes to PyPI
+  via Trusted Publishing on every GitHub Release.
+
 ## [1.8.1]
 
 ### Changed
 - **Updated sample reports.** Regenerated `examples/sample_reports/` with
   v1.8.0 report format (5-column table, detail sidebar, dark mode).
+
+### Fixed
+- **Test fixture genotype format.** Corrected the `test_html.py` fixture's
+  `genotype_match` default from `A/G` to the concatenated `AG` form that
+  production emits for SNVs.
 
 ## [1.8.0]
 
@@ -1622,6 +1646,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.8.2]: https://github.com/dial481/allelix/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/dial481/allelix/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/dial481/allelix/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/dial481/allelix/compare/v1.6.1...v1.7.0
@@ -1630,8 +1655,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 [1.5.3]: https://github.com/dial481/allelix/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/dial481/allelix/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/dial481/allelix/compare/v1.5.0...v1.5.1
-[1.5.0]: https://github.com/dial481/allelix/compare/v1.4.1...v1.5.0
-[1.4.1]: https://github.com/dial481/allelix/compare/v1.4.0...v1.4.1
+[1.5.0]: https://github.com/dial481/allelix/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/dial481/allelix/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/dial481/allelix/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/dial481/allelix/compare/v1.2.0...v1.3.0

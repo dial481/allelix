@@ -101,6 +101,7 @@ _CSS = """\
   --notice-border: #f9a825;
   --notice-warn-bg: #fff3e0;
   --notice-warn-border: #e65100;
+  --link: #1976d2;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -119,6 +120,7 @@ _CSS = """\
     --notice-border: #f9a825;
     --notice-warn-bg: #331a00;
     --notice-warn-border: #e65100;
+    --link: #93c5fd;
   }
 }
 [data-theme="dark"] {
@@ -137,6 +139,7 @@ _CSS = """\
   --notice-border: #f9a825;
   --notice-warn-bg: #331a00;
   --notice-warn-border: #e65100;
+  --link: #93c5fd;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -152,6 +155,7 @@ body {
 }
 h1 { margin-bottom: .25rem; }
 .subtitle { color: var(--text-muted); margin-top: 0; }
+a { color: var(--link); }
 
 .notice {
   background: var(--notice-bg, #fff8e1); border-left: 4px solid var(--notice-border, #f9a825);
@@ -1024,7 +1028,7 @@ def render_html(
             '<th data-sort="gene" class="sortable">'
             'Gene<span class="sort-arrow"></span></th>'
             '<th data-sort="genotype" class="sortable">'
-            'Genotype<span class="sort-arrow"></span></th>'
+            'GT<span class="sort-arrow"></span></th>'
             '<th data-sort="repute" class="sortable">'
             'Repute<span class="sort-arrow"></span></th>'
             "<th>Summary</th>"
@@ -1090,16 +1094,25 @@ def render_html(
         "<html lang='en'><head><meta charset='utf-8'>"
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,'
-        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
-        "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>"
-        "<stop offset='0%25' stop-color='%234f46e5'/>"
-        "<stop offset='100%25' stop-color='%2306b6d4'/>"
-        "</linearGradient></defs>"
-        "<path d='M16 2C9 2 8 8 8 8s2-3 8-3 8 3 8 3-1-6-8-6z"
-        "m0 6c-7 0-8 6-8 6s2-3 8-3 8 3 8 3-1-6-8-6z"
-        "m0 6c-7 0-8 6-8 6s2-3 8-3 8 3 8 3-1-6-8-6z"
-        "m0 6c-7 0-8 6-8 6s2-3 8-3 8 3 8 3-1-6-8-6z'"
-        " fill='url(%23g)' opacity='0.9'/></svg>\">"
+        "%3Csvg viewBox='0 0 32 32' fill='none'"
+        " xmlns='http://www.w3.org/2000/svg'%3E"
+        "%3Ccircle cx='16' cy='16' r='14' stroke='%236366f1'"
+        " stroke-width='1.5' opacity='0.3'/%3E"
+        "%3Cpath d='M10 6C10 6 22 12 22 16C22 20 10 26 10 26'"
+        " stroke='%236366f1' stroke-width='2'"
+        " stroke-linecap='round' fill='none'/%3E"
+        "%3Cpath d='M22 6C22 6 10 12 10 16C10 20 22 26 22 26'"
+        " stroke='%236366f1' stroke-width='2'"
+        " stroke-linecap='round' fill='none' opacity='0.4'/%3E"
+        "%3Ccircle cx='10' cy='10' r='2' fill='%236366f1'/%3E"
+        "%3Ccircle cx='22' cy='10' r='2' fill='%236366f1'"
+        " opacity='0.4'/%3E"
+        "%3Ccircle cx='16' cy='16' r='2' fill='%236366f1'"
+        " opacity='0.7'/%3E"
+        "%3Ccircle cx='22' cy='22' r='2' fill='%236366f1'/%3E"
+        "%3Ccircle cx='10' cy='22' r='2' fill='%236366f1'"
+        " opacity='0.4'/%3E"
+        '%3C/svg%3E">'
         f"<title>{_escape(title)}</title>"
         f"<style>{_CSS}</style>"
         "</head><body>"

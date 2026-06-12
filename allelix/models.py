@@ -79,7 +79,9 @@ class Annotation:
         magnitude: 0-10 importance score (SNPedia-style).
         description: Human-readable explanation.
         attribution: Display name of the source ("ClinVar", "PharmGKB", ...).
-        genotype_match: Which genotype triggers this annotation (e.g., "T/T").
+        genotype_match: Which genotype triggers this annotation. For SNVs this
+            is a concatenated, sorted allele pair (e.g., "AG", "TT"); the slash
+            form (e.g., "AT/A") appears only for indels.
         references: PubMed IDs or URLs supporting the claim.
         condition: Disease or condition name, if applicable.
         gene: Gene symbol, if known.

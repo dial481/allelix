@@ -97,7 +97,7 @@ allelix analyze test_data/real/mhg/user1190.txt --output /tmp/allelix-review/use
 **Expected:** Exit code 0. JSON report written. This file is a clean
 GRCh37 transcode of user1190_v5.txt — no build mismatch expected.
 (The mismatch fixture is `edge_cases/mhg_grch38_with_grch37_header.txt`,
-tested in step 14.)
+tested in step 15.)
 
 ### 5c. AncestryDNA
 

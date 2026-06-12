@@ -48,7 +48,7 @@ test_data/
 The user1190 files in `real/mhg/`, `real/livingdna/`, and `real/myheritage/`
 are all structurally transcoded from `real/23andme/user1190_v5.txt`. They
 share the same rsIDs, positions, and genotypes — only the format envelope
-differs. This is what makes the cross-parser identity test work across 5
+differs. This is what makes the cross-parser identity test work across 6
 formats.
 
 ## Licensing

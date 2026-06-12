@@ -10,8 +10,9 @@ Open-source command-line toolkit for analyzing raw genotype files from consumer 
 > HTML/JSON/terminal reports, methylation + pharmacogenomics focused
 > commands, report diffing, persistent config with commercial-mode
 > safety switch. Build auto-detection from position data (ADR-0021).
-> No regex on prose anywhere in production. **Latest: v1.7.0** — PLINK
-> export, magnitude scoring formalization (ADR-0034). Release notes:
+> No regex on prose anywhere in production. **Latest: v1.8.2** — HTML
+> report redesign with dark mode, PLINK export, and automated PyPI
+> publishing. Release notes:
 > [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Quickstart

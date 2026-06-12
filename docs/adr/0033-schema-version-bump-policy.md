@@ -27,7 +27,7 @@ Going forward, all new fields bump.
 ## Consequences
 
 - Any commit that adds, removes, or renames a field in the JSON report
-  output must increment `_SCHEMA_VERSION` and update
+  output must increment `SCHEMA_VERSION` and update
   `_SUPPORTED_SCHEMA_VERSIONS` in the diff loader.
 - The diff loader's supported-versions set grows monotonically.
 - ADR-0032's body is not edited (ADR immutability). This ADR supersedes

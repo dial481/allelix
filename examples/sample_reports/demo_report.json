@@ -1,7 +1,7 @@
 {
   "schema_version": "4",
-  "allelix_version": "1.8.0",
-  "generated_at": "2026-06-12T09:55:09.063437+00:00",
+  "allelix_version": "1.8.2",
+  "generated_at": "2026-06-12T16:13:37.305975+00:00",
   "regulatory_notice": "This report is informational research output. It surfaces classifications made by external databases (ClinVar, PharmGKB, \u2026) for variants present in the input genotype file. It is not medical advice and not a diagnosis. Every classification is attributed to its source database; Allelix does not independently classify variants.",
   "input": {
     "file": "demo_23andme.txt",

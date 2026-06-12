@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest minor release receives security fixes.
+The current and previous minor releases receive security fixes.
 
 | Version | Supported |
 |---------|-----------|
