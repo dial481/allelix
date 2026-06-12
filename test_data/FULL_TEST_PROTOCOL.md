@@ -30,7 +30,8 @@ required — all mock data is committed.
 python -m pytest tests/ -x --tb=short
 ```
 
-**Expected:** 1245 tests pass, 0 failures.
+**Expected:** 1271–1274 passed, 0–3 skipped depending on
+environment (plink2 roundtrip, GWAS Catalog data). 0 failures.
 
 Check lint:
 
@@ -399,7 +400,66 @@ allelix stats test_data/edge_cases/unsupported_23andme_exome_vcf.txt 2>&1
 # Expected: "No parser recognized" for both
 ```
 
-## 16. Cleanup
+## 16. PLINK export
+
+### 16a. Basic export
+
+```bash
+allelix export plink test_data/real/23andme/user1190_v5.txt -o /tmp/allelix-review/user1190 --build grch37
+```
+
+**Expected:** Exit code 0. Three files produced: `user1190.bed`,
+`user1190.bim`, `user1190.fam`. Console shows variant count, no-call
+skip count, and monomorphic marker count.
+
+Verify file structure:
+
+```bash
+python3 -c "
+data = open('/tmp/allelix-review/user1190.bed', 'rb').read()
+assert data[:3] == bytes([0x6C, 0x1B, 0x01]), 'Bad BED magic'
+print(f'BED: {len(data)} bytes, magic OK')
+bim = open('/tmp/allelix-review/user1190.bim').readlines()
+print(f'BIM: {len(bim)} variants')
+fam = open('/tmp/allelix-review/user1190.fam').read().strip()
+print(f'FAM: {fam}')
+assert len(bim) == len(data) - 3, 'BIM/BED row count mismatch'
+print('BIM/BED alignment OK')
+"
+```
+
+**Expected:** BED magic bytes correct. BIM variant count matches
+BED data bytes (one byte per variant in SNP-major, single-sample mode).
+FAM has one sample line.
+
+### 16b. gnomAD ref/alt resolution
+
+```bash
+allelix export plink test_data/real/23andme/user1190_v5.txt -o /tmp/allelix-review/user1190_gnomad --build grch37
+python3 -c "
+lines = open('/tmp/allelix-review/user1190_gnomad.bim').readlines()
+with_alt = sum(1 for l in lines if l.strip().split('\t')[5] != '0')
+mono = sum(1 for l in lines if l.strip().split('\t')[5] == '0')
+print(f'With ref/alt: {with_alt}')
+print(f'Monomorphic (A2=0): {mono}')
+"
+```
+
+**Expected:** Majority of variants have ref/alt resolved (A2 != 0)
+when gnomAD is available. Monomorphic count matches CLI output.
+
+### 16c. Roundtrip with plink2 (optional)
+
+If `plink2` is installed:
+
+```bash
+plink2 --bfile /tmp/allelix-review/user1190 --freq --out /tmp/allelix-review/freq_check
+```
+
+**Expected:** plink2 reads the files without error. Frequency report
+produced.
+
+## 17. Cleanup
 
 ```bash
 rm -rf /tmp/allelix-review
@@ -415,7 +475,7 @@ rm -rf ~/.local/share/allelix/
 
 All of the following must be true:
 
-- [ ] Unit test suite: 1245 passed, 0 failed
+- [ ] Unit test suite: 1271–1274 passed, 0–3 skipped, 0 failed
 - [ ] Ruff lint + format: zero warnings
 - [ ] `db update` downloads all enabled annotators without errors
 - [ ] `db status` shows all annotators ready with version and record count
@@ -430,3 +490,5 @@ All of the following must be true:
 - [ ] `db update` (second run) skips already-current databases
 - [ ] GWAS Catalog slow tests pass
 - [ ] `methylation`, `pharmacogenomics`, `compare` subcommands produce output
+- [ ] PLINK export produces valid .bed/.bim/.fam with correct magic and alignment
+- [ ] PLINK export resolves ref/alt from gnomAD when available

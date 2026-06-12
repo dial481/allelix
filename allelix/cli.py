@@ -1402,5 +1402,115 @@ def config_set(data_dir: Path | None, key: str, value: str) -> None:
     console.print(f"[green]Set {key} = {val_lower}[/green]")
 
 
+@main.group()
+def export() -> None:
+    """Export parsed genotype data to other formats."""
+
+
+@export.command("plink")
+@_FILE_ARG
+@click.option(
+    "--output-prefix",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Base path for .bed/.bim/.fam (default: input stem).",
+)
+@_FORMAT_OPT
+@_BUILD_OPT
+@_DATA_DIR_OPT
+def export_plink_cmd(
+    file_path: Path,
+    output_prefix: Path | None,
+    fmt: str | None,
+    build: str,
+    data_dir: Path | None,
+) -> None:
+    """Convert to PLINK1 binary format (.bed/.bim/.fam).
+
+    Produces a single-sample, SNP-major .bed file suitable for downstream
+    tools (plink2 PCA, ADMIXTURE, PRSice). Uses gnomAD ref/alt for allele
+    coding when available; falls back to monomorphic (A2=0) for positions
+    without gnomAD coverage.
+    """
+    from allelix.exporters.plink import _orient_genotype, export_plink
+
+    parser = _resolve_parser(file_path, fmt)
+    prefix = output_prefix if output_prefix else file_path.with_suffix("")
+    build_override = _normalize_cli_build(build)
+    metadata = parser.get_metadata(file_path)
+    effective_build = build_override or metadata.get("build", "GRCh37")
+    resolved = resolve_data_dir(data_dir)
+
+    variants = list(parser.parse(file_path))
+
+    variant_by_rsid: dict[str, Variant] = {}
+    for v in variants:
+        if not v.is_no_call:
+            variant_by_rsid[v.rsid] = v
+    rsids = set(variant_by_rsid)
+
+    ref_alt_map: dict[str, tuple[str, str]] = {}
+    gnomad = None
+    try:
+        from allelix.annotators.gnomad import GnomadAnnotator
+
+        gnomad = GnomadAnnotator(resolved)
+        if gnomad.is_ready():
+            coord_map = gnomad.bulk_resolve_coordinates(rsids)
+            for rsid, coords in coord_map.items():
+                if len(coords) == 1:
+                    _, _, ref, alt = coords[0]
+                    ref_alt_map[rsid] = (ref, alt)
+                else:
+                    v = variant_by_rsid[rsid]
+                    pair = {v.allele1, v.allele2}
+                    for _, _, ref, alt in coords:
+                        if _orient_genotype(
+                            v.allele1, v.allele2, ref, alt
+                        ) is not None and pair <= {ref, alt}:
+                            ref_alt_map[rsid] = (ref, alt)
+                            break
+                    else:
+                        for _, _, ref, alt in coords:
+                            if _orient_genotype(v.allele1, v.allele2, ref, alt) is not None:
+                                ref_alt_map[rsid] = (ref, alt)
+                                break
+    except Exception:
+        console.print(
+            "[yellow]gnomAD coordinate resolution failed; using fallback allele coding.[/yellow]"
+        )
+    finally:
+        if gnomad is not None:
+            gnomad.close()
+
+    written, skipped, indel_skip, mono = export_plink(
+        iter(variants), prefix, effective_build, ref_alt_map or None
+    )
+    skip_parts = []
+    if skipped:
+        skip_parts.append(f"{skipped:,} no-calls")
+    if indel_skip:
+        skip_parts.append(f"{indel_skip:,} indels")
+    skip_msg = f" ({', '.join(skip_parts)} skipped)" if skip_parts else ""
+    console.print(f"Wrote {written:,} variants to {prefix}.bed/.bim/.fam{skip_msg}")
+    if mono > 0:
+        pct = mono / written * 100 if written else 0
+        console.print(
+            f"[dim]{mono:,} markers ({pct:.0f}%) exported as monomorphic "
+            f"(A2=0, ref/alt unknown or ambiguous).[/dim]"
+        )
+    if not ref_alt_map:
+        console.print(
+            "[yellow]gnomAD not available — all homozygous markers exported "
+            "as monomorphic.[/yellow]"
+        )
+        console.print("[yellow]Run `allelix db update` first for proper allele coding.[/yellow]")
+    console.print(
+        "[dim]Single-sample export. Merging with other samples requires "
+        "allele harmonization (--merge-mode or set-all-var-ids).[/dim]"
+    )
+
+
 if __name__ == "__main__":
     main()

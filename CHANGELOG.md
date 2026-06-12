@@ -2,6 +2,27 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0]
+
+### Added
+- **PLINK export (#29).** `allelix export plink` converts any supported
+  genotype format to PLINK1 binary (.bed/.bim/.fam) for downstream
+  tools (plink2 PCA, ADMIXTURE, PRSice). Single-sample, SNP-major
+  encoding. Uses gnomAD ref/alt for allele coding when available.
+  No-call variants skipped.
+
+### Fixed
+- **Multi-allelic strand collision in PLINK coord selection.** At sites
+  where one alt is the complement of another (e.g. ref=G, alts=A,T),
+  single-pass coord selection picked the complement match over the
+  forward match — same bug class as CADD #45. Fixed with a two-pass
+  loop that prefers forward allele matches.
+
+### Documentation
+- **ADR-0034: Magnitude scoring scale and ceiling (#23).** Formalizes the
+  0-10 scale with practical ceiling of 9. Documents max-across-sources
+  composite rule and reserves per-source scoring for v2.0.0.
+
 ## [1.6.1]
 
 ### Added
@@ -1560,6 +1581,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.7.0]: https://github.com/dial481/allelix/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/dial481/allelix/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/dial481/allelix/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/dial481/allelix/compare/v1.5.2...v1.5.3

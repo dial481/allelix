@@ -1756,3 +1756,54 @@ class TestLicensableGating:
         cfg = load_config(tmp_path)
         assert not cfg.license_held("cadd")
         assert "cadd" not in cfg.license_overrides
+
+
+class TestExportPlinkCommand:
+    def test_multi_allelic_prefers_forward_over_complement(self, tmp_path, monkeypatch):
+        """Guard the two-pass coord selection loop in export_plink_cmd.
+
+        At a multi-allelic site ref=G alts=[A,T], a donor carrying T/T
+        must be exported against (G,T) — not (G,A) via complement.
+        Reverting the CLI loop to single-pass would make this fail.
+        """
+        fixture = tmp_path / "donor.txt"
+        fixture.write_text(
+            "# MyHappyGenes [TEMPUS]\n"
+            "# Sample ID\tTEST001\n"
+            "SNP Name\tChr\tPosition\tAllele1 - Forward\tAllele2 - Forward\n"
+            "rs1\t1\t100\tT\tT\n"
+        )
+
+        class _FakeGnomad:
+            def __init__(self, *a, **kw):
+                pass
+
+            def is_ready(self):
+                return True
+
+            def bulk_resolve_coordinates(self, rsids):
+                return {"rs1": [("1", 100, "G", "A"), ("1", 100, "G", "T")]}
+
+            def close(self):
+                pass
+
+        monkeypatch.setattr(
+            "allelix.annotators.gnomad.GnomadAnnotator",
+            _FakeGnomad,
+        )
+
+        runner = CliRunner()
+        prefix = tmp_path / "out"
+        result = runner.invoke(
+            main,
+            ["export", "plink", str(fixture), "-o", str(prefix), "--build", "grch37"],
+        )
+        assert result.exit_code == 0, result.output
+
+        bim = (tmp_path / "out.bim").read_text().strip()
+        parts = bim.split("\t")
+        assert parts[5] == "T", f"A2 should be T (forward match), got {parts[5]}"
+        assert parts[4] == "G"
+
+        bed = (tmp_path / "out.bed").read_bytes()
+        assert bed[3] == 0x03

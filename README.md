@@ -10,7 +10,8 @@ Open-source command-line toolkit for analyzing raw genotype files from consumer 
 > HTML/JSON/terminal reports, methylation + pharmacogenomics focused
 > commands, report diffing, persistent config with commercial-mode
 > safety switch. Build auto-detection from position data (ADR-0021).
-> No regex on prose anywhere in production. Release notes:
+> No regex on prose anywhere in production. **Latest: v1.7.0** — PLINK
+> export, magnitude scoring formalization (ADR-0034). Release notes:
 > [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Quickstart
@@ -47,6 +48,11 @@ allelix pharmacogenomics tests/fixtures/mock_myhappygenes.txt
 # Compare two genotype files (coverage, concordance, strand-flip detection)
 allelix compare file1.txt file2.txt
 
+# Export to PLINK1 binary format (.bed/.bim/.fam) for plink2, ADMIXTURE, PRSice
+# Expect ~60% monomorphic markers (A2=0) — genotyping chips probe many
+# intronic/intergenic sites outside gnomAD's exome coverage.
+allelix export plink genotype_file.txt -o output_prefix --build grch37
+
 # Output to a self-contained HTML or JSON report
 allelix analyze tests/fixtures/mock_myhappygenes.txt --output report.html
 allelix analyze tests/fixtures/mock_myhappygenes.txt --output report.json
@@ -70,6 +76,8 @@ Adding a new format means adding one file to `allelix/parsers/` and registering 
 | Format | Notes |
 |---|---|
 | VCF | REF/ALT encoding, `0/1` genotype notation, absence-means-reference semantics. Architecturally different from array parsers — 4-6M variants per file, streaming + batch SQL required. |
+| Per-source scoring | Magnitude breakdown by database. Users see which source drove the composite score. |
+| PLINK import | Read .bed/.bim/.fam as an input format (complement to the v1.7.0 export). |
 | Genome Watchtower | Real-time variant monitoring via database delta feeds. Privacy-preserving: server publishes universal feed, matching happens locally against your deviation set. Replaces full re-analysis with millisecond set intersection. |
 
 ## Supported Databases
