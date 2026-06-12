@@ -382,7 +382,7 @@ class ClinVarAnnotator(Annotator):
                     attribution=self.attribution,
                     genotype_match=user_diploid,
                     references=references,
-                    condition=condition or "",
+                    condition="" if not condition or condition == "." else condition,
                     gene=gene or "",
                     review_status=review_status or "",
                     alt=alt,

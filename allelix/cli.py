@@ -1444,6 +1444,14 @@ def export_plink_cmd(
 
     variants = list(parser.parse(file_path))
 
+    # Sort by chromosome then position so the .bim has contiguous
+    # chromosome blocks — PLINK1.9 rejects split chromosomes.
+    chrom_order = {str(i): i for i in range(1, 23)}
+    chrom_order.update({"X": 23, "Y": 24, "XY": 25, "MT": 26})
+    variants.sort(
+        key=lambda v: (chrom_order.get(v.chromosome, 99), v.chromosome, v.position),
+    )
+
     variant_by_rsid: dict[str, Variant] = {}
     for v in variants:
         if not v.is_no_call:

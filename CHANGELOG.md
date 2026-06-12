@@ -2,6 +2,41 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0]
+
+### Changed
+- **HTML report redesign.** Replaced the 12-column scrollable table with
+  a compact 5-column layout (Magnitude, Gene, Genotype, Repute, Summary).
+  Annotations from multiple sources for the same variant are grouped into
+  a single row. Clicking a row opens a sliding detail sidebar showing all
+  source annotations vertically — genotype, zygosity, significance, review
+  status, condition, description, frequency, AlphaMissense, CADD PHRED,
+  and references.
+- **Dark / light mode.** Follows system preference (`prefers-color-scheme`)
+  by default. A toggle button lets the user override. All component CSS
+  uses custom properties — no hardcoded colors outside semantic badges and
+  the accent color.
+- **CADD and AlphaMissense legend.** The "Understanding Magnitude Scores"
+  section now includes CADD PHRED tier thresholds (≥30 top 0.1%, ≥20 top
+  1%, ≥10 top 10%) and AlphaMissense classification bands (≥0.564
+  likely pathogenic, 0.340–0.564 ambiguous, <0.340 likely benign).
+- **CADD tier context in sidebar.** CADD scores display the PHRED
+  percentile tier inline (e.g. "38.0 (top 0.1% most deleterious)")
+  instead of a bare number.
+- **Embedded variant JSON uses numeric types.** `allele_frequency`,
+  `am_pathogenicity`, and `cadd` are now floats in the `<script
+  id="variant-data">` blob, matching the v4 JSON schema. Field names
+  aligned: `am_pathogenicity`, `am_class`, `allele_frequency` (was
+  `amScore`, `amClass`, `frequency`).
+
+### Fixed
+- **PLINK split-chromosome error.** MHG exports can have straggler
+  autosomal variants appended after the Y chromosome section, producing
+  non-contiguous chromosome blocks in the .bim. PLINK1.9 rejects these.
+  `export plink` now sorts variants by chromosome then position before
+  writing. The exporter itself remains a single-pass writer — the sort
+  lives in the CLI layer.
+
 ## [1.7.0]
 
 ### Added
@@ -1581,6 +1616,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.8.0]: https://github.com/dial481/allelix/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/dial481/allelix/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/dial481/allelix/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/dial481/allelix/compare/v1.5.3...v1.6.0

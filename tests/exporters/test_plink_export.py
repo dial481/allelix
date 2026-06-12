@@ -334,6 +334,20 @@ class TestIndelsSkipped:
         assert "rs1" in bim_lines[0]
 
 
+class TestExporterPreservesInputOrder:
+    def test_exporter_preserves_input_order(self, tmp_path):
+        """Exporter writes variants in iterator order, does not sort."""
+        prefix = tmp_path / "out"
+        variants = [
+            _v("rs1", "2", 200, "G", "G"),
+            _v("rs2", "1", 100, "A", "A"),
+        ]
+        export_plink(iter(variants), prefix, "GRCh37")
+        lines = (tmp_path / "out.bim").read_text().strip().split("\n")
+        assert lines[0].split("\t")[1] == "rs1"
+        assert lines[1].split("\t")[1] == "rs2"
+
+
 class TestAllNoCalls:
     def test_all_no_calls(self, tmp_path):
         """All no-call input produces magic-only .bed and empty .bim."""

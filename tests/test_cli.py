@@ -1807,3 +1807,46 @@ class TestExportPlinkCommand:
 
         bed = (tmp_path / "out.bed").read_bytes()
         assert bed[3] == 0x03
+
+    def test_split_chromosome_sorted(self, tmp_path, monkeypatch):
+        """CLI sorts variants so .bim has contiguous chromosome blocks.
+
+        MHG files can have straggler variants after the main chromosome
+        run (e.g. supplemental panel appended after chrY). PLINK1.9
+        rejects split chromosomes. Guards the sort in cli.py.
+        """
+        fixture = tmp_path / "split.txt"
+        fixture.write_text(
+            "# MyHappyGenes [TEMPUS]\n"
+            "# Sample ID\tTEST001\n"
+            "SNP Name\tChr\tPosition\tAllele1 - Forward\tAllele2 - Forward\n"
+            "rs1\t1\t100\tA\tA\n"
+            "rs2\t2\t200\tG\tG\n"
+            "rs3\t1\t300\tT\tT\n"
+        )
+
+        monkeypatch.setattr(
+            "allelix.annotators.gnomad.GnomadAnnotator",
+            type(
+                "_NoGnomad",
+                (),
+                {
+                    "__init__": lambda self, *a, **kw: None,
+                    "is_ready": lambda self: False,
+                    "close": lambda self: None,
+                },
+            ),
+        )
+
+        runner = CliRunner()
+        prefix = tmp_path / "out"
+        result = runner.invoke(
+            main,
+            ["export", "plink", str(fixture), "-o", str(prefix), "--build", "grch37"],
+        )
+        assert result.exit_code == 0, result.output
+
+        chroms = [
+            line.split("\t")[0] for line in (tmp_path / "out.bim").read_text().strip().split("\n")
+        ]
+        assert chroms == ["1", "1", "2"], f"Expected contiguous chroms, got {chroms}"

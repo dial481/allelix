@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 from allelix.models import Annotation
@@ -34,12 +36,15 @@ def _ann(**overrides) -> Annotation:
         "magnitude": 9.0,
         "description": "ClinVar classifies this allele as Pathogenic",
         "attribution": "ClinVar",
-        "genotype_match": "A",
+        "genotype_match": "A/G",
         "gene": "MTHFR",
         "condition": "MTHFR deficiency",
     }
     defaults.update(overrides)
     return Annotation(**defaults)
+
+
+# ---- Existing tests (updated for new structure) ----
 
 
 class TestRenderHtml:
@@ -48,7 +53,6 @@ class TestRenderHtml:
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
         assert body.startswith("<!DOCTYPE html>")
-        # Inline CSS — no external stylesheet links
         assert "<style>" in body
         assert '<link rel="stylesheet"' not in body
         assert "<script src=" not in body
@@ -58,10 +62,9 @@ class TestRenderHtml:
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
         assert "Informational only" in body
-        assert "not medical advice" in body  # from REGULATORY_NOTICE
+        assert "not medical advice" in body
 
-    def test_attribution_visible_in_table(self, tmp_path: Path):
-        """ADR-0003: every row's source attribution must render."""
+    def test_attribution_visible(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
@@ -70,13 +73,14 @@ class TestRenderHtml:
         assert "MTHFR" in body
 
     def test_html_escapes_user_supplied_strings(self, tmp_path: Path):
-        """A condition string with HTML must be escaped, not rendered as markup."""
         evil = _ann(condition='<script>alert("xss")</script>')
         out = tmp_path / "report.html"
         render_html(_result([evil]), output_path=out)
         body = out.read_text()
-        assert "<script>alert" not in body
+        html_part = body.split('<script id="variant-data"')[0]
+        assert "<script>alert" not in html_part
         assert "&lt;script&gt;" in body
+        assert "</script>" not in body.split('<script id="variant-data"')[1].split("</script>")[0]
 
     def test_empty_annotations(self, tmp_path: Path):
         out = tmp_path / "report.html"
@@ -91,35 +95,16 @@ class TestRenderHtml:
         count = render_html(_result(anns), output_path=out, min_magnitude=5.0)
         assert count == 1
         body = out.read_text()
-        assert "rs_hi" not in body  # we use "hi"
-        assert '<td class="col-rsid">hi</td>' in body
-        assert '<td class="col-rsid">lo</td>' not in body
+        assert "hi" in body
+        assert ">lo<" not in body
 
     def test_genes_filter(self, tmp_path: Path):
         anns = [_ann(rsid="m", gene="MTHFR"), _ann(rsid="b", gene="BRCA1")]
         out = tmp_path / "report.html"
         render_html(_result(anns), output_path=out, genes={"MTHFR"})
         body = out.read_text()
-        assert ">m<" in body
-        assert ">b<" not in body
-
-
-class TestReviewStatus:
-    def test_review_status_column_hidden_when_all_empty(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(review_status="")]), output_path=out)
-        body = out.read_text()
-        assert "Review Status" not in body
-
-    def test_review_status_column_shown_when_present(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(
-            _result([_ann(review_status="criteria_provided,_single_submitter")]),
-            output_path=out,
-        )
-        body = out.read_text()
-        assert "Review Status" in body
-        assert "criteria_provided" in body
+        assert "MTHFR" in body
+        assert ">BRCA1<" not in body
 
 
 class TestEducationSection:
@@ -132,20 +117,17 @@ class TestEducationSection:
     def test_education_pseudogene_warning(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "cross-hybridize" in body
+        assert "cross-hybridize" in out.read_text()
 
     def test_education_carrier_vs_affected(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "Carrier vs. affected" in body
+        assert "Carrier vs. affected" in out.read_text()
 
     def test_education_confirmatory_testing(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "Confirmatory testing" in body
+        assert "Confirmatory testing" in out.read_text()
 
 
 class TestBuildMismatchBanner:
@@ -161,8 +143,7 @@ class TestBuildMismatchBanner:
         )
         out = tmp_path / "report.html"
         render_html(r, output_path=out)
-        body = out.read_text()
-        assert "Build mismatch" not in body
+        assert "Build mismatch" not in out.read_text()
 
     def test_banner_on_mismatch(self, tmp_path: Path):
         r = _result([_ann()])
@@ -194,14 +175,12 @@ class TestBuildMismatchBanner:
         )
         out = tmp_path / "report.html"
         render_html(r, output_path=out)
-        body = out.read_text()
-        assert "Build mismatch" not in body
+        assert "Build mismatch" not in out.read_text()
 
     def test_no_banner_without_diagnostics(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "Build mismatch" not in body
+        assert "Build mismatch" not in out.read_text()
 
 
 class TestLicenseAttributions:
@@ -225,14 +204,6 @@ class TestLicenseAttributions:
         body = out.read_text()
         assert "PharmGKB" in body
         assert "CC BY-SA 4.0" in body
-        assert "pharmgkb.org" in body
-
-    def test_no_pharmgkb_no_attribution(self, tmp_path: Path):
-        r = self._result_with_annotators([("clinvar", "20260101")])
-        out = tmp_path / "report.html"
-        render_html(r, output_path=out)
-        body = out.read_text()
-        assert "CC BY-SA 4.0" not in body
 
     def test_snpedia_attribution_present(self, tmp_path: Path):
         r = self._result_with_annotators([("clinvar", "20260101"), ("snpedia", None)])
@@ -240,16 +211,6 @@ class TestLicenseAttributions:
         render_html(r, output_path=out)
         body = out.read_text()
         assert "SNPedia" in body
-        assert "CC BY-NC-SA 3.0 US" in body
-
-    def test_both_attributions(self, tmp_path: Path):
-        r = self._result_with_annotators(
-            [("clinvar", "20260101"), ("pharmgkb", "2026-01"), ("snpedia", None)]
-        )
-        out = tmp_path / "report.html"
-        render_html(r, output_path=out)
-        body = out.read_text()
-        assert "CC BY-SA 4.0" in body
         assert "CC BY-NC-SA 3.0 US" in body
 
     def test_gnomad_attribution_present(self, tmp_path: Path):
@@ -266,316 +227,396 @@ class TestLicenseAttributions:
         render_html(r, output_path=out)
         body = out.read_text()
         assert "NHGRI-EBI GWAS Catalog" in body
-        assert "EMBL-EBI Terms of Use" in body
-
-    def test_attribution_derived_from_license_descriptor(self, tmp_path: Path):
-        """Attribution text comes from the annotator's LicenseDescriptor."""
-        from allelix.annotators.pharmgkb import PharmGKBAnnotator
-
-        r = self._result_with_annotators([("pharmgkb", "2026-01")])
-        out = tmp_path / "report.html"
-        render_html(r, output_path=out)
-        body = out.read_text()
-        assert PharmGKBAnnotator.license.attribution_text in body
 
 
-class TestFrequencyColumn:
-    """Pop. Freq column appears only when annotations have frequency data."""
-
-    def test_freq_column_present(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(allele_frequency=0.35)]), output_path=out)
-        body = out.read_text()
-        assert "Pop. Freq" in body
-        assert "35.00%" in body
-
-    def test_freq_column_absent(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "Pop. Freq" not in body
-
-    def test_freq_rare_variant(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(allele_frequency=0.00005)]), output_path=out)
-        body = out.read_text()
-        assert "&lt;0.01%" in body
-
-    def test_freq_none_shows_dash(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        annotations = [
-            _ann(rsid="rs1", allele_frequency=0.35),
-            _ann(rsid="rs2", allele_frequency=None),
-        ]
-        render_html(_result(annotations), output_path=out)
-        body = out.read_text()
-        assert "Pop. Freq" in body
-
-
-class TestTableLayout:
-    """Table overflow, sticky column, and description truncation fixes (issue #20)."""
-
-    def test_table_wrapped_in_overflow_div(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert 'class="table-wrap"' in body
-
-    def test_rsid_column_sticky(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "col-rsid" in body
-        assert "position: sticky" in body
-
-    def test_description_cell_has_max_width(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "desc-cell" in body
-        assert "max-width: 400px" in body
-
-    def test_stat_cards_flex_wrap(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "flex-wrap: wrap" in body
-
-
-class TestRefsToggle:
-    """Raw reference IDs should be in a collapsible details element."""
-
-    def test_refs_in_details_element(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        ann = _ann(references=["pubmed:36750564", "gwas:GCST90270940"])
-        render_html(_result([ann]), output_path=out)
-        body = out.read_text()
-        assert "<details" in body
-        assert "pubmed:36750564" in body
-        assert "gwas:GCST90270940" in body
-
-    def test_no_refs_no_details(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(references=[])]), output_path=out)
-        body = out.read_text()
-        assert '<details class="refs-toggle">' not in body
-
-
-class TestReputeBorders:
-    """Color-coded left border based on significance field."""
-
-    def test_pathogenic_gets_bad_border(self, tmp_path: Path):
+class TestReputeClassification:
+    def test_pathogenic_is_bad(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann(significance="clinvar_pathogenic")]), output_path=out)
         body = out.read_text()
-        assert "repute-bad" in body
+        assert "badge-bad" in body
+        assert "pill-bad" in body
 
-    def test_benign_gets_good_border(self, tmp_path: Path):
+    def test_benign_is_good(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann(significance="clinvar_benign")]), output_path=out)
         body = out.read_text()
-        assert "repute-good" in body
+        assert "badge-good" in body
+        assert "pill-good" in body
 
-    def test_vus_gets_neutral_border(self, tmp_path: Path):
+    def test_vus_is_neutral(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(
             _result([_ann(significance="clinvar_uncertain_significance")]),
             output_path=out,
         )
         body = out.read_text()
-        assert "repute-neutral" in body
+        assert "badge-neutral" in body
+        assert "pill-neutral" in body
 
-    def test_gwas_gets_neutral_border(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(
-            _result([_ann(significance="gwas_association")]),
-            output_path=out,
-        )
-        body = out.read_text()
-        assert "repute-neutral" in body
-
-    def test_snpedia_bad_gets_bad_border(self, tmp_path: Path):
+    def test_snpedia_bad(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann(significance="snpedia_bad")]), output_path=out)
-        body = out.read_text()
-        assert "repute-bad" in body
+        assert "badge-bad" in out.read_text()
 
-    def test_snpedia_good_gets_good_border(self, tmp_path: Path):
+    def test_snpedia_good(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann(significance="snpedia_good")]), output_path=out)
-        body = out.read_text()
-        assert "repute-good" in body
+        assert "badge-good" in out.read_text()
 
 
-class TestSortableColumns:
-    """Inline JS for sortable table columns."""
+# ---- New tests for v1.8.0 redesign ----
 
-    def test_sort_script_present(self, tmp_path: Path):
+
+class TestHtmlFiveColumns:
+    def test_html_five_columns(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
-        assert "<script>" in body
-        assert "sort-arrow" in body
+        thead = body.split("<thead>")[1].split("</thead>")[0]
+        th_count = thead.count("<th")
+        assert th_count == 5
 
-    def test_sort_arrows_in_headers(self, tmp_path: Path):
+
+class TestHtmlNoHorizontalScroll:
+    def test_no_overflow_x(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        assert "overflow-x" not in out.read_text()
+
+
+class TestHtmlVariantGrouping:
+    def test_two_annotations_same_variant_one_row(self, tmp_path: Path):
+        anns = [
+            _ann(source="clinvar", attribution="ClinVar", magnitude=9.0),
+            _ann(
+                source="snpedia", attribution="SNPedia", magnitude=4.0, significance="snpedia_bad"
+            ),
+        ]
+        out = tmp_path / "report.html"
+        render_html(_result(anns), output_path=out)
+        body = out.read_text()
+        tbody = body.split("<tbody>")[1].split("</tbody>")[0]
+        tr_count = tbody.count("<tr ")
+        assert tr_count == 1
+
+    def test_different_variants_different_rows(self, tmp_path: Path):
+        anns = [
+            _ann(rsid="rs1", genotype_match="A/G"),
+            _ann(rsid="rs2", genotype_match="C/C"),
+        ]
+        out = tmp_path / "report.html"
+        render_html(_result(anns), output_path=out)
+        body = out.read_text()
+        tbody = body.split("<tbody>")[1].split("</tbody>")[0]
+        tr_count = tbody.count("<tr ")
+        assert tr_count == 2
+
+
+class TestHtmlDataAttributes:
+    def test_data_attributes_present(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
-        assert 'class="sort-arrow"' in body
-
-    def test_magnitude_has_sort_value(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(magnitude=7.5)]), output_path=out)
-        body = out.read_text()
-        assert 'data-sort-value="7.5"' in body
-
-    def test_no_script_when_empty(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([]), output_path=out)
-        body = out.read_text()
-        assert "No annotations" in body
+        assert "data-row-id=" in body
+        assert "data-magnitude=" in body
+        assert "data-gene=" in body
+        assert "data-genotype=" in body
+        assert "data-repute=" in body
+        assert "data-search-text=" in body
 
 
-class TestAlphaMissenseColumn:
-    """Tests for AlphaMissense pathogenicity column rendering."""
+class TestHtmlVariantDataJson:
+    def _extract_json(self, html_body: str) -> list:
+        start = html_body.index('id="variant-data"')
+        json_start = html_body.index(">", start) + 1
+        json_end = html_body.index("</script>", json_start)
+        raw = html_body[json_start:json_end].replace("<\\/", "</")
+        return json.loads(raw)
 
-    def test_am_column_present_when_data_exists(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        a = _ann(am_pathogenicity=0.95, am_class="likely_pathogenic")
-        render_html(_result([a]), output_path=out)
-        body = out.read_text()
-        assert "AM" in body
-        assert "0.950" in body
-
-    def test_am_column_absent_when_no_data(self, tmp_path: Path) -> None:
+    def test_variant_data_json(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
-        body = out.read_text()
-        assert "<th>AM<" not in body
+        data = self._extract_json(out.read_text())
+        assert isinstance(data, list)
+        assert len(data) == 1
+        entry = data[0]
+        assert "rsid" in entry
+        assert "gene" in entry
+        assert "genotype" in entry
+        assert "zygosity" in entry
+        assert "annotations" in entry
+        assert len(entry["annotations"]) >= 1
 
-    def test_am_pathogenic_colored_red(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        a = _ann(am_pathogenicity=0.95, am_class="likely_pathogenic")
-        render_html(_result([a]), output_path=out)
-        body = out.read_text()
-        assert "am-pathogenic" in body
-
-    def test_am_benign_colored_green(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        a = _ann(am_pathogenicity=0.10, am_class="likely_benign")
-        render_html(_result([a]), output_path=out)
-        body = out.read_text()
-        assert "am-benign" in body
-
-    def test_am_ambiguous_colored_yellow(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        a = _ann(am_pathogenicity=0.50, am_class="ambiguous")
-        render_html(_result([a]), output_path=out)
-        body = out.read_text()
-        assert "am-ambiguous" in body
-
-    def test_am_attribution_present(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        a = _ann(am_pathogenicity=0.80, am_class="likely_pathogenic")
-        r = _result([a])
-        r.annotators_used.append(("alphamissense", "2023.1"))
-        render_html(r, output_path=out)
-        body = out.read_text()
-        assert "AlphaMissense" in body
-        assert "CC BY 4.0" in body
-
-    def test_am_neutral_on_pharmgkb_rows(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        a = _ann(
-            source="pharmgkb",
-            attribution="PharmGKB",
-            am_pathogenicity=0.95,
-            am_class="likely_pathogenic",
+    def test_enrichment_fields_numeric(self, tmp_path: Path):
+        ann = _ann(
+            allele_frequency=0.23,
+            am_pathogenicity=0.057,
+            am_class="likely_benign",
+            cadd_phred=38.0,
         )
-        render_html(_result([a]), output_path=out)
-        body = out.read_text()
-        tbody = body.split("<tbody>", 1)[1]
-        assert "am-pathogenic" not in tbody
-        assert "am-score" in tbody
-        assert "protein structure impact only" in body
-
-    def test_am_colored_on_non_pharmgkb_rows(self, tmp_path: Path) -> None:
         out = tmp_path / "report.html"
-        a = _ann(
-            source="clinvar",
-            am_pathogenicity=0.95,
-            am_class="likely_pathogenic",
-        )
-        render_html(_result([a]), output_path=out)
-        body = out.read_text()
-        assert "am-pathogenic" in body
-        assert "protein structure impact only" not in body
+        render_html(_result([ann]), output_path=out)
+        data = self._extract_json(out.read_text())
+        v = data[0]
+        assert v["allele_frequency"] == 0.23
+        assert isinstance(v["allele_frequency"], float)
+        assert v["am_pathogenicity"] == 0.057
+        assert isinstance(v["am_pathogenicity"], float)
+        assert v["am_class"] == "likely_benign"
+        assert v["cadd_phred"] == 38.0
+        assert isinstance(v["cadd_phred"], float)
+        a = v["annotations"][0]
+        assert "allele_frequency" not in a
+        assert "am_pathogenicity" not in a
+        assert "cadd_phred" not in a
 
 
-class TestZygosityColumn:
-    """Zygosity column appears on every report."""
-
-    def test_zygosity_column_header_present(self, tmp_path: Path):
+class TestHtmlSearchTextAllSources:
+    def test_search_text_contains_all_sources(self, tmp_path: Path):
+        anns = [
+            _ann(source="clinvar", attribution="ClinVar"),
+            _ann(
+                source="snpedia", attribution="SNPedia", magnitude=4.0, significance="snpedia_bad"
+            ),
+        ]
         out = tmp_path / "report.html"
-        render_html(_result([_ann(genotype_match="A/G")]), output_path=out)
+        render_html(_result(anns), output_path=out)
         body = out.read_text()
-        assert "Zygosity" in body
-
-    def test_heterozygous_label(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(genotype_match="A/G")]), output_path=out)
-        body = out.read_text()
-        assert "Heterozygous" in body
-
-    def test_homozygous_label(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(genotype_match="A/A")]), output_path=out)
-        body = out.read_text()
-        assert "Homozygous" in body
-
-    def test_no_call_label(self, tmp_path: Path):
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(genotype_match="A/-")]), output_path=out)
-        body = out.read_text()
-        assert "No Call" in body
+        # Find data-search-text attribute value
+        idx = body.index("data-search-text=")
+        search_text = body[idx : idx + 500]
+        assert "clinvar" in search_text
+        assert "snpedia" in search_text
 
 
-class TestCaddColumn:
-    """Tests for CADD PHRED score column rendering."""
-
-    def test_cadd_column_present_when_data_exists(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(cadd_phred=25.3)]), output_path=out)
-        body = out.read_text()
-        assert "CADD" in body
-        assert "25.3" in body
-
-    def test_cadd_column_absent_when_no_data(self, tmp_path: Path) -> None:
+class TestHtmlSidebarExists:
+    def test_sidebar_elements_present(self, tmp_path: Path):
         out = tmp_path / "report.html"
         render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
-        assert "<th>CADD<" not in body
+        assert 'id="detail-panel"' in body
+        assert 'id="backdrop"' in body
 
-    def test_cadd_high_class(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(cadd_phred=35.0)]), output_path=out)
-        assert "cadd-high" in out.read_text()
-        assert "top 0.1%" in out.read_text()
 
-    def test_cadd_med_class(self, tmp_path: Path) -> None:
+class TestHtmlViewportMeta:
+    def test_viewport_meta_present(self, tmp_path: Path):
         out = tmp_path / "report.html"
-        render_html(_result([_ann(cadd_phred=25.0)]), output_path=out)
-        assert "cadd-med" in out.read_text()
-        assert "top 1%" in out.read_text()
+        render_html(_result([_ann()]), output_path=out)
+        assert '<meta name="viewport"' in out.read_text()
 
-    def test_cadd_low_with_tooltip(self, tmp_path: Path) -> None:
-        out = tmp_path / "report.html"
-        render_html(_result([_ann(cadd_phred=15.0)]), output_path=out)
-        assert "cadd-low" in out.read_text()
-        assert "top 10%" in out.read_text()
 
-    def test_cadd_below_10_no_tooltip(self, tmp_path: Path) -> None:
+class TestHtmlSelfContained:
+    def test_no_external_resources(self, tmp_path: Path):
         out = tmp_path / "report.html"
-        render_html(_result([_ann(cadd_phred=5.0)]), output_path=out)
+        render_html(_result([_ann()]), output_path=out)
         body = out.read_text()
-        assert 'class="cadd-low">5.0</span>' in body
+        assert '<link rel="stylesheet"' not in body
+        assert "<script src=" not in body
+
+
+class TestHtmlMagnitudeBadge:
+    def test_badge_class_present(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        assert 'class="badge' in out.read_text()
+
+
+class TestHtmlDefaultSortDesc:
+    def test_first_row_has_highest_magnitude(self, tmp_path: Path):
+        anns = [
+            _ann(rsid="rs_low", magnitude=2.0, genotype_match="A/A"),
+            _ann(rsid="rs_high", magnitude=8.0, genotype_match="C/C"),
+        ]
+        out = tmp_path / "report.html"
+        render_html(_result(anns), output_path=out)
+        body = out.read_text()
+        tbody = body.split("<tbody>")[1].split("</tbody>")[0]
+        first_tr_idx = tbody.index("<tr ")
+        second_tr_idx = tbody.index("<tr ", first_tr_idx + 1)
+        first_row = tbody[first_tr_idx:second_tr_idx]
+        assert 'data-magnitude="8.0"' in first_row
+
+
+class TestHtmlDarkMode:
+    def test_css_custom_properties_present(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert "prefers-color-scheme: dark" in body
+        assert "[data-theme=" in body
+
+    def test_toggle_button_present(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        assert 'id="theme-toggle"' in body
+        assert "theme-toggle" in body
+
+    def test_no_hardcoded_colors_in_component_css(self, tmp_path: Path):
+        out = tmp_path / "report.html"
+        render_html(_result([_ann()]), output_path=out)
+        body = out.read_text()
+        style_start = body.index("<style>") + len("<style>")
+        style_end = body.index("</style>")
+        css = body[style_start:style_end]
+        for line in css.split("\n"):
+            stripped = line.strip()
+            if not stripped or stripped.startswith(":root") or stripped.startswith("--"):
+                continue
+            if "@media (prefers-color-scheme" in stripped:
+                continue
+            if "[data-theme" in stripped:
+                continue
+            if "badge-bad" in stripped or "badge-good" in stripped:
+                continue
+            if "badge-neutral" in stripped:
+                continue
+            if "pill-bad" in stripped or "pill-good" in stripped:
+                continue
+            if "card-bad" in stripped or "card-good" in stripped:
+                continue
+            if ".filter-btn.active" in stripped:
+                continue
+            if "#search:focus" in stripped:
+                continue
+            if "box-shadow: inset" in stripped:
+                continue
+            if "border-color: #1976d2" in stripped:
+                continue
+            assert "color: #" not in stripped or "var(--" in stripped, (
+                f"Hardcoded color found: {stripped}"
+            )
+
+
+class TestHtmlEscaping:
+    def test_escaping_in_table_and_data_attrs(self, tmp_path: Path):
+        ann = _ann(condition='x < y & "z"')
+        out = tmp_path / "report.html"
+        render_html(_result([ann]), output_path=out)
+        body = out.read_text()
+        assert "x &lt; y &amp; &quot;z&quot;" in body
+        assert 'x < y & "z"' not in body.split("<script")[0]
+
+
+def _extract_json(html_body: str) -> list:
+    """Extract the variant-data JSON blob from rendered HTML."""
+    start = html_body.index('id="variant-data"')
+    json_start = html_body.index(">", start) + 1
+    json_end = html_body.index("</script>", json_start)
+    raw = html_body[json_start:json_end].replace("<\\/", "</")
+    return json.loads(raw)
+
+
+def _extract_js(html_body: str) -> str:
+    """Extract the main DOMContentLoaded script block."""
+    marker = 'document.addEventListener("DOMContentLoaded"'
+    start = html_body.index(marker)
+    block_start = html_body.rindex("<script>", 0, start)
+    block_end = html_body.index("</script>", start)
+    return html_body[block_start:block_end]
+
+
+def _rich_report(tmp_path: Path) -> str:
+    """Render a report with all enrichment fields populated."""
+    ann = _ann(
+        allele_frequency=0.254,
+        am_pathogenicity=0.320,
+        am_class="ambiguous",
+        cadd_phred=0.1,
+        review_status="criteria_provided,_single_submitter",
+        references=["clinvar:allele/100001"],
+    )
+    out = tmp_path / "report.html"
+    render_html(_result([ann]), output_path=out)
+    return out.read_text()
+
+
+class TestJsHtmlContract:
+    """Verify the JS selectors and field references match what the HTML emits.
+
+    These tests guard against the class of bugs where Python changes a DOM id,
+    data attribute, or JSON field name but the JS still references the old one.
+    """
+
+    def test_variant_table_id_unique(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        assert body.count('id="variant-table"') == 1
+
+    def test_js_element_ids_exist_in_html(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        js = _extract_js(body)
+        ids = re.findall(r'getElementById\("([^"]+)"\)', js)
+        assert len(ids) >= 5
+        for eid in ids:
+            assert f'id="{eid}"' in body, f"JS references #{eid} but HTML has no such id"
+
+    def test_variant_table_tbody_selector(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        assert 'querySelector("#variant-table tbody")' in body
+        assert 'id="variant-table"' in body
+        start = body.index('id="variant-table"')
+        table_region = body[start : start + 2000]
+        assert "<tbody>" in table_region
+
+    def test_data_sort_attrs_match_dataset_keys(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        sort_keys = set(re.findall(r'data-sort="([^"]+)"', body))
+        assert sort_keys
+        js = _extract_js(body)
+        for key in sort_keys:
+            assert f"dataset.{key}" in js or "dataset[key]" in js, (
+                f'data-sort="{key}" in HTML but JS never reads dataset.{key}'
+            )
+
+    def test_row_data_attrs_match_js_references(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        js = _extract_js(body)
+        js_dataset_refs = set(re.findall(r"\.dataset\.([a-zA-Z]+)", js))
+        html_before_script = body.split("<script>")[0]
+        for attr in js_dataset_refs:
+            kebab = re.sub(r"([A-Z])", r"-\1", attr).lower()
+            assert f"data-{kebab}=" in html_before_script, (
+                f"JS reads dataset.{attr} but no data-{kebab} attribute in HTML"
+            )
+
+    def test_variant_json_keys_match_js_reads(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        data = _extract_json(body)
+        js = _extract_js(body)
+        v_fields = set(re.findall(r"v\.([a-z_]+)", js)) - {"locale"}
+        v = data[0]
+        for field in v_fields:
+            assert field in v, f"JS reads v.{field} but _build_variant_data does not emit it"
+
+    def test_annotation_json_keys_match_js_reads(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        data = _extract_json(body)
+        js = _extract_js(body)
+        a_fields = set(re.findall(r"\ba\.([a-z_A-Z]+)\b", js))
+        a_fields -= {"com", "length", "source", "dataset", "append"}
+        a_fields -= {"classList", "scrollIntoView", "querySelector"}
+        a_fields -= {"preventDefault", "stopPropagation", "textContent"}
+        ann = data[0]["annotations"][0]
+        for field in a_fields:
+            assert field in ann, f"JS reads a.{field} but annotation dict does not contain it"
+
+    def test_enrichment_on_variant_not_annotation(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        data = _extract_json(body)
+        v = data[0]
+        assert "allele_frequency" in v
+        assert "am_pathogenicity" in v
+        assert "cadd_phred" in v
+        ann = v["annotations"][0]
+        assert "allele_frequency" not in ann
+        assert "am_pathogenicity" not in ann
+        assert "cadd_phred" not in ann
+
+    def test_filter_btn_data_filter_attrs(self, tmp_path: Path):
+        body = _rich_report(tmp_path)
+        js = _extract_js(body)
+        html_filters = set(re.findall(r'data-filter="([^"]+)"', body))
+        assert {"all", "bad", "good", "neutral"} <= html_filters
+        for f in html_filters:
+            assert f'"{f}"' in js

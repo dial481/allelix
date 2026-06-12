@@ -30,7 +30,7 @@ required — all mock data is committed.
 python -m pytest tests/ -x --tb=short
 ```
 
-**Expected:** 1271–1274 passed, 0–3 skipped depending on
+**Expected:** 1262–1265 passed, 0–3 skipped depending on
 environment (plink2 roundtrip, GWAS Catalog data). 0 failures.
 
 Check lint:
@@ -475,7 +475,7 @@ rm -rf ~/.local/share/allelix/
 
 All of the following must be true:
 
-- [ ] Unit test suite: 1271–1274 passed, 0–3 skipped, 0 failed
+- [ ] Unit test suite: 1262–1265 passed, 0–3 skipped, 0 failed
 - [ ] Ruff lint + format: zero warnings
 - [ ] `db update` downloads all enabled annotators without errors
 - [ ] `db status` shows all annotators ready with version and record count
