@@ -10,54 +10,26 @@ Open-source command-line toolkit for analyzing raw genotype files from consumer 
 > HTML/JSON/terminal reports, methylation + pharmacogenomics focused
 > commands, report diffing, persistent config with commercial-mode
 > safety switch. Build auto-detection from position data (ADR-0021).
-> No regex on prose anywhere in production. **Latest: v1.8.2** — HTML
-> report redesign with dark mode, PLINK export, and automated PyPI
-> publishing. Release notes:
-> [`CHANGELOG.md`](CHANGELOG.md).
+> No regex on prose anywhere in production. **Latest: v1.8.3** —
+> pip install quickstart, workflow hardening, PyPI link fix.
+> Release notes:
+> [`CHANGELOG.md`](https://github.com/dial481/allelix/blob/main/CHANGELOG.md).
 
 ## Quickstart
 
-Requires Python 3.11+.
-
 ```bash
-git clone https://github.com/dial481/allelix
-cd allelix
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+pip install allelix
 
-# Generate a synthetic test fixture
-python tests/generate_mock_data.py
-
-# Show summary statistics for a genotype file
-allelix stats tests/fixtures/mock_myhappygenes.txt
-
-# Download reference databases. First run downloads all sources (~15GB
-# on disk with gnomAD + AlphaMissense). Use --no-gnomad / --no-alphamissense
-# to skip the large enrichment databases. Re-runs skip unchanged sources.
+# Download reference databases (~15GB with all sources).
+# Use --no-gnomad / --no-alphamissense to skip the large ones.
 # CADD is opt-in: allelix db update --cadd
 allelix db update
-allelix db status   # see what's cached
 
-# Analyze a genotype file against all ready databases
-allelix analyze tests/fixtures/mock_myhappygenes.txt --min-magnitude 5
-
-# Same data, focused subsets
-allelix methylation tests/fixtures/mock_myhappygenes.txt
-allelix pharmacogenomics tests/fixtures/mock_myhappygenes.txt
-
-# Compare two genotype files (coverage, concordance, strand-flip detection)
-allelix compare file1.txt file2.txt
-
-# Export to PLINK1 binary format (.bed/.bim/.fam) for plink2, ADMIXTURE, PRSice
-# Expect ~60% monomorphic markers (A2=0) — genotyping chips probe many
-# intronic/intergenic sites outside gnomAD's exome coverage.
-allelix export plink genotype_file.txt -o output_prefix --build grch37
-
-# Output to a self-contained HTML or JSON report
-allelix analyze tests/fixtures/mock_myhappygenes.txt --output report.html
-allelix analyze tests/fixtures/mock_myhappygenes.txt --output report.json
+# Analyze a genotype file
+allelix analyze your_genotype_file.txt --output report.html
 ```
+
+Requires Python 3.11+. See [Development](#development) for source installs and running tests.
 
 ## Supported Formats
 
@@ -212,7 +184,7 @@ None of these are scraping errors. They are editorial inconsistencies on the sou
 
 ## Architecture & Design Decisions
 
-The "why" behind major design choices lives in [`docs/adr/`](docs/adr/README.md) as Architecture Decision Records. Read these before proposing changes that touch the parser/annotator interfaces, the regulatory posture, or the data-handling model.
+The "why" behind major design choices lives in [`docs/adr/`](https://github.com/dial481/allelix/blob/main/docs/adr/README.md) as Architecture Decision Records. Read these before proposing changes that touch the parser/annotator interfaces, the regulatory posture, or the data-handling model.
 
 Notable load-bearing ADRs:
 
@@ -222,7 +194,7 @@ Notable load-bearing ADRs:
 - **ADR-0009 — PharmGKB matches the user's exact normalized diploid call.**
 - **ADR-0015 — Mock data generators are the contract.** Fixture shape must mirror real data shape; invariants tested.
 
-Release history: see [`CHANGELOG.md`](CHANGELOG.md).
+Release history: see [`CHANGELOG.md`](https://github.com/dial481/allelix/blob/main/CHANGELOG.md).
 
 ## Development
 

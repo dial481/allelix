@@ -2,6 +2,18 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.3]
+
+### Changed
+- **README quickstart.** Lead with `pip install allelix` for end users.
+  Development setup moved to the Development section.
+- **PyPI publish workflow hardened.** Pinned `pypa/gh-action-pypi-publish`
+  to full commit SHA (v1.14.0) instead of moving branch ref.
+- **README links.** Relative markdown links replaced with absolute GitHub
+  URLs so they resolve on PyPI.
+- **Security policy scope.** Narrowed supported versions to current minor
+  only (1.8.x). v1.x feature line is frozen at v1.8.3.
+
 ## [1.8.2]
 
 ### Fixed
@@ -1646,6 +1658,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.8.3]: https://github.com/dial481/allelix/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/dial481/allelix/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/dial481/allelix/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/dial481/allelix/compare/v1.7.0...v1.8.0

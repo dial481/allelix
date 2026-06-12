@@ -2,13 +2,12 @@
 
 ## Supported versions
 
-The current and previous minor releases receive security fixes.
+The current minor release receives security fixes.
 
 | Version | Supported |
 |---------|-----------|
 | 1.8.x   | ✓         |
-| 1.7.x   | ✓         |
-| < 1.7   | ✗         |
+| < 1.8   | ✗         |
 
 ## Reporting a vulnerability
 
