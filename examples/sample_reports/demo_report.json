@@ -1,7 +1,7 @@
 {
-  "schema_version": "1",
-  "allelix_version": "1.1.0",
-  "generated_at": "2026-06-06T13:14:48.969083+00:00",
+  "schema_version": "4",
+  "allelix_version": "1.8.0",
+  "generated_at": "2026-06-12T09:55:09.063437+00:00",
   "regulatory_notice": "This report is informational research output. It surfaces classifications made by external databases (ClinVar, PharmGKB, \u2026) for variants present in the input genotype file. It is not medical advice and not a diagnosis. Every classification is attributed to its source database; Allelix does not independently classify variants.",
   "input": {
     "file": "demo_23andme.txt",
@@ -14,15 +14,27 @@
   "annotators": [
     {
       "name": "clinvar",
-      "version": "GRCh37:2026-05-30; GRCh38:2026-05-30"
+      "version": "GRCh37:2026-06-06; GRCh38:2026-06-06"
     },
     {
       "name": "pharmgkb",
-      "version": "2026-06-06"
+      "version": "2026-06-09"
     },
     {
       "name": "gwas",
-      "version": "2026-06-06"
+      "version": "2026-06-09"
+    },
+    {
+      "name": "gnomad",
+      "version": "4.1"
+    },
+    {
+      "name": "alphamissense",
+      "version": "2023.2"
+    },
+    {
+      "name": "cadd",
+      "version": "v1.7"
     }
   ],
   "filters": {
@@ -46,7 +58,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease liability (machine learning-based score)",
       "gene": "HTR4",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -63,7 +81,13 @@
       ],
       "condition": "Systemic lupus erythematosus (MTAG)",
       "gene": "STAT4",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -80,7 +104,13 @@
       ],
       "condition": "Aortic stenosis",
       "gene": "LPA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -97,7 +127,13 @@
       ],
       "condition": "Coronary artery / coronary heart disease (including heart attack, angina)",
       "gene": "LPA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -114,7 +150,13 @@
       ],
       "condition": "Takes medication for coronary artery/ coronary heart disease?",
       "gene": "LPA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -131,7 +173,13 @@
       ],
       "condition": "Hyperlipidemia (PheCode 272.1)",
       "gene": "LPA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -148,7 +196,13 @@
       ],
       "condition": "Coronary atherosclerosis (PheCode 411.4)",
       "gene": "LPA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -165,7 +219,13 @@
       ],
       "condition": "Cutaneous psoriasis",
       "gene": "LINC02571 - HLA-B",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -182,7 +242,13 @@
       ],
       "condition": "Age-related macular degeneration (choroidal neovascularisation)",
       "gene": "HTRA1-AS1, ARMS2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.230342,
+      "am_pathogenicity": 0.0982,
+      "am_class": "likely_benign",
+      "cadd_phred": 15.87,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -199,7 +265,13 @@
       ],
       "condition": "Other retinal disorders (PheCode 362)",
       "gene": "HTRA1-AS1, ARMS2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.230342,
+      "am_pathogenicity": 0.0982,
+      "am_class": "likely_benign",
+      "cadd_phred": 15.87,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -216,7 +288,13 @@
       ],
       "condition": "Gout and other crystal arthrop (PheCode 274)",
       "gene": "SLC2A9",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -233,7 +311,13 @@
       ],
       "condition": "Type 2 diabetes (PheCode 250.2)",
       "gene": "CDKN2B-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -250,7 +334,13 @@
       ],
       "condition": "Fasting glucose",
       "gene": "MTNR1B",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -267,7 +357,13 @@
       ],
       "condition": "Hypothyroidism",
       "gene": "PTPN11",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -284,7 +380,13 @@
       ],
       "condition": "Type 2 diabetes",
       "gene": "HHEX - Y_RNA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -301,7 +403,13 @@
       ],
       "condition": "Atrial fibrillation",
       "gene": "ESR2, SYNE2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.527051,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.049,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -318,7 +426,13 @@
       ],
       "condition": "Hypothyroidism (PheCode 244)",
       "gene": "TPO",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -335,7 +449,13 @@
       ],
       "condition": "Refractive error",
       "gene": "LAMA2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -352,7 +472,13 @@
       ],
       "condition": "Neoplasm of uncertain behavior of skin (PheCode 173)",
       "gene": "IRF4",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -369,7 +495,13 @@
       ],
       "condition": "Degenerative skin conditions and other dermatoses (PheCode 702)",
       "gene": "IRF4",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -386,7 +518,13 @@
       ],
       "condition": "Benign nodular goiter",
       "gene": "INSR",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -403,7 +541,13 @@
       ],
       "condition": "Gout (PheCode 274.1)",
       "gene": "GCKR",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.61178,
+      "am_pathogenicity": 0.0346,
+      "am_class": "likely_benign",
+      "cadd_phred": 10.99,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -420,7 +564,13 @@
       ],
       "condition": "Familial combined hyperlipidemia defined by Consensus criteria",
       "gene": "CELSR2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.186937,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.04,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -437,7 +587,13 @@
       ],
       "condition": "Disorders of lipid metabolism (PheCode 272)",
       "gene": "CELSR2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.186937,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.04,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -454,7 +610,13 @@
       ],
       "condition": "Vitamin deficiency (PheCode 261)",
       "gene": "CYP2R1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.421212,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 8.065,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -471,7 +633,13 @@
       ],
       "condition": "Craniofacial microsomia",
       "gene": "RN7SKP61 - MRPS17P3",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -488,7 +656,13 @@
       ],
       "condition": "Degeneration of macula and posterior pole of retina (PheCode 362.2)",
       "gene": "CFH",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.641932,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.429,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -505,7 +679,13 @@
       ],
       "condition": "Coronary artery / coronary heart disease (including heart attack, angina)",
       "gene": "CDKN2B-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -522,7 +702,13 @@
       ],
       "condition": "Takes medication for coronary artery/ coronary heart disease?",
       "gene": "CDKN2B-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -539,7 +725,13 @@
       ],
       "condition": "Type 2 diabetes (PheCode 250.2)",
       "gene": "FTO",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -556,7 +748,13 @@
       ],
       "condition": "Obesity (PheCode 278.1)",
       "gene": "FTO",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -573,7 +771,13 @@
       ],
       "condition": "Physical function (baseline)",
       "gene": "GDF5",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.570436,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 17.39,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -590,7 +794,13 @@
       ],
       "condition": "Morbid obesity (PheCode 278.11)",
       "gene": "FTO",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -607,7 +817,13 @@
       ],
       "condition": "Alzheimer's disease or family history of Alzheimer's disease",
       "gene": "TOMM40",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -624,7 +840,13 @@
       ],
       "condition": "Alzheimer's disease (MTAG)",
       "gene": "TOMM40",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -641,7 +863,13 @@
       ],
       "condition": "Hypogonadism",
       "gene": "SHBG",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.228777,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.74,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -658,7 +886,13 @@
       ],
       "condition": "Neoplasm of uncertain behavior of skin (PheCode 173)",
       "gene": "MC1R",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0778644,
+      "am_pathogenicity": 0.4694,
+      "am_class": "ambiguous",
+      "cadd_phred": 24.5,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -675,7 +909,13 @@
       ],
       "condition": "Degenerative skin conditions and other dermatoses (PheCode 702)",
       "gene": "MC1R",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0778644,
+      "am_pathogenicity": 0.4694,
+      "am_class": "ambiguous",
+      "cadd_phred": 24.5,
+      "zygosity": "Homozygous"
     },
     {
       "source": "pharmgkb",
@@ -691,7 +931,14 @@
       ],
       "condition": "",
       "gene": "CYP4F2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.293529,
+      "am_pathogenicity": 0.2954,
+      "am_class": "likely_benign",
+      "cadd_phred": 23.2,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "gwas",
@@ -708,7 +955,13 @@
       ],
       "condition": "Urinary metabolite modules (eigenmetabolites) in chronic kidney disease",
       "gene": "ACADL",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.334788,
+      "am_pathogenicity": 0.2187,
+      "am_class": "likely_benign",
+      "cadd_phred": 28.6,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -725,7 +978,13 @@
       ],
       "condition": "Other venous embolism and thrombosis (PheCode 452)",
       "gene": "F11, F11-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.376769,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.09,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -742,7 +1001,13 @@
       ],
       "condition": "Seborrheic keratosis (PheCode 702.2)",
       "gene": "TERT",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -759,7 +1024,13 @@
       ],
       "condition": "Physical function (baseline)",
       "gene": "ZBTB38",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.40625,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 16.91,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -776,7 +1047,13 @@
       ],
       "condition": "Hypothyroidism NOS (PheCode 244.4)",
       "gene": "CTLA4 - ICOS",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -793,7 +1070,13 @@
       ],
       "condition": "Hypothyroidism NOS (PheCode 244.4)",
       "gene": "HLA-DQB1 - MTCO3P1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -810,7 +1093,13 @@
       ],
       "condition": "Hypothyroidism",
       "gene": "ATXN2, SH2B3",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.570545,
+      "am_pathogenicity": 0.0593,
+      "am_class": "likely_benign",
+      "cadd_phred": 21.0,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -827,7 +1116,13 @@
       ],
       "condition": "Hypothyroidism (PheCode 244)",
       "gene": "ATXN2, SH2B3",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.570545,
+      "am_pathogenicity": 0.0593,
+      "am_class": "likely_benign",
+      "cadd_phred": 21.0,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -844,7 +1139,13 @@
       ],
       "condition": "Parkinson's disease or first degree relation to individual with Parkinson's disease",
       "gene": "SNCA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -860,7 +1161,14 @@
       ],
       "condition": "HIV infectious disease",
       "gene": "CYP2B6",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.253548,
+      "am_pathogenicity": 0.32,
+      "am_class": "likely_benign",
+      "cadd_phred": 0.081,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "pharmgkb",
@@ -876,7 +1184,14 @@
       ],
       "condition": "HIV infectious disease",
       "gene": "CYP2B6",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.253548,
+      "am_pathogenicity": 0.32,
+      "am_class": "likely_benign",
+      "cadd_phred": 0.081,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "gwas",
@@ -893,7 +1208,13 @@
       ],
       "condition": "Atrial fibrillation",
       "gene": "CAV1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -910,7 +1231,13 @@
       ],
       "condition": "Alzheimer's disease",
       "gene": "APOE",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.147571,
+      "am_pathogenicity": 0.0365,
+      "am_class": "likely_benign",
+      "cadd_phred": 16.6,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -927,7 +1254,13 @@
       ],
       "condition": "Familial combined hyperlipidemia defined by Consensus criteria",
       "gene": "APOE",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.147571,
+      "am_pathogenicity": 0.0365,
+      "am_class": "likely_benign",
+      "cadd_phred": 16.6,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -944,7 +1277,13 @@
       ],
       "condition": "Neurological disorders (PheCode 292)",
       "gene": "APOE",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.147571,
+      "am_pathogenicity": 0.0365,
+      "am_class": "likely_benign",
+      "cadd_phred": 16.6,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -961,7 +1300,13 @@
       ],
       "condition": "Vitamin deficiency (PheCode 261)",
       "gene": "GC",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.27816,
+      "am_pathogenicity": 0.0813,
+      "am_class": "likely_benign",
+      "cadd_phred": 2.1,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -978,7 +1323,13 @@
       ],
       "condition": "Plasma 2-O-methylascorbic acid levels in chronic kidney disease",
       "gene": "COMT",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.49579,
+      "am_pathogenicity": 0.1213,
+      "am_class": "likely_benign",
+      "cadd_phred": 16.44,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -995,7 +1346,13 @@
       ],
       "condition": "Urine 2-O-methylascorbic acid levels in chronic kidney disease",
       "gene": "COMT",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.49579,
+      "am_pathogenicity": 0.1213,
+      "am_class": "likely_benign",
+      "cadd_phred": 16.44,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1012,7 +1369,13 @@
       ],
       "condition": "Serum calciprotein particle maturation time (T50)",
       "gene": "AHSG, HRG-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.662629,
+      "am_pathogenicity": 0.0447,
+      "am_class": "likely_benign",
+      "cadd_phred": 1.89,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1029,7 +1392,13 @@
       ],
       "condition": "Coronary artery disease",
       "gene": "CDKN2B-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1046,7 +1415,13 @@
       ],
       "condition": "Gout (PheCode 274.1)",
       "gene": "SLC22A11 - SLC22A12",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1063,7 +1438,13 @@
       ],
       "condition": "Venous thromboembolism",
       "gene": "ABO",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -1079,7 +1460,13 @@
       ],
       "condition": "Lipodystrophy, familial partial, type 8",
       "gene": "ADRA2A",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.817518,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 5.365,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1096,7 +1483,13 @@
       ],
       "condition": "Glycated hemoglobin levels",
       "gene": "SPC25, G6PC2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.74753,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.18,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1113,7 +1506,13 @@
       ],
       "condition": "Familial combined hyperlipidemia defined by Consensus criteria",
       "gene": "LDLR",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1130,7 +1529,13 @@
       ],
       "condition": "Metabolic syndrome",
       "gene": "APOA5",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1147,7 +1552,13 @@
       ],
       "condition": "Hypothyroidism (PheCode 244)",
       "gene": "PHTF1 - RSBN1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1164,7 +1575,13 @@
       ],
       "condition": "Atrial fibrillation (MTAG)",
       "gene": "LINC01438 - MIR297",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1181,7 +1598,13 @@
       ],
       "condition": "Colorectal cancer",
       "gene": "PCAT1, CASC8, POU5F1B, CCAT2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.25,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 17.55,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1198,7 +1621,13 @@
       ],
       "condition": "Colorectal cancer",
       "gene": "POU5F1B, PCAT1, CASC8",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1215,7 +1644,13 @@
       ],
       "condition": "Cancer of prostate (PheCode 185)",
       "gene": "SMIM38 - MYEOV",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1232,7 +1667,13 @@
       ],
       "condition": "Spatial QRS-T angle",
       "gene": "TBX3-AS1 - UBA52P7",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1249,7 +1690,13 @@
       ],
       "condition": "Glycated hemoglobin levels",
       "gene": "GCK",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1266,7 +1713,13 @@
       ],
       "condition": "Hyperlipidemia (PheCode 272.1)",
       "gene": "CELSR2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.186355,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.457,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1283,7 +1736,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease liability (machine learning-based score)",
       "gene": "ADGRG6",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1300,7 +1759,13 @@
       ],
       "condition": "Type 2 diabetes",
       "gene": "CDKAL1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1317,7 +1782,13 @@
       ],
       "condition": "Menarche (age at onset)",
       "gene": "LIN28B-AS1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1334,7 +1805,13 @@
       ],
       "condition": "Hypothyroidism",
       "gene": "PTCSC2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1351,7 +1828,13 @@
       ],
       "condition": "Takes medication for Thyroid problems?",
       "gene": "PTCSC2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1368,7 +1851,13 @@
       ],
       "condition": "Type 2 diabetes",
       "gene": "TCF7L2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1385,7 +1874,13 @@
       ],
       "condition": "Takes medication for Diabetes/sugar?",
       "gene": "TCF7L2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1402,7 +1897,13 @@
       ],
       "condition": "Diabetic retinopathy (PheCode 250.7)",
       "gene": "TCF7L2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1419,7 +1920,13 @@
       ],
       "condition": "Physical function (baseline)",
       "gene": "HMGA2 - MIR6074",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1436,7 +1943,13 @@
       ],
       "condition": "Hypothyroidism",
       "gene": "VEGFA - LINC02537",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1453,7 +1966,13 @@
       ],
       "condition": "Hypothyroidism",
       "gene": "PTCSC2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1470,7 +1989,13 @@
       ],
       "condition": "Atrial fibrillation",
       "gene": "FAM13B",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1487,7 +2012,13 @@
       ],
       "condition": "Type 2 diabetes",
       "gene": "CDKAL1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1504,7 +2035,13 @@
       ],
       "condition": "Thyroid problems",
       "gene": "PTCSC2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1521,7 +2058,13 @@
       ],
       "condition": "Takes medication for Thyroid problems?",
       "gene": "PTCSC2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1537,7 +2080,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1553,7 +2102,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1569,7 +2124,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1586,7 +2147,13 @@
       ],
       "condition": "Age-related macular degeneration",
       "gene": "CFH",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1603,7 +2170,13 @@
       ],
       "condition": "Inflammatory bowel disease",
       "gene": "IL23R",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0557533,
+      "am_pathogenicity": 0.1366,
+      "am_class": "likely_benign",
+      "cadd_phred": 25.5,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1620,7 +2193,13 @@
       ],
       "condition": "Multiple sclerosis",
       "gene": "HLA-DRB1 - HLA-DQA1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1636,7 +2215,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1652,7 +2237,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.393735,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.516,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1668,7 +2259,13 @@
       ],
       "condition": "over-anticoagulation",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1684,7 +2281,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.379949,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 13.42,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -1701,7 +2304,13 @@
       ],
       "condition": "Crohn's disease",
       "gene": "IL23R",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0557533,
+      "am_pathogenicity": 0.1366,
+      "am_class": "likely_benign",
+      "cadd_phred": 25.5,
+      "zygosity": "Homozygous"
     },
     {
       "source": "pharmgkb",
@@ -1717,7 +2326,14 @@
       ],
       "condition": "Asthma",
       "gene": "ADRB2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.384338,
+      "am_pathogenicity": 0.0906,
+      "am_class": "likely_benign",
+      "cadd_phred": 18.36,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "pharmgkb",
@@ -1733,7 +2349,14 @@
       ],
       "condition": "Rheumatoid arthritis",
       "gene": "SLC19A1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.560131,
+      "am_pathogenicity": 0.0801,
+      "am_class": "likely_benign",
+      "cadd_phred": 10.79,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "clinvar",
@@ -1749,7 +2372,13 @@
       ],
       "condition": "Three Vessel Coronary Disease",
       "gene": "CDKN2B",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.651811,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.383,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1766,7 +2395,13 @@
       ],
       "condition": "Ulcerative colitis",
       "gene": "IL23R",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0557533,
+      "am_pathogenicity": 0.1366,
+      "am_class": "likely_benign",
+      "cadd_phred": 25.5,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -1783,7 +2418,13 @@
       ],
       "condition": "Ankylosing spondylitis",
       "gene": "IL23R",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0557533,
+      "am_pathogenicity": 0.1366,
+      "am_class": "likely_benign",
+      "cadd_phred": 25.5,
+      "zygosity": "Homozygous"
     },
     {
       "source": "pharmgkb",
@@ -1799,7 +2440,14 @@
       ],
       "condition": "Atrial Fibrillation",
       "gene": "CYP4F2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.293529,
+      "am_pathogenicity": 0.2954,
+      "am_class": "likely_benign",
+      "cadd_phred": 23.2,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "pharmgkb",
@@ -1815,7 +2463,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.232254,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.157,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1831,7 +2485,14 @@
       ],
       "condition": "HIV infectious disease",
       "gene": "CYP2B6",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.253548,
+      "am_pathogenicity": 0.32,
+      "am_class": "likely_benign",
+      "cadd_phred": 0.081,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "clinvar",
@@ -1847,7 +2508,13 @@
       ],
       "condition": "Von Hippel-Lindau syndrome",
       "gene": "VHL",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "pharmgkb",
@@ -1863,7 +2530,13 @@
       ],
       "condition": "Hemorrhage",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1879,7 +2552,13 @@
       ],
       "condition": "time to therapeutic inr",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1895,7 +2574,13 @@
       ],
       "condition": "time in therapeutic range",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1911,7 +2596,13 @@
       ],
       "condition": "Hemorrhage;over-anticoagulation;time above therapeutic range",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1927,7 +2618,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.379949,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 13.42,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -1943,7 +2640,13 @@
       ],
       "condition": "",
       "gene": "VKORC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.379949,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 13.42,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -1959,7 +2662,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.546162,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.297,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -1975,7 +2684,13 @@
       ],
       "condition": "salmeterol response - Efficacy",
       "gene": "ADRB2",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "A",
+      "allele_frequency": 0.384338,
+      "am_pathogenicity": 0.0906,
+      "am_class": "likely_benign",
+      "cadd_phred": 18.36,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -1991,7 +2706,13 @@
       ],
       "condition": "Lung cancer",
       "gene": "SLC19A1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "C",
+      "allele_frequency": 0.560131,
+      "am_pathogenicity": 0.0589,
+      "am_class": "likely_benign",
+      "cadd_phred": 6.061,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2007,7 +2728,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "CYP2D6",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2023,7 +2750,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.939286,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.389,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2039,7 +2772,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2055,7 +2794,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ARVCF",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.588521,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.832,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2071,7 +2816,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ARVCF",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.935897,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.604,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2087,7 +2838,13 @@
       ],
       "condition": "Susceptibility to severe coronavirus disease (COVID-19) due to high levels of fibrinogen and C-reactive protein",
       "gene": "CHRNA5",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "A",
+      "allele_frequency": 0.307984,
+      "am_pathogenicity": 0.0849,
+      "am_class": "likely_benign",
+      "cadd_phred": 17.84,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2103,7 +2860,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.307279,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 3.698,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2119,7 +2882,13 @@
       ],
       "condition": "pravastatin response - Efficacy",
       "gene": "KIF6",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "G",
+      "allele_frequency": 0.375632,
+      "am_pathogenicity": 0.0651,
+      "am_class": "likely_benign",
+      "cadd_phred": 2.022,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2135,7 +2904,13 @@
       ],
       "condition": "CYP4F2-related disorder",
       "gene": "CYP4F2",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "T",
+      "allele_frequency": 0.293529,
+      "am_pathogenicity": 0.2954,
+      "am_class": "likely_benign",
+      "cadd_phred": 23.2,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2151,7 +2926,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.926411,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 7.042,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2167,7 +2948,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.476936,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 5.081,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2183,7 +2970,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.476942,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.528,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2199,7 +2992,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.312844,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.222,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2215,7 +3014,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.53678,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.767,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2231,7 +3036,13 @@
       ],
       "condition": "Levothyroxine response",
       "gene": "DIO1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.523202,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.129,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2247,7 +3058,13 @@
       ],
       "condition": "not provided",
       "gene": "VKORC1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2263,7 +3080,13 @@
       ],
       "condition": "Spinocerebellar ataxia, autosomal recessive 26",
       "gene": "XRCC1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "C",
+      "allele_frequency": 0.651931,
+      "am_pathogenicity": 0.0527,
+      "am_class": "likely_benign",
+      "cadd_phred": 15.06,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2279,7 +3102,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "CYP2D6",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.152928,
+      "am_pathogenicity": 0.2041,
+      "am_class": "likely_benign",
+      "cadd_phred": 19.72,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2295,7 +3124,13 @@
       ],
       "condition": "warfarin response - Dosage",
       "gene": "VKORC1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "C",
+      "allele_frequency": 0.232254,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.157,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2311,7 +3146,13 @@
       ],
       "condition": "CYP2B6-related disorder",
       "gene": "CYP2B6",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "T",
+      "allele_frequency": 0.253548,
+      "am_pathogenicity": 0.32,
+      "am_class": "likely_benign",
+      "cadd_phred": 0.004,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2327,7 +3168,13 @@
       ],
       "condition": "Early-infantile DEE",
       "gene": "SCN1A",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "T",
+      "allele_frequency": 0.540083,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 19.44,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2343,7 +3190,13 @@
       ],
       "condition": "Warfarin response",
       "gene": "APOE",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2359,7 +3212,13 @@
       ],
       "condition": "Warfarin response",
       "gene": "APOE",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.717647,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 4.854,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2375,7 +3234,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "OPRM1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.913422,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.007,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2391,7 +3256,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "OPRM1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.215283,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.031,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2407,7 +3278,13 @@
       ],
       "condition": "Developmental and epileptic encephalopathy, 35",
       "gene": "ITPA",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "C",
+      "allele_frequency": 0.117531,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 16.64,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2423,7 +3300,13 @@
       ],
       "condition": "Letrozole response",
       "gene": "CYP19A1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.667744,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.021,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2439,7 +3322,13 @@
       ],
       "condition": "Warfarin response",
       "gene": "APOE",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.351195,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 3.896,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2455,7 +3344,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "OPRM1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.155147,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 3.191,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2471,7 +3366,13 @@
       ],
       "condition": "not specified",
       "gene": "VKORC1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "G",
+      "allele_frequency": 0.393735,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.723,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2487,7 +3388,13 @@
       ],
       "condition": "Tramadol response",
       "gene": "ABCB1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "gwas",
@@ -2504,7 +3411,13 @@
       ],
       "condition": "Ulcerative colitis",
       "gene": "HLA-DRB1 - HLA-DQA1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2518,9 +3431,15 @@
       "references": [
         "clinvar:allele/17250"
       ],
-      "condition": "Venous thromboembolism",
+      "condition": "VKORC1-related disorder",
       "gene": "VKORC1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2536,7 +3455,13 @@
       ],
       "condition": "not specified",
       "gene": "VKORC1",
-      "review_status": "reviewed_by_expert_panel"
+      "review_status": "reviewed_by_expert_panel",
+      "alt": "A",
+      "allele_frequency": 0.379949,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 13.42,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2552,7 +3477,13 @@
       ],
       "condition": "Systemic lupus erythematosus, susceptibility to, 10",
       "gene": "IRF5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.5,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 10.4,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2568,7 +3499,13 @@
       ],
       "condition": "Diabetes mellitus type 2, susceptibility to",
       "gene": "TCF7L2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2584,7 +3521,13 @@
       ],
       "condition": "Gastric cancer susceptibility after h. pylori infection",
       "gene": "IL1B",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.623577,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 10.71,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2600,7 +3543,13 @@
       ],
       "condition": "Inherited susceptibility to asthma",
       "gene": "SCGB3A2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.159124,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 15.9,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2616,7 +3565,13 @@
       ],
       "condition": "Microvascular complications of diabetes, susceptibility to, 2",
       "gene": "EPO",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -2632,7 +3587,14 @@
       ],
       "condition": "Tobacco Use Disorder",
       "gene": "CHRNA5",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.307984,
+      "am_pathogenicity": 0.0849,
+      "am_class": "likely_benign",
+      "cadd_phred": 17.84,
+      "zygosity": "Heterozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "clinvar",
@@ -2648,7 +3610,13 @@
       ],
       "condition": "Hyperlipidemia, familial combined, susceptibility to",
       "gene": "USF1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.259345,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 5.887,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2664,7 +3632,13 @@
       ],
       "condition": "Exfoliation syndrome, susceptibility to",
       "gene": "LOXL1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2680,7 +3654,13 @@
       ],
       "condition": "Myocardial infarction, susceptibility to",
       "gene": "ESR1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2694,9 +3674,15 @@
       "references": [
         "clinvar:allele/27234"
       ],
-      "condition": ".",
+      "condition": "",
       "gene": "XBP1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.364381,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.053,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2712,7 +3698,13 @@
       ],
       "condition": "Mycobacterium tuberculosis, susceptibility to infection by",
       "gene": "SLC11A1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.257122,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 12.16,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -2728,7 +3720,14 @@
       ],
       "condition": "Neoplasms",
       "gene": "XRCC1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.651931,
+      "am_pathogenicity": 0.0527,
+      "am_class": "likely_benign",
+      "cadd_phred": 15.06,
+      "zygosity": "Homozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "clinvar",
@@ -2744,7 +3743,13 @@
       ],
       "condition": "Alcoholism, susceptibility to",
       "gene": "GABRA2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2760,7 +3765,13 @@
       ],
       "condition": "Alcoholism, susceptibility to",
       "gene": "GABRA2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2776,7 +3787,13 @@
       ],
       "condition": "Alcoholism, susceptibility to",
       "gene": "GABRA2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.430904,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.071,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2792,7 +3809,13 @@
       ],
       "condition": "Colorectal cancer",
       "gene": "KCNB2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2808,7 +3831,13 @@
       ],
       "condition": "Hyperlipidemia, familial combined, susceptibility to",
       "gene": "USF1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.25645,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.23,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2824,7 +3853,13 @@
       ],
       "condition": "Rheumatoid arthritis",
       "gene": "CD244",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "pharmgkb",
@@ -2840,7 +3875,13 @@
       ],
       "condition": "Epilepsy",
       "gene": "SCN1A",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.540083,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 19.61,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2856,7 +3897,13 @@
       ],
       "condition": "Myocardial infarction, susceptibility to",
       "gene": "GCLM",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2872,7 +3919,13 @@
       ],
       "condition": "Diabetes mellitus type 2, susceptibility to",
       "gene": "IGF2BP2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2888,7 +3941,13 @@
       ],
       "condition": "Asthma-related traits, susceptibility to, 7",
       "gene": "CHI3L1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.794929,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.739,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2904,7 +3963,13 @@
       ],
       "condition": "Type 2 diabetes mellitus 1, susceptibility to",
       "gene": "CAPN10",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2920,7 +3985,13 @@
       ],
       "condition": "Myocardial infarction, susceptibility to, 1",
       "gene": "LRP8",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.364621,
+      "am_pathogenicity": 0.091,
+      "am_class": "likely_benign",
+      "cadd_phred": 33.0,
+      "zygosity": "Homozygous"
     },
     {
       "source": "pharmgkb",
@@ -2936,7 +4007,14 @@
       ],
       "condition": "Thrombotic disease",
       "gene": "F5",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.0218633,
+      "am_pathogenicity": 0.205,
+      "am_class": "likely_benign",
+      "cadd_phred": 28.1,
+      "zygosity": "Homozygous",
+      "am_caveat": "protein structure impact only"
     },
     {
       "source": "clinvar",
@@ -2952,7 +4030,13 @@
       ],
       "condition": "Obesity",
       "gene": "",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -2968,7 +4052,13 @@
       ],
       "condition": "BODY MASS INDEX QUANTITATIVE TRAIT LOCUS 4",
       "gene": "UCP2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -2984,7 +4074,13 @@
       ],
       "condition": "Asthma, aspirin-induced, susceptibility to",
       "gene": "PTGER2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3000,7 +4096,13 @@
       ],
       "condition": "Obesity",
       "gene": "",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "pharmgkb",
@@ -3016,7 +4118,13 @@
       ],
       "condition": "Anemia;Chronic hepatitis C virus infection",
       "gene": "ITPA",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": 0.117531,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 16.64,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3032,7 +4140,13 @@
       ],
       "condition": "Myocardial infarction, susceptibility to",
       "gene": "LGALS2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3048,7 +4162,13 @@
       ],
       "condition": "Mycobacterium tuberculosis, susceptibility to",
       "gene": "CD209",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3064,7 +4184,13 @@
       ],
       "condition": "Obesity",
       "gene": "CDKAL1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3080,7 +4206,13 @@
       ],
       "condition": "HIV-1 VIREMIA, SUSCEPTIBILITY TO",
       "gene": "HLA-C",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -3097,7 +4229,13 @@
       ],
       "condition": "Crohn's disease",
       "gene": "HLA-DRB1 - HLA-DQA1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3113,7 +4251,13 @@
       ],
       "condition": "Rheumatoid arthritis",
       "gene": "PADI2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3129,7 +4273,13 @@
       ],
       "condition": "Post-traumatic stress disorder",
       "gene": "CACNA1C",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3145,7 +4295,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3161,7 +4317,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "TNFSF15",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.666667,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 9.163,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3177,7 +4339,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "IL1RL2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3193,7 +4361,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease",
       "gene": "HSPA1A",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.384207,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.614,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "gwas",
@@ -3210,7 +4384,13 @@
       ],
       "condition": "Post bronchodilator FEV1/FVC ratio in COPD",
       "gene": "CFH",
-      "review_status": ""
+      "review_status": "",
+      "alt": "",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3226,7 +4406,13 @@
       ],
       "condition": "Hypogonadotropic hypogonadism 24 without anosmia",
       "gene": "FSHB",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3242,7 +4428,13 @@
       ],
       "condition": "Familial hypercholesterolemia",
       "gene": "PCSK9",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3258,7 +4450,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3274,7 +4472,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3290,7 +4494,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3306,7 +4516,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "SLC9A4",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.453501,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.613,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3322,7 +4538,13 @@
       ],
       "condition": "Lung cancer",
       "gene": "SMAD3",
-      "review_status": "criteria_provided,_single_submitter"
+      "review_status": "criteria_provided,_single_submitter",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3338,7 +4560,13 @@
       ],
       "condition": "Skin/hair/eye pigmentation, variation in, 8",
       "gene": "IRF4",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3354,7 +4582,13 @@
       ],
       "condition": "Cataplexy and narcolepsy",
       "gene": "P2RY11",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.590355,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.622,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3370,7 +4604,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3386,7 +4626,13 @@
       ],
       "condition": "",
       "gene": "PRICKLE1",
-      "review_status": ""
+      "review_status": "",
+      "alt": "A",
+      "allele_frequency": 0.23857,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 5.147,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3402,7 +4648,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3418,7 +4670,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "IL1RL1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3434,7 +4692,13 @@
       ],
       "condition": "LOW DENSITY LIPOPROTEIN CHOLESTEROL LEVEL QUANTITATIVE TRAIT LOCUS 6",
       "gene": "CELSR2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.186937,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.04,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3450,7 +4714,13 @@
       ],
       "condition": "SKIN/HAIR/EYE PIGMENTATION 6, BLOND/BROWN HAIR",
       "gene": "SLC24A4",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3466,7 +4736,13 @@
       ],
       "condition": "Vascular endothelial growth factor (VEGF) inhibitor response",
       "gene": "SLCO3A1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3482,7 +4758,13 @@
       ],
       "condition": "SKIN/HAIR/EYE PIGMENTATION 1, BLUE/NONBLUE EYES",
       "gene": "HERC2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3498,7 +4780,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease, biomass related",
       "gene": "HHIP",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3514,7 +4802,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease, biomass related",
       "gene": "HHIP",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3530,7 +4824,13 @@
       ],
       "condition": "Post-traumatic stress disorder",
       "gene": "FKBP5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3546,7 +4846,13 @@
       ],
       "condition": "Age related macular degeneration 7",
       "gene": "DCT",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.746269,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 4.212,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3562,7 +4868,13 @@
       ],
       "condition": "Lip and oral cavity carcinoma",
       "gene": "LNX1",
-      "review_status": "criteria_provided,_single_submitter"
+      "review_status": "criteria_provided,_single_submitter",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3578,7 +4890,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "SLC9A4",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3594,7 +4912,13 @@
       ],
       "condition": "Cataplexy and narcolepsy",
       "gene": "PPAN",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.584681,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.849,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3610,7 +4934,13 @@
       ],
       "condition": "Vascular endothelial growth factor (VEGF) inhibitor response",
       "gene": "TMEM132D",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3626,7 +4956,13 @@
       ],
       "condition": "SKIN/HAIR/EYE PIGMENTATION 1, BLUE/NONBLUE EYES",
       "gene": "HERC2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3642,7 +4978,13 @@
       ],
       "condition": "RECOMBINATION RATE QUANTITATIVE TRAIT LOCUS 1",
       "gene": "RNF212",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3658,7 +5000,13 @@
       ],
       "condition": "Antisynthetase syndrome",
       "gene": "IL1B",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3674,7 +5022,13 @@
       ],
       "condition": "Memory quantitative trait locus",
       "gene": "WWC1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3690,7 +5044,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3706,7 +5066,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "BMAL2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3722,7 +5088,13 @@
       ],
       "condition": "Diabetes mellitus, type 1, susceptibility to",
       "gene": "IL6",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.651936,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 16.43,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3738,7 +5110,13 @@
       ],
       "condition": "Migraine, resistance to",
       "gene": "EDNRA",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.38961,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 14.72,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3754,7 +5132,13 @@
       ],
       "condition": "LACTASE PERSISTENCE",
       "gene": "MCM6",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.55669,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.683,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3770,7 +5154,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease, biomass related",
       "gene": "HHIP",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3786,7 +5176,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "CYP2C9",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3802,7 +5198,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "MGST1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3818,7 +5220,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3834,7 +5242,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "IL1RL1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3850,7 +5264,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "CYP2C8",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -3866,7 +5286,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3882,7 +5308,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3898,7 +5330,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3914,7 +5352,13 @@
       ],
       "condition": "Rheumatoid arthritis",
       "gene": "PADI2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.565121,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 10.88,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3930,7 +5374,13 @@
       ],
       "condition": "Nephrolithiasis, calcium oxalate",
       "gene": "AHSG",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.45758,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.006,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3946,7 +5396,13 @@
       ],
       "condition": "Gastric cancer",
       "gene": "CA9",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.358812,
+      "am_pathogenicity": 0.1564,
+      "am_class": "likely_benign",
+      "cadd_phred": 17.07,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3962,7 +5418,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "NOD2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3978,7 +5440,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -3994,7 +5462,13 @@
       ],
       "condition": "",
       "gene": "RASGRP3",
-      "review_status": ""
+      "review_status": "",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4010,7 +5484,13 @@
       ],
       "condition": "Rheumatoid arthritis",
       "gene": "PADI4",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.57527,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 7.47,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4026,7 +5506,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "IL18R1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.208291,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.255,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4042,7 +5528,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4058,7 +5550,13 @@
       ],
       "condition": "Behcet disease",
       "gene": "CDK6",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4074,7 +5572,13 @@
       ],
       "condition": "Cataplexy and narcolepsy",
       "gene": "P2RY11",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.569985,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.309,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -4090,7 +5594,13 @@
       ],
       "condition": "Lung cancer",
       "gene": "BMP2",
-      "review_status": "criteria_provided,_single_submitter"
+      "review_status": "criteria_provided,_single_submitter",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4106,7 +5616,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4122,7 +5638,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4138,7 +5660,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4154,7 +5682,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4170,7 +5704,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4186,7 +5726,13 @@
       ],
       "condition": "Lip and oral cavity carcinoma",
       "gene": "MMP2",
-      "review_status": "criteria_provided,_single_submitter"
+      "review_status": "criteria_provided,_single_submitter",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4202,7 +5748,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4218,7 +5770,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4234,7 +5792,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4250,7 +5814,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4266,7 +5836,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -4282,7 +5858,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -4298,7 +5880,13 @@
       ],
       "condition": "Obesity, association with",
       "gene": "SDC3",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.196791,
+      "am_pathogenicity": 0.061,
+      "am_class": "likely_benign",
+      "cadd_phred": 0.003,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4314,7 +5902,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4330,7 +5924,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4346,7 +5946,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -4362,7 +5968,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4378,7 +5990,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4394,7 +6012,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4410,7 +6034,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4426,7 +6056,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4442,7 +6078,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4458,7 +6100,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4474,7 +6122,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4490,7 +6144,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4506,7 +6166,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4522,7 +6188,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease",
       "gene": "HSPA1B",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4538,7 +6210,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4554,7 +6232,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4570,7 +6254,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4586,7 +6276,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4602,7 +6298,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4618,7 +6320,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4634,7 +6342,13 @@
       ],
       "condition": "COPD, severe early onset",
       "gene": "AGER",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.157136,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.115,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4650,7 +6364,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4666,7 +6386,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4682,7 +6408,13 @@
       ],
       "condition": "Familial cancer of breast",
       "gene": "ABCC1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4698,7 +6430,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -4714,7 +6452,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease",
       "gene": "SCGB1A1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.348769,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.179,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4730,7 +6474,13 @@
       ],
       "condition": "C3HEX, ability to smell",
       "gene": "OR2J3",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.250887,
+      "am_pathogenicity": 0.0821,
+      "am_class": "likely_benign",
+      "cadd_phred": 2.739,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4746,7 +6496,13 @@
       ],
       "condition": "RECOMBINATION RATE QUANTITATIVE TRAIT LOCUS 1",
       "gene": "RNF212",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.67365,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 3.675,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4762,7 +6518,13 @@
       ],
       "condition": "SKIN/HAIR/EYE PIGMENTATION, VARIATION IN, 10",
       "gene": "TPCN2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.357796,
+      "am_pathogenicity": 0.0707,
+      "am_class": "likely_benign",
+      "cadd_phred": 8.362,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -4778,7 +6540,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4794,7 +6562,13 @@
       ],
       "condition": "Familial cancer of breast",
       "gene": "ABCC1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4810,7 +6584,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4826,7 +6606,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "ARNT2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4842,7 +6628,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4858,7 +6650,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4874,7 +6672,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.507859,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 4.879,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4890,7 +6694,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.670054,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.241,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4906,7 +6716,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "RIPK2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4922,7 +6738,13 @@
       ],
       "condition": "Cholangiocarcinoma",
       "gene": "CXCL8",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4938,7 +6760,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4954,7 +6782,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4970,7 +6804,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.497158,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.605,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -4986,7 +6826,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "MGST3",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.244323,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.163,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5002,7 +6848,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "MGST1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.681992,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 1.036,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5018,7 +6870,13 @@
       ],
       "condition": "",
       "gene": "SLC6A2",
-      "review_status": ""
+      "review_status": "",
+      "alt": "A",
+      "allele_frequency": 0.91107,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 3.946,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5034,7 +6892,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "RIPK2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5050,7 +6914,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5066,7 +6936,13 @@
       ],
       "condition": "Gastric cancer",
       "gene": "CDC20B",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.19729,
+      "am_pathogenicity": 0.1556,
+      "am_class": "likely_benign",
+      "cadd_phred": 22.2,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5082,7 +6958,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5098,7 +6980,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "TNFSF15",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5114,7 +7002,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5130,7 +7024,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5146,7 +7046,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5162,7 +7068,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.478104,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 6.216,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5178,7 +7090,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5194,7 +7112,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5210,7 +7134,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5226,7 +7156,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5242,7 +7178,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5258,7 +7200,13 @@
       ],
       "condition": "Susceptibility to severe depressive disorder",
       "gene": "FKBP5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5274,7 +7222,13 @@
       ],
       "condition": "Susceptibility to severe depressive disorder",
       "gene": "FKBP5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5290,7 +7244,13 @@
       ],
       "condition": "Vascular endothelial growth factor (VEGF) inhibitor response",
       "gene": "CREB5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5306,7 +7266,13 @@
       ],
       "condition": "Lip and oral cavity carcinoma",
       "gene": "CCDC3",
-      "review_status": "criteria_provided,_single_submitter"
+      "review_status": "criteria_provided,_single_submitter",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5322,7 +7288,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "SLC9A4",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5338,7 +7310,13 @@
       ],
       "condition": "Familial Otitis Media",
       "gene": "FUT2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": 0.486061,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.273,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5354,7 +7332,13 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "BMAL2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.351963,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 5.86,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5370,7 +7354,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5386,7 +7376,13 @@
       ],
       "condition": "LACTASE PERSISTENCE",
       "gene": "MCM6",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5402,7 +7398,13 @@
       ],
       "condition": "Ascending aortic dissection",
       "gene": "IL1RL1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": 0.368399,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 6.059,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5418,7 +7420,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5434,7 +7442,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5450,7 +7464,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5466,7 +7486,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5482,7 +7508,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5498,7 +7530,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5514,7 +7552,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5530,7 +7574,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5546,7 +7596,13 @@
       ],
       "condition": "",
       "gene": "ZNF41",
-      "review_status": ""
+      "review_status": "",
+      "alt": "C",
+      "allele_frequency": 0.71544,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 2.826,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5562,7 +7618,13 @@
       ],
       "condition": "Familial Otitis Media",
       "gene": "FUT2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.484682,
+      "am_pathogenicity": 0.1564,
+      "am_class": "likely_benign",
+      "cadd_phred": 23.1,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5578,7 +7640,13 @@
       ],
       "condition": "Nephrolithiasis, calcium oxalate",
       "gene": "HAO1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5594,7 +7662,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5610,7 +7684,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5626,7 +7706,13 @@
       ],
       "condition": "Uric acid concentration, serum, quantitative trait locus 2",
       "gene": "SLC2A9",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5642,7 +7728,13 @@
       ],
       "condition": "Chronic obstructive pulmonary disease",
       "gene": "HSPA1B",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.0721643,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.254,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5658,7 +7750,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "PINK1",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.5,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 4.362,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5674,7 +7772,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5690,7 +7794,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5706,7 +7816,13 @@
       ],
       "condition": "",
       "gene": "GPD1L",
-      "review_status": ""
+      "review_status": "",
+      "alt": "G",
+      "allele_frequency": 0.589286,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 3.988,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5722,7 +7838,13 @@
       ],
       "condition": "Familial Otitis Media",
       "gene": "FUT2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "T",
+      "allele_frequency": 0.45996,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.119,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5738,7 +7860,13 @@
       ],
       "condition": "Familial colorectal cancer",
       "gene": "APC",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5754,7 +7882,13 @@
       ],
       "condition": "Susceptibility to severe depressive disorder",
       "gene": "FKBP5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5770,7 +7904,13 @@
       ],
       "condition": "Vascular endothelial growth factor (VEGF) inhibitor response",
       "gene": "SPNS2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5786,7 +7926,13 @@
       ],
       "condition": "Susceptibility to severe depressive disorder",
       "gene": "FKBP5",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.26469,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.779,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5802,7 +7948,13 @@
       ],
       "condition": "Nephrolithiasis, calcium oxalate",
       "gene": "BGLAP",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.731948,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 0.584,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5818,7 +7970,13 @@
       ],
       "condition": "Leprosy, susceptibility to, 1",
       "gene": "NOD2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "G",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Heterozygous"
     },
     {
       "source": "clinvar",
@@ -5834,7 +7992,13 @@
       ],
       "condition": "SKIN/HAIR/EYE PIGMENTATION 1, BLUE/NONBLUE EYES",
       "gene": "HERC2",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "C",
+      "allele_frequency": null,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": null,
+      "zygosity": "Homozygous"
     },
     {
       "source": "clinvar",
@@ -5850,15 +8014,59 @@
       ],
       "condition": "Pulmonary disease, chronic obstructive, susceptibility to",
       "gene": "MGST3",
-      "review_status": "no_assertion_criteria_provided"
+      "review_status": "no_assertion_criteria_provided",
+      "alt": "A",
+      "allele_frequency": 0.626229,
+      "am_pathogenicity": null,
+      "am_class": "",
+      "cadd_phred": 9.266,
+      "zygosity": "Heterozygous"
     }
   ],
   "license_attributions": [
     {
+      "source": "ClinVar",
+      "source_url": "https://www.ncbi.nlm.nih.gov/clinvar/",
+      "license": "custom-clinvar",
+      "license_url": "https://www.ncbi.nlm.nih.gov/clinvar/docs/maintenance_use/",
+      "attribution": "ClinVar variant classifications from NCBI."
+    },
+    {
       "source": "PharmGKB",
-      "url": "https://www.pharmgkb.org",
-      "license": "CC BY-SA 4.0",
-      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/"
+      "source_url": "https://www.pharmgkb.org",
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Pharmacogenomic annotations sourced from PharmGKB, used under CC BY-SA 4.0."
+    },
+    {
+      "source": "GWAS Catalog",
+      "source_url": "https://www.ebi.ac.uk/gwas/",
+      "license": "custom-embl-ebi",
+      "license_url": "https://www.ebi.ac.uk/gwas/docs/about",
+      "attribution": "GWAS Catalog data sourced from NHGRI-EBI GWAS Catalog, available under EMBL-EBI Terms of Use."
+    },
+    {
+      "source": "gnomAD",
+      "source_url": "https://gnomad.broadinstitute.org",
+      "license": "ODbL-1.0",
+      "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "attribution": "Population frequencies sourced from gnomAD, used under ODbL v1.0."
+    },
+    {
+      "source": "AlphaMissense",
+      "source_url": "https://zenodo.org/records/10813168",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "AlphaMissense predictions from Cheng et al., Science 2023 (doi:10.1126/science.adg7492). Licensed under CC BY 4.0.",
+      "citation": "Cheng et al., Science 2023 (doi:10.1126/science.adg7492)"
+    },
+    {
+      "source": "CADD",
+      "source_url": "https://cadd.gs.washington.edu/",
+      "license": "LicenseRef-CADD",
+      "license_url": "https://cadd.gs.washington.edu/license",
+      "attribution": "CADD scores provided by the University of Washington.",
+      "citation": "Schubach et al., Nucleic Acids Research 2024"
     }
   ]
 }

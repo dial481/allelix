@@ -36,7 +36,7 @@ def _ann(**overrides) -> Annotation:
         "magnitude": 9.0,
         "description": "ClinVar classifies this allele as Pathogenic",
         "attribution": "ClinVar",
-        "genotype_match": "A/G",
+        "genotype_match": "AG",
         "gene": "MTHFR",
         "condition": "MTHFR deficiency",
     }
@@ -302,8 +302,8 @@ class TestHtmlVariantGrouping:
 
     def test_different_variants_different_rows(self, tmp_path: Path):
         anns = [
-            _ann(rsid="rs1", genotype_match="A/G"),
-            _ann(rsid="rs2", genotype_match="C/C"),
+            _ann(rsid="rs1", genotype_match="AG"),
+            _ann(rsid="rs2", genotype_match="CC"),
         ]
         out = tmp_path / "report.html"
         render_html(_result(anns), output_path=out)
@@ -425,8 +425,8 @@ class TestHtmlMagnitudeBadge:
 class TestHtmlDefaultSortDesc:
     def test_first_row_has_highest_magnitude(self, tmp_path: Path):
         anns = [
-            _ann(rsid="rs_low", magnitude=2.0, genotype_match="A/A"),
-            _ann(rsid="rs_high", magnitude=8.0, genotype_match="C/C"),
+            _ann(rsid="rs_low", magnitude=2.0, genotype_match="AA"),
+            _ann(rsid="rs_high", magnitude=8.0, genotype_match="CC"),
         ]
         out = tmp_path / "report.html"
         render_html(_result(anns), output_path=out)
