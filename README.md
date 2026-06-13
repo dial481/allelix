@@ -10,8 +10,8 @@ Open-source command-line toolkit for analyzing raw genotype files from consumer 
 > HTML/JSON/terminal reports, methylation + pharmacogenomics focused
 > commands, report diffing, persistent config with commercial-mode
 > safety switch. Build auto-detection from position data (ADR-0021).
-> No regex on prose anywhere in production. **Latest: v1.8.3** —
-> pip install quickstart, workflow hardening, PyPI link fix.
+> No regex on prose anywhere in production. **Latest: v1.8.4** —
+> `--no-cadd` flag for licensing exclusion parity.
 > Release notes:
 > [`CHANGELOG.md`](https://github.com/dial481/allelix/blob/main/CHANGELOG.md).
 
@@ -64,7 +64,7 @@ Adding a new format means adding one file to `allelix/parsers/` and registering 
 | GWAS Catalog | ✓ | Public domain (EBI/NHGRI). Trait–SNP associations with p-values and effect sizes. Carrier rule (ADR-0007) requires the user to carry the risk allele. P-value magnitude scoring (ADR-0024) maps continuous p-values to the 0–10 scale; unknown-risk-allele entries fire on rsID match alone but are capped at 3.0. |
 | gnomAD | ✓ | ODbL v1.0. **Enrichment annotator** — adds population allele frequency context to existing annotations. Shows how common each variant is in the general population (~16M exome variants from 730K individuals). A pathogenic variant that 35% of people carry reads very differently from one seen in 0.001%. Pre-built cache downloaded via `db update` (~6GB on disk). Use `--no-gnomad` to skip. |
 | AlphaMissense | ✓ | CC BY 4.0. **Enrichment annotator** — adds DeepMind's protein-structure-based pathogenicity predictions to existing annotations. Scores 71M missense variants on a 0–1 scale: <0.34 = likely benign, >0.564 = likely pathogenic. Complements ClinVar's expert classifications with computational predictions — especially valuable for variants ClinVar hasn't reviewed yet. Pre-built cache downloaded via `db update` (~8GB on disk). Use `--no-alphamissense` to skip. |
-| CADD | ✓ | LicenseRef-CADD (non-commercial). **Enrichment annotator** — adds PHRED-scaled deleteriousness scores from CADD v1.7. Ranks how deleterious any single-nucleotide variant is using 100+ annotation tracks (coding, non-coding, regulatory). PHRED 10 = top 10% most deleterious, 20 = top 1%, 30 = top 0.1%. **Opt-in** — disabled by default (`sources.cadd = false`). Enable via `allelix db update --cadd` or `allelix config set sources.cadd true`. Pre-built cache (~5 GB on disk, ~120M variant keys). Full mode available via pysam for GRCh38 data (`options.cadd_full = true`). Cache mode covers the large majority of variants present in gnomAD, AlphaMissense, and ClinVar — nearly every position allelix can annotate from its other databases. For genotyping chip data (23andMe, AncestryDNA, MyHappyGenes, etc.), cache and full mode produce effectively identical results because chip probes overwhelmingly target known, cataloged variants. Full mode adds coverage for novel or private variants that appear only in whole-genome or whole-exome sequencing data and are not in any pre-computed database. If your input is a genotyping chip file, cache mode is all you need. |
+| CADD | ✓ | LicenseRef-CADD (non-commercial). **Enrichment annotator** — adds PHRED-scaled deleteriousness scores from CADD v1.7. Ranks how deleterious any single-nucleotide variant is using 100+ annotation tracks (coding, non-coding, regulatory). PHRED 10 = top 10% most deleterious, 20 = top 1%, 30 = top 0.1%. **Opt-in** — disabled by default (`sources.cadd = false`). Enable via `allelix db update --cadd` or `allelix config set sources.cadd true`. Use `--no-cadd` to skip enrichment for a single run. Pre-built cache (~5 GB on disk, ~120M variant keys). Full mode available via pysam for GRCh38 data (`options.cadd_full = true`). Cache mode covers the large majority of variants present in gnomAD, AlphaMissense, and ClinVar — nearly every position allelix can annotate from its other databases. For genotyping chip data (23andMe, AncestryDNA, MyHappyGenes, etc.), cache and full mode produce effectively identical results because chip probes overwhelmingly target known, cataloged variants. Full mode adds coverage for novel or private variants that appear only in whole-genome or whole-exome sequencing data and are not in any pre-computed database. If your input is a genotyping chip file, cache mode is all you need. |
 
 ### Known PharmGKB limitation: reference-genotype rows where ClinVar and CPIC both lack data
 
@@ -121,7 +121,7 @@ allelix config set license.commercial true
 allelix config set license.cadd true
 ```
 
-CLI flags (`--no-gnomad`, `--no-alphamissense`, `--exclude-snpedia`, `--cadd`) override the config for a single run. The config sets the baseline; flags override per-invocation.
+CLI flags (`--no-gnomad`, `--no-alphamissense`, `--no-cadd`, `--exclude-snpedia`, `--cadd`) override the config for a single run. The config sets the baseline; flags override per-invocation.
 
 ### Database sizes and download times
 
@@ -153,7 +153,7 @@ Allelix source code is licensed under the **GNU Affero General Public License v3
 | SNPedia | snpedia.com | CC BY-NC-SA 3.0 US | Attribution required, **non-commercial only**. Use `--exclude-snpedia` to omit. |
 | gnomAD | gnomad.broadinstitute.org | ODbL v1.0 | Attribution required. Population allele frequencies for context; not a clinical annotator. Use `--no-gnomad` to omit. |
 | AlphaMissense | zenodo.org/records/10813168 | CC BY 4.0 | Attribution required. Cheng et al., Science 2023. Missense variant pathogenicity predictions. Use `--no-alphamissense` to omit. |
-| CADD | cadd.gs.washington.edu | LicenseRef-CADD | Attribution required, **non-commercial by default**. Commercial licenses available from UW CoMotion. Opt-in via `allelix db update --cadd`. |
+| CADD | cadd.gs.washington.edu | LicenseRef-CADD | Attribution required, **non-commercial by default**. Commercial licenses available from UW CoMotion. Opt-in via `allelix db update --cadd`. Use `--no-cadd` to omit. |
 
 **Commercial users:** When `license.commercial = true`, non-commercial sources are gated by a three-state permission model. SNPedia is permanently blocked (no commercial license is available). CADD is blocked by default but can be unlocked — the University of Washington offers commercial licenses at `https://els2.comotion.uw.edu/product/cadd-scores`; after purchasing, assert your license with `allelix config set license.cadd true` to re-enable CADD in commercial mode. All other databases (ClinVar, PharmGKB, GWAS Catalog, gnomAD, AlphaMissense) are compatible with commercial use. `allelix config show` displays the permission state for each source.
 

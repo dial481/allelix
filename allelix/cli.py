@@ -214,6 +214,7 @@ def _run_analysis_command(
     no_update: bool = False,
     no_gnomad: bool = False,
     no_alphamissense: bool = False,
+    no_cadd: bool = False,
 ) -> None:
     resolved = resolve_data_dir(data_dir)
     if not no_update:
@@ -256,12 +257,13 @@ def _run_analysis_command(
     ready = [a for a in ready if a.name != "alphamissense"]
 
     cadd_annotator = None
-    from allelix.annotators.cadd import CaddAnnotator
+    if not no_cadd:
+        from allelix.annotators.cadd import CaddAnnotator
 
-    for a in ready:
-        if isinstance(a, CaddAnnotator):
-            cadd_annotator = a
-            break
+        for a in ready:
+            if isinstance(a, CaddAnnotator):
+                cadd_annotator = a
+                break
     ready = [a for a in ready if a.name != "cadd"]
 
     if not_ready:
@@ -576,6 +578,12 @@ _NO_ALPHAMISSENSE_OPT = click.option(
     default=False,
     help="Skip AlphaMissense variant pathogenicity enrichment.",
 )
+_NO_CADD_OPT = click.option(
+    "--no-cadd",
+    is_flag=True,
+    default=False,
+    help="Skip CADD deleteriousness score enrichment.",
+)
 _BUILD_OPT = click.option(
     "--build",
     type=click.Choice(["grch37", "grch38", "auto"], case_sensitive=False),
@@ -672,6 +680,7 @@ def _emit_build_diagnostics(result: object) -> None:
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
 @_NO_ALPHAMISSENSE_OPT
+@_NO_CADD_OPT
 def analyze(
     file_path: Path,
     fmt: str | None,
@@ -690,6 +699,7 @@ def analyze(
     no_update: bool,
     no_gnomad: bool,
     no_alphamissense: bool,
+    no_cadd: bool,
 ) -> None:
     """Annotate a genotype file against all ready reference databases."""
     _run_analysis_command(
@@ -711,6 +721,7 @@ def analyze(
         no_update=no_update,
         no_gnomad=no_gnomad,
         no_alphamissense=no_alphamissense,
+        no_cadd=no_cadd,
     )
 
 
@@ -868,6 +879,7 @@ def compare(file1: Path, file2: Path, fmt1: str | None, fmt2: str | None) -> Non
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
 @_NO_ALPHAMISSENSE_OPT
+@_NO_CADD_OPT
 def methylation(
     file_path: Path,
     fmt: str | None,
@@ -886,6 +898,7 @@ def methylation(
     no_update: bool,
     no_gnomad: bool,
     no_alphamissense: bool,
+    no_cadd: bool,
 ) -> None:
     """Methylation-pathway-focused report (MTHFR, MTR, MTRR, COMT, CBS, …)."""
     excluded: set[str] = set()
@@ -912,6 +925,7 @@ def methylation(
         no_update=no_update,
         no_gnomad=no_gnomad,
         no_alphamissense=no_alphamissense,
+        no_cadd=no_cadd,
     )
 
 
@@ -933,6 +947,7 @@ def methylation(
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
 @_NO_ALPHAMISSENSE_OPT
+@_NO_CADD_OPT
 def pharmacogenomics(
     file_path: Path,
     fmt: str | None,
@@ -951,6 +966,7 @@ def pharmacogenomics(
     no_update: bool,
     no_gnomad: bool,
     no_alphamissense: bool,
+    no_cadd: bool,
 ) -> None:
     """Pharmacogenomics-focused report (annotations from PharmGKB-style sources)."""
     excluded: set[str] = set()
@@ -977,6 +993,7 @@ def pharmacogenomics(
         no_update=no_update,
         no_gnomad=no_gnomad,
         no_alphamissense=no_alphamissense,
+        no_cadd=no_cadd,
     )
 
 

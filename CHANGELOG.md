@@ -2,6 +2,15 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.4]
+
+### Added
+- **`--no-cadd` flag on analyze, methylation, and pharmacogenomics commands.**
+  Per-invocation CADD enrichment exclusion. Required for commercial
+  deployments without a CADD license from UW CoMotion (CADD is
+  `commercial_ok=False`). Mirrors the existing `--exclude-snpedia`
+  licensing-exclusion pattern.
+
 ## [1.8.3]
 
 ### Changed
@@ -1658,6 +1667,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.8.4]: https://github.com/dial481/allelix/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/dial481/allelix/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/dial481/allelix/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/dial481/allelix/compare/v1.8.0...v1.8.1

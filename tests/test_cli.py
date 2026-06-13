@@ -1527,6 +1527,58 @@ class TestExcludeSnpedia:
         assert captured["exclude_sources"] == frozenset({"snpedia", "gwas"})
 
 
+class TestNoCaddFlag:
+    """--no-cadd wires through to no_cadd on all three analysis commands."""
+
+    def test_analyze_passes_no_cadd(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path), "--no-cadd"])
+        assert result.exit_code == 0, result.output
+        assert captured["no_cadd"] is True
+
+    def test_analyze_default_no_cadd_false(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path)])
+        assert result.exit_code == 0, result.output
+        assert captured["no_cadd"] is False
+
+    def test_methylation_passes_no_cadd(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["methylation", str(mock_mhg_path), "--no-cadd"])
+        assert result.exit_code == 0, result.output
+        assert captured["no_cadd"] is True
+
+    def test_pharmacogenomics_passes_no_cadd(self, mock_mhg_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        runner = CliRunner()
+        result = runner.invoke(main, ["pharmacogenomics", str(mock_mhg_path), "--no-cadd"])
+        assert result.exit_code == 0, result.output
+        assert captured["no_cadd"] is True
+
+
 class TestHighValueNoCalls:
     def test_stats_flags_dpyd_no_call(self, mock_mhg_path):
         """The MHG fixture has rs3918290 (DPYD) as a no-call; stats should flag it."""
