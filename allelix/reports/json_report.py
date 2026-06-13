@@ -103,6 +103,7 @@ def render_json(
     min_magnitude: float = 0.0,
     category: str | None = None,
     genes: Iterable[str] | None = None,
+    rsids: Iterable[str] | None = None,
     source_min_magnitudes: dict[str, float] | None = None,
     diff: DiffResult | None = None,
     high_value_no_calls: list[dict[str, str]] | None = None,
@@ -112,6 +113,7 @@ def render_json(
         min_magnitude=min_magnitude,
         category=category,
         genes=genes,
+        rsids=rsids,
         source_min_magnitudes=source_min_magnitudes,
     )
     filtered = rollup_gwas_duplicates(filtered)
@@ -134,7 +136,8 @@ def render_json(
         "filters": {
             "min_magnitude": min_magnitude,
             "category": category,
-            "genes": sorted(genes) if genes else None,
+            "genes": sorted(genes) if genes is not None else None,
+            "rsids": sorted(rsids) if rsids is not None else None,
         },
         "annotations": [_annotation_dict(a) for a in filtered],
     }

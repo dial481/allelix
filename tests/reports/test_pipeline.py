@@ -84,6 +84,50 @@ class TestAnalysisResultFilter:
         kept = r.filter()
         assert [a.rsid for a in kept] == ["rs3", "rs1", "rs2"]
 
+    def test_rsids_filter_case_insensitive(self):
+        r = self._result([_ann(rsid="rs1801133"), _ann(rsid="rs4680")])
+        kept = r.filter(rsids={"RS1801133"})
+        assert [a.rsid for a in kept] == ["rs1801133"]
+
+    def test_genes_and_rsids_combine_with_or(self):
+        r = self._result(
+            [
+                _ann(rsid="rs1", gene="MTHFR"),
+                _ann(rsid="rs4680", gene="COMT"),
+                _ann(rsid="rsXX", gene="OTHER"),
+            ]
+        )
+        kept = r.filter(genes={"MTHFR"}, rsids={"rs4680"})
+        assert sorted(a.rsid for a in kept) == ["rs1", "rs4680"]
+
+    def test_empty_genes_set_matches_nothing(self):
+        """An empty filter set != None: explicit "match nothing", empty report."""
+        r = self._result([_ann(rsid="rs1", gene="MTHFR")])
+        kept = r.filter(genes=frozenset())
+        assert kept == []
+
+    def test_empty_rsids_set_matches_nothing(self):
+        r = self._result([_ann(rsid="rs1", gene="MTHFR")])
+        kept = r.filter(rsids=frozenset())
+        assert kept == []
+
+    def test_both_empty_sets_match_nothing(self):
+        r = self._result([_ann(rsid="rs1", gene="MTHFR")])
+        kept = r.filter(genes=frozenset(), rsids=frozenset())
+        assert kept == []
+
+    def test_none_means_no_filter(self):
+        """None on both means no gene/rsid filter — every annotation passes."""
+        r = self._result([_ann(rsid="rs1", gene="MTHFR"), _ann(rsid="rs2", gene="COMT")])
+        kept = r.filter(genes=None, rsids=None)
+        assert len(kept) == 2
+
+    def test_gene_none_with_rsid_filter_does_not_crash(self):
+        """GWAS/intergenic annotations have gene=None; filter must not crash."""
+        r = self._result([_ann(rsid="rs1", gene=None), _ann(rsid="rs2", gene="MTHFR")])
+        kept = r.filter(rsids={"rs1"})
+        assert [a.rsid for a in kept] == ["rs1"]
+
 
 class TestRunAnalysis:
     def test_streams_and_collects(self, mock_mhg_path: Path, all_annotators_data_dir: Path):

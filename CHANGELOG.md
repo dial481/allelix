@@ -2,6 +2,19 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0]
+
+### Added
+- **`--filter-file` option on `analyze`.** Accepts a plain text file with
+  rsIDs and gene names (one entry per line) for custom-panel filtering of
+  the analyze report. Lines matching `^rs\d+$` (case-insensitive) are
+  treated as rsIDs; everything else is a gene name. Comments (`#`) and
+  blank lines are ignored. Gene and rsID matches combine with OR — an
+  annotation passes if it matches either set. An empty filter file (or
+  one with only comments) produces an empty report. Not added to
+  `methylation` or `pharmacogenomics`, which already operate on curated
+  panels.
+
 ## [1.8.4]
 
 ### Added
@@ -1667,6 +1680,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - GitHub Actions CI matrix on Python 3.11 and 3.12.
 
 
+[1.9.0]: https://github.com/dial481/allelix/compare/v1.8.4...v1.9.0
 [1.8.4]: https://github.com/dial481/allelix/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/dial481/allelix/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/dial481/allelix/compare/v1.8.1...v1.8.2

@@ -1579,6 +1579,201 @@ class TestNoCaddFlag:
         assert captured["no_cadd"] is True
 
 
+class TestParseFilterFile:
+    """Unit tests for _parse_filter_file (parser classification)."""
+
+    def test_rsid_lowercase(self, tmp_path):
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("rs1801133\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset()
+        assert rsids == frozenset({"rs1801133"})
+
+    def test_rsid_uppercase_normalized_to_lowercase(self, tmp_path):
+        """Input case-tolerant, output canonical: RS1801133 → rs1801133."""
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("RS1801133\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset()
+        assert rsids == frozenset({"rs1801133"})
+
+    def test_gene_lowercase_normalized_to_uppercase(self, tmp_path):
+        """Input case-tolerant, output canonical: mthfr → MTHFR."""
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("mthfr\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset({"MTHFR"})
+        assert rsids == frozenset()
+
+    def test_mixed_messy_case_normalized(self, tmp_path):
+        """End-to-end case-mixing across rsIDs and genes."""
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("Rs1801133\ncomt\nRSPO1\nRS4680\nmThFr\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset({"COMT", "RSPO1", "MTHFR"})
+        assert rsids == frozenset({"rs1801133", "rs4680"})
+
+    def test_gene_only(self, tmp_path):
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("MTHFR\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset({"MTHFR"})
+        assert rsids == frozenset()
+
+    def test_gene_starting_with_rs_prefix_is_gene_not_rsid(self, tmp_path):
+        """RSPO1, RSF1, RSC1A1 are real gene names — must not be classified as rsIDs."""
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("RSPO1\nRSF1\nRSC1A1\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset({"RSPO1", "RSF1", "RSC1A1"})
+        assert rsids == frozenset()
+
+    def test_mixed(self, tmp_path):
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("rs1801133\nMTHFR\nrs4680\nCOMT\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset({"MTHFR", "COMT"})
+        assert rsids == frozenset({"rs1801133", "rs4680"})
+
+    def test_comments_and_blanks_ignored(self, tmp_path):
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("# this is a comment\n\nMTHFR\n\n# another\nrs1801133\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset({"MTHFR"})
+        assert rsids == frozenset({"rs1801133"})
+
+    def test_empty_file_returns_empty_sets(self, tmp_path):
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset()
+        assert rsids == frozenset()
+
+    def test_comments_only_returns_empty_sets(self, tmp_path):
+        from allelix.cli import _parse_filter_file
+
+        f = tmp_path / "filter.txt"
+        f.write_text("# only a comment\n# another\n\n")
+        genes, rsids = _parse_filter_file(f)
+        assert genes == frozenset()
+        assert rsids == frozenset()
+
+
+class TestFilterFileOnAnalyze:
+    """--filter-file is only on analyze; threads through _run_analysis_command."""
+
+    def test_analyze_rsid_only(self, mock_mhg_path, tmp_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        f = tmp_path / "filter.txt"
+        f.write_text("rs1801133\n")
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path), "--filter-file", str(f)])
+        assert result.exit_code == 0, result.output
+        assert captured["genes"] == frozenset()
+        assert captured["rsids"] == frozenset({"rs1801133"})
+
+    def test_analyze_gene_only(self, mock_mhg_path, tmp_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        f = tmp_path / "filter.txt"
+        f.write_text("MTHFR\n")
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path), "--filter-file", str(f)])
+        assert result.exit_code == 0, result.output
+        assert captured["genes"] == frozenset({"MTHFR"})
+        assert captured["rsids"] == frozenset()
+
+    def test_analyze_mixed_or_combination(self, mock_mhg_path, tmp_path, monkeypatch):
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        f = tmp_path / "filter.txt"
+        f.write_text("rs1801133\nCOMT\n")
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path), "--filter-file", str(f)])
+        assert result.exit_code == 0, result.output
+        assert captured["genes"] == frozenset({"COMT"})
+        assert captured["rsids"] == frozenset({"rs1801133"})
+
+    def test_analyze_empty_filter_passes_empty_sets(self, mock_mhg_path, tmp_path, monkeypatch):
+        """Empty filter file (only comments/blanks) threads empty frozensets through.
+
+        The empty-set → match-nothing semantic on AnalysisResult.filter()
+        is covered by a direct unit test in tests/test_pipeline_filter.py;
+        here we verify only that the CLI layer forwards empty frozensets,
+        not None.
+        """
+        captured: dict = {}
+
+        def fake_run(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("allelix.cli._run_analysis_command", fake_run)
+        f = tmp_path / "filter.txt"
+        f.write_text("# only comments\n\n")
+        runner = CliRunner()
+        result = runner.invoke(main, ["analyze", str(mock_mhg_path), "--filter-file", str(f)])
+        assert result.exit_code == 0, result.output
+        assert captured["genes"] == frozenset()
+        assert captured["rsids"] == frozenset()
+
+    def test_analyze_filter_file_nonexistent_path_errors(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["analyze", str(mock_mhg_path), "--filter-file", "/does/not/exist.txt"],
+        )
+        assert result.exit_code != 0
+
+    def test_methylation_does_not_have_filter_file(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["methylation", str(mock_mhg_path), "--filter-file", "/tmp/x.txt"],
+        )
+        assert result.exit_code != 0
+        assert "no such option" in result.output.lower()
+
+    def test_pharmacogenomics_does_not_have_filter_file(self, mock_mhg_path):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["pharmacogenomics", str(mock_mhg_path), "--filter-file", "/tmp/x.txt"],
+        )
+        assert result.exit_code != 0
+        assert "no such option" in result.output.lower()
+
+
 class TestHighValueNoCalls:
     def test_stats_flags_dpyd_no_call(self, mock_mhg_path):
         """The MHG fixture has rs3918290 (DPYD) as a no-call; stats should flag it."""

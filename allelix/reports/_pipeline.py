@@ -105,6 +105,7 @@ class AnalysisResult:
         min_magnitude: float = 0.0,
         category: str | None = None,
         genes: Iterable[str] | None = None,
+        rsids: Iterable[str] | None = None,
         source_min_magnitudes: dict[str, float] | None = None,
     ) -> list[Annotation]:
         """Apply the standard filters and return a sorted list of annotations.
@@ -117,8 +118,14 @@ class AnalysisResult:
         entry, that value IS the floor for that source — it can raise OR
         lower the global ``min_magnitude``. Sources without an entry use
         the global floor.
+
+        `genes` and `rsids` combine with OR: when either is provided, an
+        annotation passes if it matches the gene set OR the rsid set.
+        Empty collections (vs None) mean "match nothing" — an empty
+        filter file produces an empty report.
         """
-        gene_set = {g.upper() for g in genes} if genes else None
+        gene_set = {g.upper() for g in genes} if genes is not None else None
+        rsid_set = {r.lower() for r in rsids} if rsids is not None else None
         out: list[Annotation] = []
         for a in self.annotations:
             if (
@@ -133,8 +140,11 @@ class AnalysisResult:
                 continue
             if category is not None and a.category != category:
                 continue
-            if gene_set is not None and (a.gene or "").upper() not in gene_set:
-                continue
+            if gene_set is not None or rsid_set is not None:
+                gene_match = gene_set is not None and (a.gene or "").upper() in gene_set
+                rsid_match = rsid_set is not None and a.rsid.lower() in rsid_set
+                if not gene_match and not rsid_match:
+                    continue
             out.append(a)
         out.sort(key=lambda a: (-a.magnitude, a.rsid))
         return out

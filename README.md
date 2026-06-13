@@ -10,8 +10,8 @@ Open-source command-line toolkit for analyzing raw genotype files from consumer 
 > HTML/JSON/terminal reports, methylation + pharmacogenomics focused
 > commands, report diffing, persistent config with commercial-mode
 > safety switch. Build auto-detection from position data (ADR-0021).
-> No regex on prose anywhere in production. **Latest: v1.8.4** —
-> `--no-cadd` flag for licensing exclusion parity.
+> No regex on prose anywhere in production. **Latest: v1.9.0** —
+> `--filter-file` flag for custom-panel filtering on `analyze`.
 > Release notes:
 > [`CHANGELOG.md`](https://github.com/dial481/allelix/blob/main/CHANGELOG.md).
 
@@ -27,6 +27,9 @@ allelix db update
 
 # Analyze a genotype file
 allelix analyze your_genotype_file.txt --output report.html
+
+# Filter to a custom panel (rsIDs + gene names, one per line; '#' comments and blank lines ignored)
+allelix analyze your_genotype_file.txt --filter-file my_panel.txt --output report.html
 ```
 
 Requires Python 3.11+. See [Development](#development) for source installs and running tests.

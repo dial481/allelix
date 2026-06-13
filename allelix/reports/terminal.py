@@ -27,6 +27,7 @@ def render_terminal(
     min_magnitude: float = 0.0,
     category: str | None = None,
     genes: Iterable[str] | None = None,
+    rsids: Iterable[str] | None = None,
     source_min_magnitudes: dict[str, float] | None = None,
 ) -> int:
     """Render an AnalysisResult as a Rich table. Returns annotation count.
@@ -38,6 +39,7 @@ def render_terminal(
         min_magnitude=min_magnitude,
         category=category,
         genes=genes,
+        rsids=rsids,
         source_min_magnitudes=source_min_magnitudes,
     )
     filtered = rollup_gwas_duplicates(filtered)

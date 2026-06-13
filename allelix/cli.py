@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -195,6 +196,35 @@ def _format_from_path(output: Path, override: str | None) -> str:
     )
 
 
+_RSID_PATTERN = re.compile(r"^rs\d+$", re.IGNORECASE)
+
+
+def _parse_filter_file(path: Path) -> tuple[frozenset[str], frozenset[str]]:
+    r"""Parse a filter file into ``(gene_names, rsids)``.
+
+    Lines matching ``^rs\d+$`` (case-insensitive) are rsIDs. Everything
+    else is a gene name. Lines starting with ``#`` and blank lines are
+    ignored. Gene names starting with ``RS`` (e.g., RSPO1, RSF1) are
+    correctly classified as gene names, not rsIDs.
+
+    Input is case-tolerant; output is canonical: rsIDs are normalized to
+    lowercase (``rs1801133``), gene names to uppercase (``MTHFR``). The
+    filter recorded in JSON output therefore looks identical regardless
+    of how the user typed the entries in the filter file.
+    """
+    genes: set[str] = set()
+    rsids: set[str] = set()
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if _RSID_PATTERN.match(line):
+            rsids.add(line.lower())
+        else:
+            genes.add(line.upper())
+    return frozenset(genes), frozenset(rsids)
+
+
 def _run_analysis_command(
     file_path: Path,
     fmt: str | None,
@@ -204,6 +234,7 @@ def _run_analysis_command(
     min_magnitude: float,
     category: str | None,
     genes: frozenset[str] | None,
+    rsids: frozenset[str] | None = None,
     build: str | None = None,
     include_benign: bool = False,
     gwas_min_magnitude: float | None = None,
@@ -335,6 +366,7 @@ def _run_analysis_command(
             min_magnitude=min_magnitude,
             category=category,
             genes=genes,
+            rsids=rsids,
             source_min_magnitudes=source_floors,
         )
         from allelix.reports._pipeline import rollup_gwas_duplicates
@@ -356,6 +388,7 @@ def _run_analysis_command(
                 min_magnitude=min_magnitude,
                 category=category,
                 genes=genes,
+                rsids=rsids,
                 source_min_magnitudes=source_floors,
             )
     else:
@@ -373,6 +406,7 @@ def _run_analysis_command(
                 min_magnitude=min_magnitude,
                 category=category,
                 genes=genes,
+                rsids=rsids,
                 source_min_magnitudes=source_floors,
                 diff=diff_result,
                 high_value_no_calls=hv_dicts,
@@ -384,6 +418,7 @@ def _run_analysis_command(
                 min_magnitude=min_magnitude,
                 category=category,
                 genes=genes,
+                rsids=rsids,
                 source_min_magnitudes=source_floors,
                 diff=diff_result,
                 high_value_no_calls=hv_warning_lines,
@@ -560,6 +595,16 @@ _DIFF_OPT = click.option(
         "Not a monitoring tool — use for version-to-version validation."
     ),
 )
+_FILTER_FILE_OPT = click.option(
+    "--filter-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "Plain text file with rsIDs and/or gene names (one per line) to "
+        "filter the report. Lines matching '^rs\\d+$' are rsIDs; everything "
+        "else is a gene name. Comments (#) and blank lines are ignored."
+    ),
+)
 _NO_UPDATE_OPT = click.option(
     "--no-update",
     is_flag=True,
@@ -677,6 +722,7 @@ def _emit_build_diagnostics(result: object) -> None:
 @_GWAS_ALL_OPT
 @_EXCLUDE_SNPEDIA_OPT
 @_DIFF_OPT
+@_FILTER_FILE_OPT
 @_NO_UPDATE_OPT
 @_NO_GNOMAD_OPT
 @_NO_ALPHAMISSENSE_OPT
@@ -696,12 +742,20 @@ def analyze(
     gwas_all: bool,
     exclude_snpedia: bool,
     diff_path: Path | None,
+    filter_file: Path | None,
     no_update: bool,
     no_gnomad: bool,
     no_alphamissense: bool,
     no_cadd: bool,
 ) -> None:
     """Annotate a genotype file against all ready reference databases."""
+    filter_genes: frozenset[str] | None = None
+    filter_rsids: frozenset[str] | None = None
+    if filter_file is not None:
+        filter_genes, filter_rsids = _parse_filter_file(filter_file)
+        # Empty sets (file had only comments/blanks) still apply — they
+        # mean "match nothing", producing an empty report.
+
     _run_analysis_command(
         file_path=file_path,
         fmt=fmt,
@@ -710,7 +764,8 @@ def analyze(
         report_format=report_format,
         min_magnitude=min_magnitude,
         category=category,
-        genes=None,
+        genes=filter_genes,
+        rsids=filter_rsids,
         build=_normalize_cli_build(build),
         include_benign=include_benign,
         gwas_min_magnitude=gwas_min_magnitude,
